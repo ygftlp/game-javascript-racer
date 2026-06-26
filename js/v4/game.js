@@ -124,7 +124,7 @@
       s.ctx = s.canvas.getContext('2d');
 
       Racer.Hud.init();
-      Racer.TweakUI.bind(GameController.reset);
+      Racer.TweakUI.bind(function(options) { GameController.reset(options); });
 
       Game.run({
         canvas: s.canvas,
