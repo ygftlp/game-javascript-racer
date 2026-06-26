@@ -1,6 +1,6 @@
 # Asset Replacement Plan
 
-Commercialization requires assets to be replaceable without editing gameplay code. The v4 game now uses an asset manifest module so resource paths can be changed from one place.
+Commercialization requires assets to be replaceable without editing gameplay code. The v4 game now uses asset-pack and atlas-map modules so paths and sprite/background coordinates can be changed from one place.
 
 ## Current state
 
@@ -44,7 +44,13 @@ assets/
 
 A single background atlas used by the pseudo-3D renderer.
 
-It must contain the same logical layers unless the constants in `common.js` are updated:
+It must contain the logical layers defined in:
+
+```text
+js/v4/content/background-map.js
+```
+
+Current layers:
 
 - hills layer
 - sky layer
@@ -54,7 +60,13 @@ It must contain the same logical layers unless the constants in `common.js` are 
 
 A single sprite atlas used for cars, player vehicle frames, roadside objects, billboards, trees, bushes, rocks, and obstacles.
 
-The current sprite coordinates are defined in `common.js` under `SPRITES`. If the atlas layout changes, update those coordinate definitions or add a future skin/sprite-map module.
+Sprite coordinates and groups are defined in:
+
+```text
+js/v4/content/sprite-map.js
+```
+
+If the atlas layout changes, update that map instead of changing gameplay modules.
 
 ### `audio/music/racer.ogg` and `audio/music/racer.mp3`
 
@@ -62,7 +74,11 @@ Main looping music. Provide both formats for browser compatibility.
 
 ## Switching packs
 
-The active pack is configured in `js/v4/config.js`:
+The active pack is configured in:
+
+```text
+js/v4/content/config.js
+```
 
 ```js
 assets: {
@@ -80,7 +96,7 @@ assets: {
 
 ## Manifest module
 
-`js/v4/assets.js` maps each pack id to concrete paths. Add new packs there, for example:
+`js/v4/content/assets.js` maps each pack id to concrete paths. Add new packs there, for example:
 
 ```js
 packs: {
@@ -98,6 +114,17 @@ packs: {
 }
 ```
 
+## Atlas map modules
+
+Use these files for pack-specific atlas layout:
+
+```text
+js/v4/content/background-map.js
+js/v4/content/sprite-map.js
+```
+
+Each commercial asset pack can provide different images and different atlas coordinates, as long as the runtime map exposes the same logical sprite and background names used by gameplay and rendering modules.
+
 ## Replacement checklist
 
 - Replace all original sprites with original or properly licensed artwork.
@@ -109,4 +136,20 @@ packs: {
 
 ## Future improvement
 
-The next step should be moving `BACKGROUND` and `SPRITES` coordinate maps out of `common.js` into a dedicated `sprite-map.js` or `assets-map.js`. That will allow each asset pack to provide its own atlas layout without touching shared engine code.
+After the first commercial-safe asset pack exists, add a pack metadata file:
+
+```text
+assets/packs/default/metadata.json
+```
+
+Suggested fields:
+
+```json
+{
+  "id": "default",
+  "name": "Default Commercial Pack",
+  "version": "1.0.0",
+  "commercialSafe": true,
+  "licenses": []
+}
+```
