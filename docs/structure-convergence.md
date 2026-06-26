@@ -4,22 +4,22 @@ This document records the current architecture convergence decision for the v4 c
 
 ## Decision
 
-Do not move working runtime modules into nested folders yet.
+The v4 runtime modules have now been moved into responsibility-based directories.
 
-The project now has a target structure, future directories, and validation scripts, but the actively loaded v4 modules stay in `js/v4/*.js` until browser validation is complete.
+The project still uses plain script tags and static files. No bundler, ES module migration, package manager, or backend dependency has been introduced.
 
-## Why
+## Why this move is now acceptable
 
-The current v4 entry uses plain script tags, not ES modules or a bundler. Moving files too early would increase risk without improving the commercial product yet.
+The target directories, resource-pack layout, integration facade, and structure validation script are already in place. Moving the files now improves maintainability while keeping runtime behavior close to the previous flat `js/v4/*.js` layout.
 
-The safer approach is:
+The migration rule is:
 
-1. Preserve the current working script order.
-2. Add structure documentation.
-3. Add future directories and resource-pack folders.
-4. Add validation script and manual test checklist.
-5. Browser-test the current PR.
-6. Move modules only after the current entry is stable.
+1. Move files by responsibility.
+2. Keep module globals unchanged, for example `Racer.Track`, `Racer.Hud`, and `Racer.App`.
+3. Update `v4.final.html` script paths only.
+4. Avoid changing gameplay logic during the move.
+5. Use `scripts/validate-v4-structure.mjs` to guard the new layout.
+6. Browser-test before marking the PR ready.
 
 ## Current runtime layout
 
@@ -27,38 +27,39 @@ The safer approach is:
 v4.final.html
   stats.js
   common.js
-  js/v4/state.js
-  js/v4/config.js
-  js/v4/assets.js
-  js/v4/background-map.js
-  js/v4/sprite-map.js
-  js/v4/platform.js
-  js/v4/ads.js
-  js/v4/analytics.js
-  js/v4/save.js
-  js/v4/app.js
-  js/v4/hud.js
-  js/v4/track.js
-  js/v4/traffic.js
-  js/v4/renderer.js
-  js/v4/input.js
-  js/v4/tweak-ui.js
-  js/v4/game.js
+  js/v4/core/state.js
+  js/v4/content/config.js
+  js/v4/content/assets.js
+  js/v4/content/background-map.js
+  js/v4/content/sprite-map.js
+  js/v4/integrations/platform.js
+  js/v4/integrations/ads.js
+  js/v4/integrations/analytics.js
+  js/v4/systems/save.js
+  js/v4/core/app.js
+  js/v4/ui/hud.js
+  js/v4/gameplay/track.js
+  js/v4/gameplay/traffic.js
+  js/v4/rendering/renderer.js
+  js/v4/ui/input.js
+  js/v4/ui/tweak-ui.js
+  js/v4/core/game.js
 ```
 
-## Future directories reserved
+## Directory responsibilities
 
 ```text
-js/v4/scenes/
-js/v4/ui/
-js/v4/systems/
-js/v4/integrations/
-js/v4/content/
+js/v4/core/          App facade, shared state, and game controller.
+js/v4/content/       Product config, asset manifest, and atlas maps.
+js/v4/gameplay/      Track generation, traffic, and future driving rules.
+js/v4/rendering/     Canvas rendering orchestration.
+js/v4/ui/            HUD, input, tweak controls, and future menu/result UI.
+js/v4/integrations/  Platform, ads, analytics, and future SDK adapters.
+js/v4/systems/       Save system and future leaderboard/progression/privacy systems.
+js/v4/scenes/        Reserved for future scene flow.
 ```
 
-These directories are reserved for future migrations and currently contain README files only.
-
-## Resource-pack layout reserved
+## Resource-pack layout
 
 ```text
 assets/packs/default/
@@ -89,10 +90,14 @@ docs/manual-test-checklist.md
 
 ## Next migration after validation
 
-After browser validation passes, the recommended next step is to introduce a scene manager while keeping old module paths stable:
+After browser validation passes, the recommended next step is to introduce a scene manager:
 
 ```text
-js/v4/scene.js
+js/v4/scenes/scene.js
 ```
 
-Only after that should HUD, menus, result screens, and mobile controls be moved or introduced under `js/v4/ui/`.
+The first scene flow should be:
+
+```text
+boot -> menu -> countdown -> playing -> paused -> result
+```
