@@ -12,6 +12,7 @@
       var speedPercent = s.speed / s.maxSpeed;
       var dx = dt * 2 * speedPercent;
       var startPosition = s.position;
+      var fastLapTime;
 
       Racer.Traffic.updateCars(dt, playerSegment, playerW);
 
@@ -41,6 +42,7 @@
           if (Util.overlap(s.playerX, playerW, sprite.offset + spriteW / 2 * (sprite.offset > 0 ? 1 : -1), spriteW)) {
             s.speed = s.maxSpeed / 5;
             s.position = Util.increase(playerSegment.p1.world.z, -s.playerZ, s.trackLength);
+            Racer.Analytics.track('collision', { type: 'roadside_sprite' });
             break;
           }
         }
@@ -53,6 +55,7 @@
           if (Util.overlap(s.playerX, playerW, car.offset, carW, 0.8)) {
             s.speed = car.speed * (car.speed / s.speed);
             s.position = Util.increase(car.z, -s.playerZ, s.trackLength);
+            Racer.Analytics.track('collision', { type: 'traffic' });
             break;
           }
         }
@@ -69,11 +72,19 @@
         if (s.currentLapTime && (startPosition < s.playerZ)) {
           s.lastLapTime = s.currentLapTime;
           s.currentLapTime = 0;
-          if (s.lastLapTime <= Util.toFloat(Dom.storage.fast_lap_time)) {
-            Dom.storage.fast_lap_time = s.lastLapTime;
+          fastLapTime = Racer.Save.getFastLapTime();
+
+          Racer.Analytics.track('lap_complete', {
+            lapTime: s.lastLapTime,
+            bestLapTime: fastLapTime
+          });
+
+          if (s.lastLapTime <= fastLapTime) {
+            Racer.Save.setFastLapTime(s.lastLapTime);
             Racer.Hud.update('fast_lap_time', Racer.Hud.formatTime(s.lastLapTime));
             Dom.addClassName('fast_lap_time', 'fastest');
             Dom.addClassName('last_lap_time', 'fastest');
+            Racer.Analytics.track('new_fast_lap', { lapTime: s.lastLapTime });
           }
           else {
             Dom.removeClassName('fast_lap_time', 'fastest');
@@ -119,6 +130,11 @@
     start: function() {
       var s = Racer.State;
 
+      Racer.Platform.init();
+      Racer.Analytics.init();
+      Racer.Ads.init();
+      Racer.Save.init();
+
       s.stats = Game.stats('fps');
       s.canvas = Dom.get('canvas');
       s.ctx = s.canvas.getContext('2d');
@@ -138,8 +154,14 @@
           s.background = images[0];
           s.sprites = images[1];
           GameController.reset();
-          Dom.storage.fast_lap_time = Dom.storage.fast_lap_time || Racer.Config.defaultFastLapTime;
-          Racer.Hud.update('fast_lap_time', Racer.Hud.formatTime(Util.toFloat(Dom.storage.fast_lap_time)));
+          Racer.Hud.update('fast_lap_time', Racer.Hud.formatTime(Racer.Save.getFastLapTime()));
+          Racer.Platform.gameReady();
+          Racer.Platform.gameplayStart();
+          Racer.Analytics.track('game_ready', {
+            product: Racer.Config.product.id,
+            platform: Racer.Platform.provider,
+            embedded: Racer.Platform.embedded
+          });
         }
       });
     }
