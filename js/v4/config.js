@@ -6,7 +6,12 @@
       version: '0.1.0-commercial-scaffold'
     },
 
-    images: ['background', 'sprites'],
+    assets: {
+      activePack: 'legacy',
+      requiredImages: ['background', 'sprites'],
+      commercialPackPath: 'assets/packs/default/'
+    },
+
     defaultFastLapTime: 180,
 
     resolutions: {
