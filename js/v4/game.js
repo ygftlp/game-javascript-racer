@@ -134,6 +134,7 @@
       Racer.Analytics.init();
       Racer.Ads.init();
       Racer.Save.init();
+      Racer.Assets.applyAudioSources();
 
       s.stats = Game.stats('fps');
       s.canvas = Dom.get('canvas');
@@ -148,7 +149,7 @@
         update: GameController.update,
         stats: s.stats,
         step: s.step,
-        images: Racer.Config.images,
+        images: Racer.Assets.imageSources(),
         keys: Racer.Input.keyBindings(),
         ready: function(images) {
           s.background = images[0];
@@ -160,7 +161,8 @@
           Racer.Analytics.track('game_ready', {
             product: Racer.Config.product.id,
             platform: Racer.Platform.provider,
-            embedded: Racer.Platform.embedded
+            embedded: Racer.Platform.embedded,
+            assetPack: Racer.Assets.currentPack().id
           });
         }
       });
