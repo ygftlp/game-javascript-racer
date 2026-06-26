@@ -110,42 +110,10 @@
       s.playerZ = (s.cameraHeight * s.cameraDepth);
       s.resolution = s.height / 480;
 
-      GameController.refreshTweakUI();
+      Racer.TweakUI.refresh();
 
       if ((s.segments.length === 0) || (options.segmentLength) || (options.rumbleLength))
         Racer.Track.resetRoad();
-    },
-
-    refreshTweakUI: function() {
-      var s = Racer.State;
-      Dom.get('lanes').selectedIndex = s.lanes - 1;
-      Dom.get('currentRoadWidth').innerHTML = Dom.get('roadWidth').value = s.roadWidth;
-      Dom.get('currentCameraHeight').innerHTML = Dom.get('cameraHeight').value = s.cameraHeight;
-      Dom.get('currentDrawDistance').innerHTML = Dom.get('drawDistance').value = s.drawDistance;
-      Dom.get('currentFieldOfView').innerHTML = Dom.get('fieldOfView').value = s.fieldOfView;
-      Dom.get('currentFogDensity').innerHTML = Dom.get('fogDensity').value = s.fogDensity;
-    },
-
-    bindTweakUI: function() {
-      Dom.on('resolution', 'change', function(ev) {
-        var w;
-        var h;
-        switch (ev.target.options[ev.target.selectedIndex].value) {
-          case 'fine':   w = 1280; h = 960; break;
-          case 'high':   w = 1024; h = 768; break;
-          case 'medium': w = 640;  h = 480; break;
-          case 'low':    w = 480;  h = 360; break;
-        }
-        GameController.reset({ width: w, height: h });
-        Dom.blur(ev);
-      });
-
-      Dom.on('lanes',        'change', function(ev) { Dom.blur(ev); GameController.reset({ lanes:        ev.target.options[ev.target.selectedIndex].value }); });
-      Dom.on('roadWidth',    'change', function(ev) { Dom.blur(ev); GameController.reset({ roadWidth:    Util.limit(Util.toInt(ev.target.value), Util.toInt(ev.target.getAttribute('min')), Util.toInt(ev.target.getAttribute('max'))) }); });
-      Dom.on('cameraHeight', 'change', function(ev) { Dom.blur(ev); GameController.reset({ cameraHeight: Util.limit(Util.toInt(ev.target.value), Util.toInt(ev.target.getAttribute('min')), Util.toInt(ev.target.getAttribute('max'))) }); });
-      Dom.on('drawDistance', 'change', function(ev) { Dom.blur(ev); GameController.reset({ drawDistance: Util.limit(Util.toInt(ev.target.value), Util.toInt(ev.target.getAttribute('min')), Util.toInt(ev.target.getAttribute('max'))) }); });
-      Dom.on('fieldOfView',  'change', function(ev) { Dom.blur(ev); GameController.reset({ fieldOfView:  Util.limit(Util.toInt(ev.target.value), Util.toInt(ev.target.getAttribute('min')), Util.toInt(ev.target.getAttribute('max'))) }); });
-      Dom.on('fogDensity',   'change', function(ev) { Dom.blur(ev); GameController.reset({ fogDensity:   Util.limit(Util.toInt(ev.target.value), Util.toInt(ev.target.getAttribute('min')), Util.toInt(ev.target.getAttribute('max'))) }); });
     },
 
     start: function() {
@@ -156,7 +124,7 @@
       s.ctx = s.canvas.getContext('2d');
 
       Racer.Hud.init();
-      GameController.bindTweakUI();
+      Racer.TweakUI.bind(GameController.reset);
 
       Game.run({
         canvas: s.canvas,
@@ -164,22 +132,13 @@
         update: GameController.update,
         stats: s.stats,
         step: s.step,
-        images: ['background', 'sprites'],
-        keys: [
-          { keys: [KEY.LEFT,  KEY.A], mode: 'down', action: function() { s.input.left = true; } },
-          { keys: [KEY.RIGHT, KEY.D], mode: 'down', action: function() { s.input.right = true; } },
-          { keys: [KEY.UP,    KEY.W], mode: 'down', action: function() { s.input.faster = true; } },
-          { keys: [KEY.DOWN,  KEY.S], mode: 'down', action: function() { s.input.slower = true; } },
-          { keys: [KEY.LEFT,  KEY.A], mode: 'up',   action: function() { s.input.left = false; } },
-          { keys: [KEY.RIGHT, KEY.D], mode: 'up',   action: function() { s.input.right = false; } },
-          { keys: [KEY.UP,    KEY.W], mode: 'up',   action: function() { s.input.faster = false; } },
-          { keys: [KEY.DOWN,  KEY.S], mode: 'up',   action: function() { s.input.slower = false; } }
-        ],
+        images: Racer.Config.images,
+        keys: Racer.Input.keyBindings(),
         ready: function(images) {
           s.background = images[0];
           s.sprites = images[1];
           GameController.reset();
-          Dom.storage.fast_lap_time = Dom.storage.fast_lap_time || 180;
+          Dom.storage.fast_lap_time = Dom.storage.fast_lap_time || Racer.Config.defaultFastLapTime;
           Racer.Hud.update('fast_lap_time', Racer.Hud.formatTime(Util.toFloat(Dom.storage.fast_lap_time)));
         }
       });
