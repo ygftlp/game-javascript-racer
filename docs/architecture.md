@@ -15,11 +15,10 @@ The commercial version should be built around a small set of stable boundaries i
 ```text
 HTML entry
   -> common engine helpers
-  -> v4 configuration
-  -> asset manifests and maps
-  -> platform/commercial adapters
-  -> app integration facade
-  -> gameplay modules
+  -> v4 core runtime
+  -> v4 content and asset maps
+  -> v4 integrations and systems
+  -> v4 UI, gameplay, and rendering
 ```
 
 ## Runtime modules
@@ -38,34 +37,47 @@ HTML entry
 
 Keep edits here minimal because v1, v2, and v3 still depend on it.
 
-### v4 gameplay modules
+### V4 core layer
 
-- `state.js`: game state and derived speed values.
-- `track.js`: road and scenery generation.
-- `traffic.js`: NPC traffic and avoidance.
-- `renderer.js`: canvas rendering orchestration.
-- `input.js`: input bindings.
-- `tweak-ui.js`: developer tuning controls.
-- `hud.js`: HUD updates.
-- `game.js`: v4 controller and game-loop binding.
+- `js/v4/core/state.js`: game state and derived speed values.
+- `js/v4/core/app.js`: integration facade and lifecycle event bridge.
+- `js/v4/core/game.js`: v4 controller and game-loop binding.
 
-### Asset layer
+### V4 content layer
 
-- `assets.js`: maps pack ids to concrete asset file paths.
-- `background-map.js`: maps background atlas regions.
-- `sprite-map.js`: maps sprite atlas regions and groups.
+- `js/v4/content/config.js`: product, controls, platform, monetization, analytics, storage, and active asset-pack config.
+- `js/v4/content/assets.js`: maps pack ids to concrete asset file paths.
+- `js/v4/content/background-map.js`: maps background atlas regions.
+- `js/v4/content/sprite-map.js`: maps sprite atlas regions and groups.
 
 This allows future packs to provide different files and atlas coordinates without rewriting gameplay modules.
 
-### Integration layer
+### V4 gameplay layer
 
-- `platform.js`: portal/app/iframe lifecycle adapter.
-- `ads.js`: ad placement adapter.
-- `analytics.js`: event tracking adapter.
-- `save.js`: local and future cloud-save adapter.
-- `app.js`: one facade that coordinates these systems for the game controller.
+- `js/v4/gameplay/track.js`: road and scenery generation.
+- `js/v4/gameplay/traffic.js`: NPC traffic and avoidance.
 
-`game.js` should talk to `App` where possible, instead of calling every commercial module directly.
+### V4 rendering layer
+
+- `js/v4/rendering/renderer.js`: canvas rendering orchestration.
+
+### V4 UI layer
+
+- `js/v4/ui/hud.js`: HUD updates.
+- `js/v4/ui/input.js`: input bindings.
+- `js/v4/ui/tweak-ui.js`: developer tuning controls.
+
+### V4 integration layer
+
+- `js/v4/integrations/platform.js`: portal/app/iframe lifecycle adapter.
+- `js/v4/integrations/ads.js`: ad placement adapter.
+- `js/v4/integrations/analytics.js`: event tracking adapter.
+
+### V4 systems layer
+
+- `js/v4/systems/save.js`: local and future cloud-save adapter.
+
+`js/v4/core/game.js` should talk to `Racer.App` where possible, instead of calling every commercial module directly.
 
 ## Lifecycle
 
@@ -93,7 +105,7 @@ The next gameplay shell should introduce a scene/state model:
 boot -> menu -> countdown -> playing -> paused -> result -> menu
 ```
 
-This does not require a heavy framework. It can start as a small `scene.js` module that owns the current scene name and exposes `enter`, `leave`, and `update` hooks.
+This does not require a heavy framework. It can start as a small `js/v4/scenes/scene.js` module that owns the current scene name and exposes `enter`, `leave`, and `update` hooks.
 
 ## Future build profiles
 
@@ -113,10 +125,10 @@ Each profile should configure platform, ads, analytics, asset pack, storage beha
 ## Recommended next modules
 
 ```text
-js/v4/scene.js          Menu / playing / pause / result state machine
-js/v4/mobile-input.js   Touch controls
-js/v4/leaderboard.js    Local leaderboard first, platform leaderboard later
-js/v4/skins.js          Vehicle and theme unlock configuration
-js/v4/branding.js       Title, logo, CTA, sponsor billboard config
-js/v4/privacy.js        Consent and privacy hooks for ads/analytics
+js/v4/scenes/scene.js              Menu / playing / pause / result state machine
+js/v4/ui/mobile-controls.js        Touch controls
+js/v4/systems/leaderboard.js       Local leaderboard first, platform leaderboard later
+js/v4/content/skins.js             Vehicle and theme unlock configuration
+js/v4/content/branding.js          Title, logo, CTA, sponsor billboard config
+js/v4/systems/privacy.js           Consent and privacy hooks for ads/analytics
 ```
