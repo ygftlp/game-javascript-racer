@@ -64,23 +64,23 @@ const requiredFiles = [
   'common.js',
   'common.css',
   'stats.js',
-  'js/v4/app.js',
-  'js/v4/config.js',
-  'js/v4/state.js',
-  'js/v4/game.js',
-  'js/v4/assets.js',
-  'js/v4/background-map.js',
-  'js/v4/sprite-map.js',
-  'js/v4/platform.js',
-  'js/v4/ads.js',
-  'js/v4/analytics.js',
-  'js/v4/save.js',
-  'js/v4/hud.js',
-  'js/v4/input.js',
-  'js/v4/tweak-ui.js',
-  'js/v4/renderer.js',
-  'js/v4/track.js',
-  'js/v4/traffic.js',
+  'js/v4/core/app.js',
+  'js/v4/core/state.js',
+  'js/v4/core/game.js',
+  'js/v4/content/config.js',
+  'js/v4/content/assets.js',
+  'js/v4/content/background-map.js',
+  'js/v4/content/sprite-map.js',
+  'js/v4/integrations/platform.js',
+  'js/v4/integrations/ads.js',
+  'js/v4/integrations/analytics.js',
+  'js/v4/systems/save.js',
+  'js/v4/ui/hud.js',
+  'js/v4/ui/input.js',
+  'js/v4/ui/tweak-ui.js',
+  'js/v4/gameplay/track.js',
+  'js/v4/gameplay/traffic.js',
+  'js/v4/rendering/renderer.js',
   'docs/project-structure.md',
   'docs/architecture.md',
   'docs/roadmap.md',
@@ -96,17 +96,20 @@ const requiredDirs = [
   'assets/packs/default/branding',
   'assets/packs/default/tracks',
   'assets/packs/default/skins',
-  'js/v4/scenes',
-  'js/v4/ui',
-  'js/v4/systems',
+  'js/v4/core',
+  'js/v4/content',
+  'js/v4/gameplay',
   'js/v4/integrations',
-  'js/v4/content'
+  'js/v4/rendering',
+  'js/v4/scenes',
+  'js/v4/systems',
+  'js/v4/ui'
 ];
 
-const v4ScriptOrder = [
-  'stats.js',
-  'common.js',
+const removedRuntimeFiles = [
+  'js/v4/app.js',
   'js/v4/state.js',
+  'js/v4/game.js',
   'js/v4/config.js',
   'js/v4/assets.js',
   'js/v4/background-map.js',
@@ -115,14 +118,34 @@ const v4ScriptOrder = [
   'js/v4/ads.js',
   'js/v4/analytics.js',
   'js/v4/save.js',
-  'js/v4/app.js',
   'js/v4/hud.js',
-  'js/v4/track.js',
-  'js/v4/traffic.js',
-  'js/v4/renderer.js',
   'js/v4/input.js',
   'js/v4/tweak-ui.js',
-  'js/v4/game.js'
+  'js/v4/renderer.js',
+  'js/v4/track.js',
+  'js/v4/traffic.js'
+];
+
+const v4ScriptOrder = [
+  'stats.js',
+  'common.js',
+  'js/v4/core/state.js',
+  'js/v4/content/config.js',
+  'js/v4/content/assets.js',
+  'js/v4/content/background-map.js',
+  'js/v4/content/sprite-map.js',
+  'js/v4/integrations/platform.js',
+  'js/v4/integrations/ads.js',
+  'js/v4/integrations/analytics.js',
+  'js/v4/systems/save.js',
+  'js/v4/core/app.js',
+  'js/v4/ui/hud.js',
+  'js/v4/gameplay/track.js',
+  'js/v4/gameplay/traffic.js',
+  'js/v4/rendering/renderer.js',
+  'js/v4/ui/input.js',
+  'js/v4/ui/tweak-ui.js',
+  'js/v4/core/game.js'
 ];
 
 for (const file of requiredFiles)
@@ -131,13 +154,20 @@ for (const file of requiredFiles)
 for (const dir of requiredDirs)
   checkDir(dir);
 
+for (const file of removedRuntimeFiles) {
+  if (fs.existsSync(path.join(root, file))) {
+    console.error(`Old runtime file should be removed: ${file}`);
+    failures += 1;
+  }
+}
+
 checkScriptOrder('v4.final.html', v4ScriptOrder);
 checkContains('common.js', 'typeof asset ==');
-checkContains('js/v4/config.js', "activePack: 'legacy'");
-checkContains('js/v4/assets.js', "assets/packs/default/images/background.png");
-checkContains('js/v4/app.js', 'Racer.App = App');
-checkContains('js/v4/background-map.js', 'Racer.BackgroundMap = BackgroundMap');
-checkContains('js/v4/sprite-map.js', 'Racer.SpriteMap = SpriteMap');
+checkContains('js/v4/content/config.js', "activePack: 'legacy'");
+checkContains('js/v4/content/assets.js', 'assets/packs/default/images/background.png');
+checkContains('js/v4/core/app.js', 'Racer.App = App');
+checkContains('js/v4/content/background-map.js', 'Racer.BackgroundMap = BackgroundMap');
+checkContains('js/v4/content/sprite-map.js', 'Racer.SpriteMap = SpriteMap');
 
 if (failures > 0) {
   console.error(`\nStructure validation failed with ${failures} issue(s).`);
