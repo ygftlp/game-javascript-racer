@@ -1,12 +1,12 @@
 # Project Structure Plan
 
-This document defines the target directory architecture for turning the v4 racer demo into a maintainable commercial game template.
+This document defines the current and target directory architecture for turning the v4 racer demo into a maintainable commercial game template.
 
-The current PR keeps the game runnable as static files. The directory plan below should guide future moves without forcing a risky large rewrite immediately.
+The project still runs as static HTML, CSS, JavaScript, images, and audio. No bundler, ES module migration, package manager, or backend is required yet.
 
-## Current compatibility rule
+## Compatibility rule
 
-Do not break these existing entry points until replacements are ready:
+Keep these existing entry points working until replacements are ready:
 
 ```text
 index.html
@@ -21,72 +21,84 @@ images/
 music/
 ```
 
-The commercial architecture should grow beside the legacy structure first, then migrate one layer at a time.
+`common.js` is shared by the older demo pages, so changes there must remain conservative.
 
-## Target top-level layout
+## Current v4 runtime layout
 
 ```text
-/
-  index.html
-  v1.straight.html
-  v2.curves.html
-  v3.hills.html
-  v4.final.html
+js/v4/
+  core/
+    state.js
+    app.js
+    game.js
 
-  common.js
-  common.css
-  stats.js
+  content/
+    config.js
+    assets.js
+    background-map.js
+    sprite-map.js
+    README.md
 
-  js/
-    v4/
-      app.js
-      config.js
-      state.js
-      game.js
-      assets.js
-      background-map.js
-      sprite-map.js
-      platform.js
-      ads.js
-      analytics.js
-      save.js
-      hud.js
-      input.js
-      tweak-ui.js
-      renderer.js
-      track.js
-      traffic.js
+  gameplay/
+    track.js
+    traffic.js
+    README.md
 
-      scenes/
-      ui/
-      systems/
-      integrations/
-      content/
+  rendering/
+    renderer.js
+    README.md
 
-  assets/
-    packs/
-      default/
-        images/
-        audio/
-        ui/
-        branding/
-        tracks/
-        skins/
-        metadata.json
+  ui/
+    hud.js
+    input.js
+    tweak-ui.js
+    README.md
 
-  docs/
-    project-structure.md
-    architecture.md
-    roadmap.md
-    commercialization.md
-    assets.md
+  integrations/
+    platform.js
+    ads.js
+    analytics.js
+    README.md
+
+  systems/
+    save.js
+    README.md
+
+  scenes/
+    README.md
 ```
+
+## Entry script order
+
+`v4.final.html` loads v4 modules in this order:
+
+```text
+stats.js
+common.js
+js/v4/core/state.js
+js/v4/content/config.js
+js/v4/content/assets.js
+js/v4/content/background-map.js
+js/v4/content/sprite-map.js
+js/v4/integrations/platform.js
+js/v4/integrations/ads.js
+js/v4/integrations/analytics.js
+js/v4/systems/save.js
+js/v4/core/app.js
+js/v4/ui/hud.js
+js/v4/gameplay/track.js
+js/v4/gameplay/traffic.js
+js/v4/rendering/renderer.js
+js/v4/ui/input.js
+js/v4/ui/tweak-ui.js
+js/v4/core/game.js
+```
+
+This order matters because modules share the global `Racer` namespace and still use plain browser scripts.
 
 ## Layer responsibilities
 
 ### Entry layer
-
-Files:
 
 ```text
 index.html
@@ -94,221 +106,169 @@ v4.final.html
 common.css
 ```
 
-Responsibility:
+Responsibilities:
 
 - Load scripts in the correct order.
 - Own static page structure.
 - Avoid gameplay logic.
 - Avoid platform-specific SDK code.
 
-Future direction:
-
-- Add a dedicated production entry such as `play.html` or `game.html` after v4 stabilizes.
-- Keep demo pages available for historical comparison.
-
 ### Common engine layer
-
-Files:
 
 ```text
 common.js
 stats.js
 ```
 
-Responsibility:
+Responsibilities:
 
-- Low-level DOM helpers.
+- DOM helpers.
 - Math helpers.
 - Game loop.
-- Canvas rendering primitives.
 - Image loading.
-- Shared key helpers.
+- Key binding.
+- Low-level canvas rendering helpers.
+- Legacy sprite/background constants used by older demos.
 
-Rule:
+Rules:
 
 - Keep this layer generic.
 - Do not add commercial product logic here.
 - Be careful because v1, v2, and v3 still depend on it.
 
-### V4 app/integration layer
-
-Files:
+### V4 core layer
 
 ```text
-js/v4/app.js
-js/v4/platform.js
-js/v4/ads.js
-js/v4/analytics.js
-js/v4/save.js
+js/v4/core/state.js
+js/v4/core/app.js
+js/v4/core/game.js
 ```
 
-Responsibility:
+Responsibilities:
 
-- Coordinate external systems.
-- Provide one stable facade for lifecycle events.
-- Keep SDK-specific logic out of gameplay modules.
+- Shared runtime state.
+- Main game controller.
+- Game-loop binding.
+- Lifecycle bridge through `Racer.App`.
 
-Future subdirectories:
+### V4 content layer
 
 ```text
-js/v4/integrations/
-  crazygames.js
-  poki.js
-  standalone.js
-  capacitor.js
+js/v4/content/config.js
+js/v4/content/assets.js
+js/v4/content/background-map.js
+js/v4/content/sprite-map.js
 ```
 
-### V4 configuration and content layer
-
-Files:
-
-```text
-js/v4/config.js
-js/v4/assets.js
-js/v4/background-map.js
-js/v4/sprite-map.js
-```
-
-Responsibility:
+Responsibilities:
 
 - Product settings.
-- Asset-pack selection.
-- Runtime asset paths.
+- Active asset-pack configuration.
+- Asset path resolution.
 - Sprite/background atlas coordinates.
-- Future track/skin/theme configuration.
-
-Future subdirectories:
-
-```text
-js/v4/content/
-  tracks.js
-  skins.js
-  themes.js
-  economy.js
-  daily-challenges.js
-```
+- Future tracks, skins, themes, vehicles, billboards, and daily challenges.
 
 ### V4 gameplay layer
 
-Files:
-
 ```text
-js/v4/state.js
-js/v4/game.js
-js/v4/track.js
-js/v4/traffic.js
-js/v4/renderer.js
+js/v4/gameplay/track.js
+js/v4/gameplay/traffic.js
 ```
 
-Responsibility:
+Responsibilities:
 
-- Core racing behavior.
 - Road generation.
-- Player/NPC interactions.
-- Rendering orchestration.
-- Game loop callbacks.
+- Scenery placement.
+- NPC car generation.
+- NPC traffic movement and avoidance.
 
-Rule:
-
-- Gameplay should call `Racer.App` for commercial events.
-- Gameplay should not know about concrete ad, analytics, or platform SDKs.
-
-### V4 input/UI layer
-
-Files:
+### V4 rendering layer
 
 ```text
-js/v4/input.js
-js/v4/hud.js
-js/v4/tweak-ui.js
+js/v4/rendering/renderer.js
 ```
 
-Responsibility:
+Responsibilities:
 
-- Keyboard input.
-- HUD updates.
-- Developer tuning controls.
+- Coordinate background, road, sprites, traffic, and player rendering.
+- Use low-level canvas helpers from `common.js`.
 
-Future subdirectories:
+### V4 UI layer
 
 ```text
-js/v4/ui/
-  menu.js
-  hud.js
-  result-screen.js
-  pause-screen.js
-  settings-screen.js
-
-js/v4/scenes/
-  boot.js
-  menu.js
-  countdown.js
-  playing.js
-  paused.js
-  result.js
+js/v4/ui/hud.js
+js/v4/ui/input.js
+js/v4/ui/tweak-ui.js
 ```
+
+Responsibilities:
+
+- HUD binding and updates.
+- Keyboard / WASD input mapping.
+- Developer tweak controls.
+- Future menu, pause screen, result screen, settings screen, and mobile controls.
+
+### V4 integrations layer
+
+```text
+js/v4/integrations/platform.js
+js/v4/integrations/ads.js
+js/v4/integrations/analytics.js
+```
+
+Responsibilities:
+
+- Platform lifecycle abstraction.
+- Ads abstraction.
+- Analytics abstraction.
+- Future portal/app-wrapper adapters.
+
+Gameplay modules should communicate through `Racer.App`, not through provider-specific SDKs.
+
+### V4 systems layer
+
+```text
+js/v4/systems/save.js
+```
+
+Responsibilities:
+
+- Local save abstraction.
+- Future leaderboard, progression, daily challenge, score, economy, and privacy systems.
 
 ### Asset layer
 
-Files:
-
 ```text
 assets/packs/default/
+  images/
+  audio/music/
+  audio/sfx/
+  ui/
+  branding/
+  tracks/
+  skins/
 ```
 
-Responsibility:
+Responsibilities:
 
 - Commercial-safe runtime assets.
 - Pack-level images, audio, UI, branding, track data, and skin data.
 - Documentation for source, license, and usage rights.
 
-Runtime pack structure:
-
-```text
-assets/packs/default/
-  images/
-    background.png
-    sprites.png
-  audio/
-    music/
-      racer.ogg
-      racer.mp3
-    sfx/
-  ui/
-  branding/
-  tracks/
-  skins/
-  metadata.json
-```
-
-Keep source files outside the runtime bundle when possible, for example:
-
-```text
-assets-source/
-  packs/default/
-    aseprite/
-    psd/
-    audio-projects/
-    licenses/
-```
-
-`assets-source/` is intentionally not added yet. Add it only when original source assets exist.
-
 ## Suggested future migration steps
 
-### Step 1: Stabilize current PR
+### Step 1: Browser validate current reorganized v4
 
-- Keep current flat `js/v4/*.js` loading order.
-- Browser-test `v4.final.html`.
-- Confirm legacy asset pack still works.
+- Run `node scripts/validate-v4-structure.mjs`.
+- Open `v4.final.html` through a local static server.
+- Complete `docs/manual-test-checklist.md`.
 
 ### Step 2: Add scene system
 
 Add:
 
 ```text
-js/v4/scenes/README.md
-js/v4/scene.js
+js/v4/scenes/scene.js
 ```
 
 Introduce:
@@ -317,36 +277,18 @@ Introduce:
 boot -> menu -> countdown -> playing -> paused -> result
 ```
 
-### Step 3: Move UI into `js/v4/ui/`
-
-Move or wrap:
-
-```text
-hud.js
-input.js
-tweak-ui.js
-```
+### Step 3: Add product UI
 
 Add:
 
 ```text
-menu.js
-result-screen.js
-settings-screen.js
-mobile-controls.js
+js/v4/ui/menu.js
+js/v4/ui/result-screen.js
+js/v4/ui/settings-screen.js
+js/v4/ui/mobile-controls.js
 ```
 
-### Step 4: Move commercial adapters into `js/v4/integrations/`
-
-Keep current no-op modules as stable interfaces, then add provider adapters:
-
-```text
-js/v4/integrations/standalone.js
-js/v4/integrations/portal.js
-js/v4/integrations/crazygames.js
-```
-
-### Step 5: Add content configuration
+### Step 4: Add content configuration
 
 Add:
 
@@ -356,7 +298,15 @@ js/v4/content/skins.js
 js/v4/content/themes.js
 ```
 
-This makes the game suitable for white-label and campaign builds.
+### Step 5: Add platform adapters
+
+Add provider adapters behind the existing integration interfaces:
+
+```text
+js/v4/integrations/standalone.js
+js/v4/integrations/portal.js
+js/v4/integrations/crazygames.js
+```
 
 ## Naming rules
 
@@ -372,6 +322,5 @@ Avoid these until the static v4 product is stable:
 
 - Do not introduce a bundler.
 - Do not migrate to ES modules yet.
-- Do not move all legacy files at once.
 - Do not add a backend dependency.
 - Do not hard-code a single ad or platform provider.
