@@ -1,6 +1,15 @@
 # Content
 
-Future game content configuration should live here.
+Content, configuration, and asset-map modules live here.
+
+Current modules:
+
+```text
+config.js          Product, controls, platform, monetization, analytics, storage, and active asset-pack config.
+assets.js          Asset-pack manifest and image/audio path resolution.
+background-map.js  Background atlas coordinate maps per pack.
+sprite-map.js      Sprite atlas coordinate maps and sprite groups per pack.
+```
 
 Planned modules:
 
@@ -13,4 +22,4 @@ billboards.js
 daily-challenges.js
 ```
 
-Use this folder for data-like configuration. Avoid adding rendering or platform SDK logic here.
+Use this folder for data-like configuration. Avoid adding rendering, gameplay loops, or platform SDK logic here.
