@@ -36,6 +36,10 @@
     PLAYER_RIGHT:           { x:  995, y:  531, w:   80, h:   41 }
   };
 
+  function clone(map) {
+    return JSON.parse(JSON.stringify(map));
+  }
+
   function buildGroups(map) {
     map.SCALE = 0.3 * (1 / map.PLAYER_STRAIGHT.w);
     map.BILLBOARDS = [map.BILLBOARD01, map.BILLBOARD02, map.BILLBOARD03, map.BILLBOARD04, map.BILLBOARD05, map.BILLBOARD06, map.BILLBOARD07, map.BILLBOARD08, map.BILLBOARD09];
@@ -46,8 +50,8 @@
 
   var SpriteMap = {
     packs: {
-      legacy: buildGroups(legacy),
-      default: buildGroups(Util.extend ? Util.extend({}, legacy) : JSON.parse(JSON.stringify(legacy)))
+      legacy: buildGroups(clone(legacy)),
+      default: buildGroups(clone(legacy))
     },
 
     current: function() {
