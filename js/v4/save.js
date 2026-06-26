@@ -10,7 +10,17 @@
     },
 
     available: function() {
-      return !!(Save.config && Save.config.enabled && window.localStorage);
+      try {
+        if (!(Save.config && Save.config.enabled && window.localStorage))
+          return false;
+        var testKey = Save.key('__test__');
+        window.localStorage.setItem(testKey, '1');
+        window.localStorage.removeItem(testKey);
+        return true;
+      }
+      catch (e) {
+        return false;
+      }
     },
 
     get: function(name, fallback) {
