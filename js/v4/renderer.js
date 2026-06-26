@@ -2,6 +2,7 @@
   var Renderer = {
     render: function() {
       var s = Racer.State;
+      var background = Racer.BackgroundMap.current();
       var baseSegment = Racer.Track.findSegment(s.position);
       var basePercent = Util.percentRemaining(s.position, s.segmentLength);
       var playerSegment = Racer.Track.findSegment(s.position + s.playerZ);
@@ -21,9 +22,9 @@
 
       s.ctx.clearRect(0, 0, s.width, s.height);
 
-      Render.background(s.ctx, s.background, s.width, s.height, BACKGROUND.SKY, s.skyOffset, s.resolution * s.skySpeed * playerY);
-      Render.background(s.ctx, s.background, s.width, s.height, BACKGROUND.HILLS, s.hillOffset, s.resolution * s.hillSpeed * playerY);
-      Render.background(s.ctx, s.background, s.width, s.height, BACKGROUND.TREES, s.treeOffset, s.resolution * s.treeSpeed * playerY);
+      Render.background(s.ctx, s.background, s.width, s.height, background.SKY, s.skyOffset, s.resolution * s.skySpeed * playerY);
+      Render.background(s.ctx, s.background, s.width, s.height, background.HILLS, s.hillOffset, s.resolution * s.hillSpeed * playerY);
+      Render.background(s.ctx, s.background, s.width, s.height, background.TREES, s.treeOffset, s.resolution * s.treeSpeed * playerY);
 
       for (n = 0; n < s.drawDistance; n++) {
         segment = s.segments[(baseSegment.index + n) % s.segments.length];
