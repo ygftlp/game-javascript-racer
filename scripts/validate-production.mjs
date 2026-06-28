@@ -58,6 +58,7 @@ const manifest = await read('src/racer/RacerAssetManifest.ts');
 const services = await read('src/racer/RacerServices.ts');
 const scene = await read('src/scenes/RacerScene.ts');
 const renderer = await read('src/racer/Pseudo3DRenderer.ts');
+const state = await read('src/racer/RacerState.ts');
 const startup = await read('src/platforms/wechat/startup.ts');
 const engineBoundary = await read('src/engine/index.ts');
 const engineModeScript = await read('scripts/use-engine-mode.mjs');
@@ -84,8 +85,20 @@ if (!liteEngineTypes.includes("declare module 'lite-game-engine'") || !liteEngin
 if (!uiLayout.includes('joystickBase') || !uiLayout.includes('brakeButton') || !uiLayout.includes('pauseButton: RacerCircle')) {
   missing.push('publish UI layout must include joystick, brake, and circle pause controls');
 }
-if (!joystick.includes('class RacerJoystick') || !joystick.includes('deadZone')) {
-  missing.push('virtual joystick model with dead zone');
+if (!uiLayout.includes('Math.max(76') || !uiLayout.includes('joystickTouchArea')) {
+  missing.push('enlarged joystick layout and touch area');
+}
+if (!joystick.includes('class RacerJoystick') || !joystick.includes('deadZone = 0.06') || !joystick.includes('* 1.45')) {
+  missing.push('sensitive virtual joystick model with reduced dead zone');
+}
+if (!state.includes('steer: number') || !state.includes('steerDelta = dt * 2.35')) {
+  missing.push('analog steering state sensitivity');
+}
+if (!renderer.includes('drawModalPanel') || !renderer.includes('primary = false')) {
+  missing.push('polished modal panel and primary button styling');
+}
+if (!renderer.includes('state.height - carH - 18') || !renderer.includes('this.drawPlayer(ctx, state, assets?.sprites ?? null, playerSegment, playerPercent)')) {
+  missing.push('stable player car drawing outside segment projection clipping');
 }
 if (!scene.includes('TARGET_LAPS')) {
   missing.push('RacerScene TARGET_LAPS race completion flow');
