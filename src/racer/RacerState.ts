@@ -85,6 +85,8 @@ export class RacerState {
   currentLapTime = 0;
   lastLapTime = 0;
   bestLapTime = 0;
+  completedLaps = 0;
+  totalRaceTime = 0;
   collisionCooldown = 0;
 
   constructor(width: number, height: number) {
@@ -103,6 +105,7 @@ export class RacerState {
     const startPosition = this.position;
     const steerDelta = dt * 2 * speedPercent;
 
+    this.totalRaceTime += dt;
     this.collisionCooldown = Math.max(0, this.collisionCooldown - dt);
     this.updateTraffic(dt, playerSegment, playerWidth);
 
@@ -136,12 +139,29 @@ export class RacerState {
     if (this.position > this.playerZ) {
       if (this.currentLapTime > 0 && startPosition < this.playerZ) {
         this.lastLapTime = this.currentLapTime;
+        this.completedLaps += 1;
         this.bestLapTime = this.bestLapTime === 0 ? this.lastLapTime : Math.min(this.bestLapTime, this.lastLapTime);
         this.currentLapTime = 0;
       } else {
         this.currentLapTime += dt;
       }
     }
+  }
+
+  resetRace(bestLapTime = this.bestLapTime): void {
+    this.position = 0;
+    this.speed = 0;
+    this.playerX = 0;
+    this.currentLapTime = 0;
+    this.lastLapTime = 0;
+    this.bestLapTime = bestLapTime;
+    this.completedLaps = 0;
+    this.totalRaceTime = 0;
+    this.collisionCooldown = 0;
+    this.input.steer = 0;
+    this.input.accelerate = true;
+    this.input.brake = false;
+    this.resetRoad();
   }
 
   findSegment(z: number): Segment {
