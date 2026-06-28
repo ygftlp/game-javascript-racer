@@ -10,6 +10,7 @@ export type RacerPhase = 'menu' | 'playing' | 'paused' | 'finished';
 export interface RacerRenderOptions {
   phase: RacerPhase;
   targetLaps: number;
+  audioMuted: boolean;
 }
 
 interface ProjectedPoint {
@@ -96,8 +97,8 @@ export class Pseudo3DRenderer {
     }
 
     this.drawWorldSprites(ctx, state, projected, assets?.sprites ?? null, playerSegment, playerPercent);
-    this.drawHud(ctx, state, assets?.loaded ?? false, options.targetLaps, options.phase === 'playing');
-    this.drawOverlay(ctx, state, options.phase, options.targetLaps);
+    this.drawHud(ctx, state, assets, options.targetLaps, options.phase === 'playing', options.audioMuted);
+    this.drawOverlay(ctx, state, assets, options.phase, options.targetLaps, options.audioMuted);
   }
 
   private project(
@@ -297,20 +298,21 @@ export class Pseudo3DRenderer {
     this.polygon(ctx, x - carW * 0.22 - lean, y - carH * 0.2, x + carW * 0.22 - lean, y - carH * 0.2, x + carW * 0.1 - lean, y - carH * 0.42, x - carW * 0.1 - lean, y - carH * 0.42, COLORS.playerTrim);
   }
 
-  private drawHud(ctx: CanvasRenderingContext2D, state: RacerState, assetsLoaded: boolean, targetLaps: number, showPause: boolean): void {
+  private drawHud(ctx: CanvasRenderingContext2D, state: RacerState, assets: RacerAssets | undefined, targetLaps: number, showPause: boolean, audioMuted: boolean): void {
     const mph = Math.round(state.speed / RACER_CONFIG.maxSpeed * 220);
 
     ctx.font = '24px sans-serif';
     ctx.textBaseline = 'top';
     ctx.fillStyle = COLORS.hudShadow;
-    ctx.fillRect(16, 16, 348, 204);
+    ctx.fillRect(16, 16, 380, 236);
     ctx.fillStyle = COLORS.hud;
     ctx.fillText(`Speed ${mph} mph`, 32, 30);
     ctx.fillText(`Lap ${state.completedLaps}/${targetLaps}`, 32, 62);
     ctx.fillText(`Time ${formatSeconds(state.currentLapTime)}`, 32, 94);
     ctx.fillText(`Best ${formatSeconds(state.bestLapTime)}`, 32, 126);
     ctx.fillText(`Perf ${state.tuning.label}`, 32, 158);
-    ctx.fillText(assetsLoaded ? 'Assets loaded' : 'Loading assets...', 32, 190);
+    ctx.fillText(assets?.statusLabel ?? 'Assets idle', 32, 190);
+    ctx.fillText(`Music ${audioMuted ? 'Off' : 'On'}`, 32, 222);
 
     if (showPause) {
       this.roundedPanel(ctx, state.width - 98, 18, 80, 48, 'rgba(0, 0, 0, 0.48)', '#ffffff');
@@ -320,14 +322,14 @@ export class Pseudo3DRenderer {
     }
   }
 
-  private drawOverlay(ctx: CanvasRenderingContext2D, state: RacerState, phase: RacerPhase, targetLaps: number): void {
+  private drawOverlay(ctx: CanvasRenderingContext2D, state: RacerState, assets: RacerAssets | undefined, phase: RacerPhase, targetLaps: number, audioMuted: boolean): void {
     if (phase === 'playing') return;
 
     ctx.fillStyle = 'rgba(0, 0, 0, 0.56)';
     ctx.fillRect(0, 0, state.width, state.height);
 
-    const panelW = Math.min(560, state.width * 0.74);
-    const panelH = phase === 'finished' ? 380 : 318;
+    const panelW = Math.min(600, state.width * 0.78);
+    const panelH = phase === 'finished' ? 380 : phase === 'paused' ? 336 : 384;
     const panelX = (state.width - panelW) / 2;
     const panelY = (state.height - panelH) / 2;
     this.roundedPanel(ctx, panelX, panelY, panelW, panelH, 'rgba(18, 24, 30, 0.92)', '#ffffff');
@@ -338,18 +340,21 @@ export class Pseudo3DRenderer {
 
     if (phase === 'menu') {
       ctx.font = '40px sans-serif';
-      ctx.fillText('Retro Racer', state.width / 2, panelY + 30);
-      ctx.font = '22px sans-serif';
-      ctx.fillText('触摸开始比赛', state.width / 2, panelY + 92);
-      ctx.fillText('左/右半屏转向，底部区域刹车', state.width / 2, panelY + 128);
-      this.drawButton(ctx, state.width / 2 - 118, panelY + 176, 236, 52, '开始游戏');
-      this.drawButton(ctx, state.width / 2 - 118, panelY + 242, 236, 52, '排行榜');
+      ctx.fillText('Retro Racer', state.width / 2, panelY + 24);
+      ctx.font = '20px sans-serif';
+      ctx.fillText(`资源包：${assets?.packLabel ?? 'Unknown'}`, state.width / 2, panelY + 82);
+      ctx.fillText(`${assets?.statusLabel ?? 'Assets idle'} / ${assets?.commercialSafe ? 'Commercial-safe' : 'Legacy assets'}`, state.width / 2, panelY + 112);
+      ctx.fillText('左/右半屏转向，底部区域刹车', state.width / 2, panelY + 142);
+      this.drawButton(ctx, state.width / 2 - 118, panelY + 184, 236, 52, '开始游戏');
+      this.drawButton(ctx, state.width / 2 - 118, panelY + 248, 236, 52, '排行榜');
+      this.drawButton(ctx, state.width / 2 - 118, panelY + 312, 236, 52, audioMuted ? '音乐：关' : '音乐：开');
     } else if (phase === 'paused') {
       ctx.font = '38px sans-serif';
-      ctx.fillText('已暂停', state.width / 2, panelY + 42);
+      ctx.fillText('已暂停', state.width / 2, panelY + 34);
       ctx.font = '22px sans-serif';
-      ctx.fillText('触摸任意位置继续', state.width / 2, panelY + 112);
-      this.drawButton(ctx, state.width / 2 - 110, panelY + 178, 220, 52, '继续');
+      ctx.fillText('点击继续，或切换音乐', state.width / 2, panelY + 98);
+      this.drawButton(ctx, state.width / 2 - 110, panelY + 158, 220, 52, '继续');
+      this.drawButton(ctx, state.width / 2 - 110, panelY + 224, 220, 52, audioMuted ? '音乐：关' : '音乐：开');
     } else {
       ctx.font = '38px sans-serif';
       ctx.fillText('比赛完成', state.width / 2, panelY + 28);
