@@ -14,7 +14,7 @@ The WeChat version should be a TypeScript business game that depends on `lite-ga
 src/
   main.wx.ts                 WeChat entry: Engine + WxPlatform + RacerScene
   scenes/                    Scene-level game pages
-  racer/                     Racing gameplay model, state, renderer, track, config, assets, storage
+  racer/                     Racing gameplay model, state, renderer, track, config, assets, storage, services, tuning
   platforms/wechat/game.json WeChat game manifest copied during build
 scripts/
   build-wechat.mjs           esbuild bundle, manifest copy, asset copy
@@ -29,6 +29,7 @@ scripts/
 5. Move DOM HUD rendering into Canvas drawing or engine UI nodes.
 6. Move image/audio loading to `engine.loader` / SDK audio wrappers.
 7. Reintroduce traffic, sprite sheets, music, save data, and analytics in small verified steps.
+8. Keep WeChat-specific sharing, ads, leaderboards, and lifecycle hooks behind service abstractions.
 
 ## Implemented checkpoints
 
@@ -59,11 +60,21 @@ scripts/
 - HUD now shows speed, lap progress, lap timer, best lap, asset status, and pause affordance.
 - Overlay UI is drawn on Canvas, avoiding DOM and platform globals in business code.
 
+### Checkpoint 4: commercial service and performance scaffold
+
+- Added `RacerTuning` with low / medium / high mobile performance presets.
+- `RacerScene` resolves a tuning profile from engine screen size and pixel ratio.
+- `RacerState` now uses the selected tuning for draw distance and traffic count.
+- HUD displays the active performance profile for easier real-device testing.
+- Added `RacerServices` as a platform-independent boundary for ads, sharing, leaderboards, and analytics.
+- Menu and result overlays now expose leaderboard and share buttons.
+- Result flow submits score, tracks analytics, and calls interstitial-ad placeholder services without direct `wx` access.
+
 ## Current limitations
 
 - The WeChat version is still a TypeScript rewrite of the v4 runtime, not a byte-for-byte port.
 - Audio playback may require real-device validation because platform autoplay policies can differ.
-- Ads, analytics, leaderboard, share, and monetization hooks are not ported yet.
+- Ads, analytics, leaderboard, and share are currently no-op service placeholders and need a real WeChat adapter later.
 - Asset licensing still needs replacing before commercial release if using the legacy sprite/music pack.
 - The current UI is Canvas-drawn. It can later be converted to engine `UIManager` / `Button` if richer interaction is needed.
 
@@ -71,6 +82,7 @@ scripts/
 
 - Run `npm install`, `npm run typecheck`, and `npm run build:wx` locally.
 - Open the repository root in WeChat DevTools; `project.config.json` points DevTools to `dist/wechat/`.
+- Add a WeChat implementation of `RacerServices` once the engine exposes a platform service adapter or the business project is allowed to supply one externally.
 - Add pause/resume hooks for app hide/show after the SDK exposes lifecycle helpers or a platform event abstraction.
 - Replace legacy art/music with a commercial-safe asset pack before publishing.
 - Add real-device tuning for draw distance, traffic count, font sizes, and touch-control zones.
