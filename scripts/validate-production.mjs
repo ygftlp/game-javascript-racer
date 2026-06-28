@@ -13,6 +13,7 @@ const requiredFiles = [
   'src/racer/RacerState.ts',
   'src/racer/RacerTuning.ts',
   'src/racer/RacerUiLayout.ts',
+  'src/platforms/wechat/startup.ts',
   'src/platforms/wechat/game.json',
   'scripts/build-wechat.mjs',
   'scripts/validate-assets.mjs',
@@ -43,6 +44,7 @@ const manifest = await read('src/racer/RacerAssetManifest.ts');
 const services = await read('src/racer/RacerServices.ts');
 const scene = await read('src/scenes/RacerScene.ts');
 const renderer = await read('src/racer/Pseudo3DRenderer.ts');
+const startup = await read('src/platforms/wechat/startup.ts');
 
 const warnings = [];
 if (manifest.includes('ACTIVE_RACER_ASSET_PACK = LEGACY_RACER_ASSET_PACK')) {
@@ -62,6 +64,12 @@ if (!scene.includes('handleAppHidden') || !scene.includes('handleAppShown')) {
 }
 if (!scene.includes('buildRacerUiLayout') || !renderer.includes('buildRacerUiLayout')) {
   missing.push('shared RacerUiLayout usage in scene and renderer');
+}
+if (!startup.includes('startWeChatRacerGame') || !startup.includes('new WxPlatform')) {
+  missing.push('WeChat startup module must create Engine + WxPlatform');
+}
+if (!startup.includes('onHide') || !startup.includes('onShow')) {
+  missing.push('WeChat startup module lifecycle binding');
 }
 
 if (warnings.length) {
