@@ -117,6 +117,7 @@ dist/wechat/assets/**
 - Added `RacerUiLayout` to centralize overlay panels, buttons, pause button, and touch zones.
 - `Pseudo3DRenderer` and `RacerScene` both use the same layout data, preventing visual buttons and touch hitboxes from drifting apart.
 - The layout adapts font sizes and panel/button dimensions for smaller screens.
+- Pause button placement now avoids the WeChat top-right system capsule area and uses the same safe rectangle for rendering and hit testing.
 - `RacerScene` now exposes `handleAppHidden()` and `handleAppShown()` for lifecycle pause/resume.
 - Added `src/platforms/wechat/startup.ts` to create `Engine + WxPlatform + RacerScene`, bind `wx.onHide/onShow`, set the scene, and start the engine.
 - `src/main.wx.ts` now delegates startup to `startWeChatRacerGame()`.
