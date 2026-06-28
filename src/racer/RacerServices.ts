@@ -20,7 +20,7 @@ export interface RacerLeaderboardService {
 }
 
 export interface RacerAnalyticsService {
-  track(eventName: string, data?: Record<string, unknown>): void;
+  track(eventName: string, data?: unknown): void;
 }
 
 export interface RacerServices {
@@ -62,7 +62,7 @@ class NoopLeaderboardService implements RacerLeaderboardService {
 }
 
 class ConsoleAnalyticsService implements RacerAnalyticsService {
-  track(eventName: string, data: Record<string, unknown> = {}): void {
+  track(eventName: string, data: unknown = {}): void {
     console.log('[racer:analytics]', eventName, data);
   }
 }
