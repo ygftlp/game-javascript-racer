@@ -7,6 +7,7 @@ const requiredFiles = [
   'src/main.wx.ts',
   'src/engine/index.ts',
   'src/engine/local-lite-game-engine.ts',
+  'src/types/lite-game-engine.d.ts',
   'src/scenes/RacerScene.ts',
   'src/racer/RacerAssetManifest.ts',
   'src/racer/RacerAssets.ts',
@@ -59,6 +60,7 @@ const renderer = await read('src/racer/Pseudo3DRenderer.ts');
 const startup = await read('src/platforms/wechat/startup.ts');
 const engineBoundary = await read('src/engine/index.ts');
 const engineModeScript = await read('scripts/use-engine-mode.mjs');
+const liteEngineTypes = await read('src/types/lite-game-engine.d.ts');
 
 const warnings = [];
 if (manifest.includes('ACTIVE_RACER_ASSET_PACK = LEGACY_RACER_ASSET_PACK')) {
@@ -72,6 +74,9 @@ if (engineBoundary.includes('local-lite-game-engine')) {
 }
 if (!engineModeScript.includes('file:../game-engine')) {
   missing.push('engine mode script must support local ../game-engine dependency');
+}
+if (!liteEngineTypes.includes("declare module 'lite-game-engine'") || !liteEngineTypes.includes('export class Engine')) {
+  missing.push('local lite-game-engine type fallback declaration');
 }
 if (!scene.includes('TARGET_LAPS')) {
   missing.push('RacerScene TARGET_LAPS race completion flow');
