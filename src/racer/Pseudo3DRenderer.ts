@@ -1,4 +1,4 @@
-import type { Renderer, Texture } from 'lite-game-engine';
+import type { Renderer, Texture } from '../engine';
 import { COLORS, RACER_CONFIG } from './config';
 import type { RacerAssets } from './RacerAssets';
 import type { Segment } from './RacerState';
