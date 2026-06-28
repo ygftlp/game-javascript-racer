@@ -21,6 +21,7 @@ export class RacerScene extends Scene {
   private savedBestLapTime = 0;
   private touchActive = false;
   private audioMuted = false;
+  private lastCollisionCount = 0;
   private phase: RacerPhase = 'menu';
 
   constructor(private readonly gameEngine: Engine) {
@@ -51,6 +52,7 @@ export class RacerScene extends Scene {
     }
 
     this.state.update(dt);
+    this.playCollisionSfxIfNeeded();
     this.persistBestLapIfNeeded();
 
     if (this.state.completedLaps >= TARGET_LAPS) {
@@ -84,22 +86,27 @@ export class RacerScene extends Scene {
 
     if (this.phase === 'menu') {
       if (this.isMenuLeaderboardButton(point)) {
+        this.assets.playMenuConfirm();
         void this.showLeaderboard('menu');
         return;
       }
       if (this.isMenuAudioButton(point)) {
+        this.assets.playMenuConfirm();
         this.toggleAudio();
         return;
       }
+      this.assets.playMenuConfirm();
       this.startRace();
       return;
     }
 
     if (this.phase === 'paused') {
       if (this.isPausedAudioButton(point)) {
+        this.assets.playMenuConfirm();
         this.toggleAudio();
         return;
       }
+      this.assets.playMenuConfirm();
       this.resumeRace();
       return;
     }
@@ -107,18 +114,22 @@ export class RacerScene extends Scene {
     if (this.phase === 'finished') {
       const action = this.finishedAction(point);
       if (action === 'share') {
+        this.assets.playMenuConfirm();
         void this.shareResult();
         return;
       }
       if (action === 'leaderboard') {
+        this.assets.playMenuConfirm();
         void this.showLeaderboard('result');
         return;
       }
+      this.assets.playMenuConfirm();
       this.restartRace();
       return;
     }
 
     if (this.isPauseButton(point)) {
+      this.assets.playMenuConfirm();
       this.pauseRace();
       return;
     }
@@ -129,12 +140,14 @@ export class RacerScene extends Scene {
   private startRace(): void {
     this.phase = 'playing';
     this.touchActive = false;
+    this.lastCollisionCount = this.state.collisionCount;
     this.assets.playMusic();
     this.services.analytics.track('race_start', { tuning: this.state.tuning.profile, audioMuted: this.audioMuted });
   }
 
   private restartRace(): void {
     this.state.resetRace(this.savedBestLapTime);
+    this.lastCollisionCount = this.state.collisionCount;
     this.services.analytics.track('race_restart');
     this.startRace();
   }
@@ -150,6 +163,7 @@ export class RacerScene extends Scene {
 
   private resumeRace(): void {
     this.phase = 'playing';
+    this.lastCollisionCount = this.state.collisionCount;
     this.assets.playMusic();
     this.services.analytics.track('race_resume', { audioMuted: this.audioMuted });
   }
@@ -174,6 +188,13 @@ export class RacerScene extends Scene {
     this.assets.setMuted(this.audioMuted);
     if (!this.audioMuted && this.phase === 'playing') this.assets.playMusic();
     this.services.analytics.track('audio_toggle', { muted: this.audioMuted, phase: this.phase });
+  }
+
+  private playCollisionSfxIfNeeded(): void {
+    if (this.state.collisionCount <= this.lastCollisionCount) return;
+    this.lastCollisionCount = this.state.collisionCount;
+    this.assets.playCrash();
+    this.services.analytics.track('collision', { collisionCount: this.state.collisionCount });
   }
 
   private applyTouches(touches: TouchPoint[]): void {
