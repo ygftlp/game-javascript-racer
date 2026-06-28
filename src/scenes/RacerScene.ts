@@ -10,6 +10,7 @@ import { buildRacerUiLayout, pointInCircle, pointInRect } from '../racer/RacerUi
 import { Pseudo3DRenderer, type RacerPhase, type RacerUiPressedTarget } from '../racer/Pseudo3DRenderer';
 
 const TARGET_LAPS = 3;
+const CONTROL_COACH_SECONDS = 4.5;
 
 type FinishedAction = 'restart' | 'share' | 'leaderboard' | 'none';
 
@@ -29,6 +30,8 @@ export class RacerScene extends Scene {
   private wasPlayingBeforeHidden = false;
   private phase: RacerPhase = 'menu';
   private pressedTarget: RacerUiPressedTarget = null;
+  private controlCoachTimeLeft = 0;
+  private hasShownControlCoach = false;
 
   constructor(private readonly gameEngine: Engine) {
     super();
@@ -49,6 +52,10 @@ export class RacerScene extends Scene {
 
   update(dt: number): void {
     super.update(dt);
+
+    if (this.controlCoachTimeLeft > 0) {
+      this.controlCoachTimeLeft = Math.max(0, this.controlCoachTimeLeft - dt);
+    }
 
     if (this.phase !== 'playing') return;
 
@@ -74,6 +81,7 @@ export class RacerScene extends Scene {
       audioMuted: this.audioMuted,
       brakeActive: this.brakeActive,
       pressedTarget: this.pressedTarget,
+      controlCoachTimeLeft: this.controlCoachTimeLeft,
       joystick: this.joystick.snapshot(layout.controls.joystickBase, layout.controls.joystickKnobRadius)
     });
   }
@@ -116,6 +124,7 @@ export class RacerScene extends Scene {
       return;
     }
 
+    if (this.controlCoachTimeLeft > 0) this.controlCoachTimeLeft = 0;
     this.applyTouches(touches);
   }
 
@@ -144,7 +153,14 @@ export class RacerScene extends Scene {
     if (this.phase === 'menu') {
       if (this.isMenuStartButton(point)) return 'menu-start';
       if (this.isMenuLeaderboardButton(point)) return 'menu-leaderboard';
+      if (this.isMenuHelpButton(point)) return 'menu-help';
       if (this.isMenuAudioButton(point)) return 'menu-audio';
+      return null;
+    }
+
+    if (this.phase === 'help') {
+      if (this.isHelpStartButton(point)) return 'help-start';
+      if (this.isHelpBackButton(point)) return 'help-back';
       return null;
     }
 
@@ -152,6 +168,7 @@ export class RacerScene extends Scene {
       if (this.isPausedResumeButton(point)) return 'paused-resume';
       if (this.isPausedRestartButton(point)) return 'paused-restart';
       if (this.isPausedAudioButton(point)) return 'paused-audio';
+      if (this.isPausedMenuButton(point)) return 'paused-menu';
       return null;
     }
 
@@ -173,8 +190,16 @@ export class RacerScene extends Scene {
 
     this.assets.playMenuConfirm();
 
-    if (target === 'menu-start') {
+    if (target === 'menu-start' || target === 'help-start') {
       this.startRace();
+      return;
+    }
+    if (target === 'menu-help') {
+      this.openHelp();
+      return;
+    }
+    if (target === 'help-back') {
+      this.returnToMenu('help_back');
       return;
     }
     if (target === 'menu-leaderboard') {
@@ -193,6 +218,10 @@ export class RacerScene extends Scene {
       this.restartRace();
       return;
     }
+    if (target === 'paused-menu') {
+      this.returnToMenu('pause_menu');
+      return;
+    }
     if (target === 'finished-share') {
       void this.shareResult();
       return;
@@ -206,12 +235,33 @@ export class RacerScene extends Scene {
     }
   }
 
+  private openHelp(): void {
+    this.phase = 'help';
+    this.pressedTarget = null;
+    this.resetTouchControls();
+    this.services.analytics.track('help_open');
+  }
+
+  private returnToMenu(source: string): void {
+    this.phase = 'menu';
+    this.wasPlayingBeforeHidden = false;
+    this.pressedTarget = null;
+    this.controlCoachTimeLeft = 0;
+    this.resetTouchControls();
+    this.assets.stopMusic();
+    this.services.analytics.track('return_menu', { source });
+  }
+
   private startRace(): void {
     this.phase = 'playing';
     this.wasPlayingBeforeHidden = false;
     this.pressedTarget = null;
     this.resetTouchControls();
     this.lastCollisionCount = this.state.collisionCount;
+    if (!this.hasShownControlCoach) {
+      this.controlCoachTimeLeft = CONTROL_COACH_SECONDS;
+      this.hasShownControlCoach = true;
+    }
     this.assets.playMusic();
     this.services.analytics.track('race_start', { tuning: this.state.tuning.profile, audioMuted: this.audioMuted });
   }
@@ -226,6 +276,7 @@ export class RacerScene extends Scene {
   private pauseRace(source: string): void {
     this.phase = 'paused';
     this.pressedTarget = null;
+    this.controlCoachTimeLeft = 0;
     this.resetTouchControls();
     this.assets.pauseMusic();
     this.services.analytics.track('race_pause', { source });
@@ -244,6 +295,7 @@ export class RacerScene extends Scene {
     this.phase = 'finished';
     this.wasPlayingBeforeHidden = false;
     this.pressedTarget = null;
+    this.controlCoachTimeLeft = 0;
     this.resetTouchControls();
     this.persistBestLapIfNeeded();
     this.assets.stopMusic();
@@ -314,8 +366,20 @@ export class RacerScene extends Scene {
     return pointInRect(point, this.getUiLayout().menu.leaderboardButton);
   }
 
+  private isMenuHelpButton(point: TouchPoint): boolean {
+    return pointInRect(point, this.getUiLayout().menu.helpButton);
+  }
+
   private isMenuAudioButton(point: TouchPoint): boolean {
     return pointInRect(point, this.getUiLayout().menu.audioButton);
+  }
+
+  private isHelpStartButton(point: TouchPoint): boolean {
+    return pointInRect(point, this.getUiLayout().help.startButton);
+  }
+
+  private isHelpBackButton(point: TouchPoint): boolean {
+    return pointInRect(point, this.getUiLayout().help.backButton);
   }
 
   private isPausedResumeButton(point: TouchPoint): boolean {
@@ -328,6 +392,10 @@ export class RacerScene extends Scene {
 
   private isPausedAudioButton(point: TouchPoint): boolean {
     return pointInRect(point, this.getUiLayout().paused.audioButton);
+  }
+
+  private isPausedMenuButton(point: TouchPoint): boolean {
+    return pointInRect(point, this.getUiLayout().paused.menuButton);
   }
 
   private finishedAction(point: TouchPoint): FinishedAction {
