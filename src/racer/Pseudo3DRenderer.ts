@@ -63,10 +63,10 @@ export class Pseudo3DRenderer {
 
     this.drawBackdrop(ctx, state, assets?.background ?? null, playerY);
 
-    for (let n = 0; n < RACER_CONFIG.drawDistance; n += 1) {
+    for (let n = 0; n < state.tuning.drawDistance; n += 1) {
       const segment = state.segments[(baseSegment.index + n) % state.segments.length];
       const looped = segment.index < baseSegment.index;
-      const fog = exponentialFog(n / RACER_CONFIG.drawDistance, 5);
+      const fog = exponentialFog(n / state.tuning.drawDistance, 5);
 
       const p1 = this.project(
         segment.y1,
@@ -303,13 +303,14 @@ export class Pseudo3DRenderer {
     ctx.font = '24px sans-serif';
     ctx.textBaseline = 'top';
     ctx.fillStyle = COLORS.hudShadow;
-    ctx.fillRect(16, 16, 324, 172);
+    ctx.fillRect(16, 16, 348, 204);
     ctx.fillStyle = COLORS.hud;
     ctx.fillText(`Speed ${mph} mph`, 32, 30);
     ctx.fillText(`Lap ${state.completedLaps}/${targetLaps}`, 32, 62);
     ctx.fillText(`Time ${formatSeconds(state.currentLapTime)}`, 32, 94);
     ctx.fillText(`Best ${formatSeconds(state.bestLapTime)}`, 32, 126);
-    ctx.fillText(assetsLoaded ? 'Assets loaded' : 'Loading assets...', 32, 158);
+    ctx.fillText(`Perf ${state.tuning.label}`, 32, 158);
+    ctx.fillText(assetsLoaded ? 'Assets loaded' : 'Loading assets...', 32, 190);
 
     if (showPause) {
       this.roundedPanel(ctx, state.width - 98, 18, 80, 48, 'rgba(0, 0, 0, 0.48)', '#ffffff');
@@ -325,8 +326,8 @@ export class Pseudo3DRenderer {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.56)';
     ctx.fillRect(0, 0, state.width, state.height);
 
-    const panelW = Math.min(520, state.width * 0.72);
-    const panelH = phase === 'finished' ? 310 : 250;
+    const panelW = Math.min(560, state.width * 0.74);
+    const panelH = phase === 'finished' ? 380 : 318;
     const panelX = (state.width - panelW) / 2;
     const panelY = (state.height - panelH) / 2;
     this.roundedPanel(ctx, panelX, panelY, panelW, panelH, 'rgba(18, 24, 30, 0.92)', '#ffffff');
@@ -337,25 +338,30 @@ export class Pseudo3DRenderer {
 
     if (phase === 'menu') {
       ctx.font = '40px sans-serif';
-      ctx.fillText('Retro Racer', state.width / 2, panelY + 34);
+      ctx.fillText('Retro Racer', state.width / 2, panelY + 30);
       ctx.font = '22px sans-serif';
-      ctx.fillText('触摸开始比赛', state.width / 2, panelY + 100);
-      ctx.fillText('左/右半屏转向，底部区域刹车', state.width / 2, panelY + 138);
-      this.drawButton(ctx, state.width / 2 - 110, panelY + 180, 220, 52, '开始游戏');
+      ctx.fillText('触摸开始比赛', state.width / 2, panelY + 92);
+      ctx.fillText('左/右半屏转向，底部区域刹车', state.width / 2, panelY + 128);
+      this.drawButton(ctx, state.width / 2 - 118, panelY + 176, 236, 52, '开始游戏');
+      this.drawButton(ctx, state.width / 2 - 118, panelY + 242, 236, 52, '排行榜');
     } else if (phase === 'paused') {
       ctx.font = '38px sans-serif';
       ctx.fillText('已暂停', state.width / 2, panelY + 42);
       ctx.font = '22px sans-serif';
       ctx.fillText('触摸任意位置继续', state.width / 2, panelY + 112);
-      this.drawButton(ctx, state.width / 2 - 110, panelY + 170, 220, 52, '继续');
+      this.drawButton(ctx, state.width / 2 - 110, panelY + 178, 220, 52, '继续');
     } else {
       ctx.font = '38px sans-serif';
-      ctx.fillText('比赛完成', state.width / 2, panelY + 32);
+      ctx.fillText('比赛完成', state.width / 2, panelY + 28);
       ctx.font = '22px sans-serif';
-      ctx.fillText(`圈数 ${state.completedLaps}/${targetLaps}`, state.width / 2, panelY + 92);
-      ctx.fillText(`总时间 ${formatSeconds(state.totalRaceTime)}`, state.width / 2, panelY + 126);
-      ctx.fillText(`最快圈 ${formatSeconds(state.bestLapTime)}`, state.width / 2, panelY + 160);
-      this.drawButton(ctx, state.width / 2 - 120, panelY + 222, 240, 56, '再来一局');
+      ctx.fillText(`圈数 ${state.completedLaps}/${targetLaps}`, state.width / 2, panelY + 84);
+      ctx.fillText(`总时间 ${formatSeconds(state.totalRaceTime)}`, state.width / 2, panelY + 116);
+      ctx.fillText(`最快圈 ${formatSeconds(state.bestLapTime)}`, state.width / 2, panelY + 148);
+      this.drawButton(ctx, state.width / 2 - 250, panelY + 212, 150, 54, '再来一局');
+      this.drawButton(ctx, state.width / 2 - 75, panelY + 212, 150, 54, '分享');
+      this.drawButton(ctx, state.width / 2 + 100, panelY + 212, 150, 54, '排行榜');
+      ctx.font = '18px sans-serif';
+      ctx.fillText('分享/排行榜当前为平台服务占位，后续接微信能力', state.width / 2, panelY + 294);
     }
 
     ctx.textAlign = 'left';
