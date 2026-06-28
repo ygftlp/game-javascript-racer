@@ -40,6 +40,27 @@ Prototype text boxes are not acceptable for release. Menus need consistent typog
 
 The UI must work with the current legacy placeholder pack, but final release needs commercial-safe art. Do not hardcode visual assumptions that make asset replacement difficult.
 
+## Current implementation checkpoint
+
+The default UI mode is now release-oriented and controlled by:
+
+```text
+src/racer/RacerUiFlags.ts
+```
+
+Default release flags:
+
+```ts
+releaseMode: true
+showDebugHud: false
+showAssetStatus: false
+showPerformanceStatus: false
+showControlLabels: false
+showPlayerVisibilityMarker: false
+```
+
+The renderer reads these flags so debug copy can be enabled for QA without reworking commercial UI screens.
+
 ## Screen map
 
 ### Main menu
@@ -49,11 +70,11 @@ Purpose: create a professional first impression and drive the player into the ga
 Required layout:
 
 - Background: live or static racing background with dark overlay.
-- Title: game logo / `Retro Racer` placeholder until final logo exists.
-- Subtitle: short positioning, for example `Arcade Pseudo-3D Racing`.
+- Title: game logo / `极速公路` placeholder until final logo exists.
+- Subtitle: short positioning, for example `复古街机赛车`.
 - Primary CTA: `开始比赛`.
 - Secondary CTA: `排行榜`.
-- Utility: `音乐：开/关`.
+- Utility: music toggle.
 - Small note: only show legacy/commercial-safe status in test builds. Hide it for final release.
 
 Release requirement:
@@ -75,7 +96,7 @@ Required layout:
   - Best time.
 - Thin progress bar below the HUD card.
 - Right-side capsule-safe pause icon.
-- Do not show asset loading/debug text in final release. Move debug status behind a dev flag.
+- Do not show asset loading/debug text in final release. Move debug status behind `RACER_UI_FLAGS`.
 
 Release requirement:
 
@@ -120,7 +141,7 @@ Required actions:
 
 Release requirement:
 
-- `继续` is the primary action.
+- `继续比赛` is the primary action.
 - Restart must be visually secondary to avoid accidental restarts.
 - Overlay should dim gameplay but still feel connected to the racing scene.
 
@@ -221,6 +242,8 @@ Debug-only UI:
 - Commercial-safe flag.
 - Performance profile.
 - Any fallback rendering warning.
+- Player visibility marker.
+- Control text labels, when needed for QA.
 
 Release UI:
 
@@ -228,7 +251,11 @@ Release UI:
 - Show only game-facing copy.
 - Keep error/fallback details in console or QA overlay, not player-facing HUD.
 
-Recommended next implementation: add `RacerUiMode` or `RACER_UI_FLAGS` so debug lines can be disabled for release builds.
+Implemented release switch:
+
+```text
+src/racer/RacerUiFlags.ts
+```
 
 ## Multi-agent work plan
 
