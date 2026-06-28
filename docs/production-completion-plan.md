@@ -80,12 +80,14 @@ Implemented:
 - Optional sound effects are wired for engine loop, crash, and menu confirmation audio.
 - Collision events now trigger crash SFX when an audio pack provides it.
 - In-race Canvas touch hints show left steer, right steer, and brake zones.
+- `RacerUiLayout` centralizes overlay button rectangles and touch zones so renderer and hit tests cannot drift apart.
+- `RacerScene` exposes `handleAppHidden()` and `handleAppShown()` so a platform lifecycle adapter can pause/resume without direct `wx` usage in gameplay code.
 
 Still required:
 
+- Connect lifecycle hooks to the SDK/platform adapter once lifecycle events are available.
 - Improve menu layout and hitboxes on very small screens after real-device testing.
 - Add result screen share copy and ranking entry polish.
-- Add pause behavior on app hide/show once lifecycle helpers are available.
 
 Owner lane: Runtime Integration Agent + QA and Performance Agent.
 
@@ -109,7 +111,9 @@ Required manual checks:
 - Start game from menu.
 - Toggle music in menu and pause overlays.
 - Confirm steering left/right and braking zones.
+- Confirm displayed buttons and click hitboxes match on small and large screens.
 - Confirm crash SFX plays when an audio pack provides `crash.mp3`.
+- Simulate app hide/show once lifecycle adapter is available.
 - Finish 3 laps and restart.
 - Confirm best lap and audio preference persist after reload.
 - Confirm no console errors for missing required assets.
@@ -124,7 +128,7 @@ Owner lane: QA and Performance Agent.
 
 Next tasks:
 
-1. Add app hide/show pause once platform lifecycle adapter exists.
+1. Connect `handleAppHidden()` / `handleAppShown()` to platform lifecycle events once the SDK exposes them.
 2. Replace placeholder Canvas buttons with engine UI components if needed.
 3. Refine loading, fallback, and touch-hint copy after real-device validation.
 
