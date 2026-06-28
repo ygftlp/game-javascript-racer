@@ -1,6 +1,3 @@
-import { Engine, WxPlatform } from 'lite-game-engine';
-import { RacerScene } from './scenes/RacerScene';
+import { startWeChatRacerGame } from './platforms/wechat/startup';
 
-const engine = new Engine(new WxPlatform());
-engine.setScene(new RacerScene(engine));
-engine.start();
+startWeChatRacerGame();
