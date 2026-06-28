@@ -12,6 +12,10 @@ export interface RacerJoystickSnapshot {
   normalizedY: number;
 }
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(value, max));
+}
+
 export class RacerJoystick {
   private active = false;
   private centerX = 0;
@@ -38,12 +42,12 @@ export class RacerJoystick {
     const dx = point.x - this.centerX;
     const dy = point.y - this.centerY;
     const distance = Math.hypot(dx, dy);
-    const maxDistance = Math.max(1, this.radius - this.knobRadius * 0.35);
+    const maxDistance = Math.max(1, this.radius - this.knobRadius * 0.28);
     const limitedDistance = Math.min(distance, maxDistance);
     const angle = distance > 0 ? Math.atan2(dy, dx) : 0;
     const limitedX = Math.cos(angle) * limitedDistance;
     const limitedY = Math.sin(angle) * limitedDistance;
-    const deadZone = 0.14;
+    const deadZone = 0.06;
 
     this.knobX = this.centerX + limitedX;
     this.knobY = this.centerY + limitedY;
@@ -59,10 +63,8 @@ export class RacerJoystick {
     this.knobY = this.centerY;
   }
 
-  steer(): -1 | 0 | 1 {
-    if (this.normalizedX < -0.18) return -1;
-    if (this.normalizedX > 0.18) return 1;
-    return 0;
+  steer(): number {
+    return clamp(this.normalizedX * 1.45, -1.35, 1.35);
   }
 
   snapshot(fallbackBase: RacerCircle, fallbackKnobRadius: number): RacerJoystickSnapshot {
