@@ -7,7 +7,7 @@ import { RacerState } from '../racer/RacerState';
 import { RacerStorage } from '../racer/RacerStorage';
 import { resolveRacerTuning } from '../racer/RacerTuning';
 import { buildRacerUiLayout, pointInCircle, pointInRect } from '../racer/RacerUiLayout';
-import { Pseudo3DRenderer, type RacerPhase } from '../racer/Pseudo3DRenderer';
+import { Pseudo3DRenderer, type RacerPhase, type RacerUiPressedTarget } from '../racer/Pseudo3DRenderer';
 
 const TARGET_LAPS = 3;
 
@@ -28,6 +28,7 @@ export class RacerScene extends Scene {
   private lastCollisionCount = 0;
   private wasPlayingBeforeHidden = false;
   private phase: RacerPhase = 'menu';
+  private pressedTarget: RacerUiPressedTarget = null;
 
   constructor(private readonly gameEngine: Engine) {
     super();
@@ -72,12 +73,14 @@ export class RacerScene extends Scene {
       targetLaps: TARGET_LAPS,
       audioMuted: this.audioMuted,
       brakeActive: this.brakeActive,
+      pressedTarget: this.pressedTarget,
       joystick: this.joystick.snapshot(layout.controls.joystickBase, layout.controls.joystickKnobRadius)
     });
   }
 
   handleAppHidden(): void {
     this.wasPlayingBeforeHidden = this.phase === 'playing';
+    this.pressedTarget = null;
     if (!this.wasPlayingBeforeHidden) return;
 
     this.pauseRace('app_hide');
@@ -94,77 +97,119 @@ export class RacerScene extends Scene {
     this.gameEngine.input.onStart((touches: TouchPoint[]) => this.handleTouchStart(touches), { persistent: true });
     this.gameEngine.input.onMove((touches: TouchPoint[]) => {
       if (this.phase === 'playing') this.applyTouches(touches);
+      else this.updatePressedTarget(touches[0]);
     }, { persistent: true });
-    this.gameEngine.input.onEnd(() => this.resetTouchControls(), { persistent: true });
+    this.gameEngine.input.onEnd((touches: TouchPoint[]) => this.handleTouchEnd(touches), { persistent: true });
   }
 
   private handleTouchStart(touches: TouchPoint[]): void {
     const point = touches[0];
     if (!point) return;
 
-    if (this.phase === 'menu') {
-      if (this.isMenuLeaderboardButton(point)) {
-        this.assets.playMenuConfirm();
-        void this.showLeaderboard('menu');
-        return;
-      }
-      if (this.isMenuAudioButton(point)) {
-        this.assets.playMenuConfirm();
-        this.toggleAudio();
-        return;
-      }
-      this.assets.playMenuConfirm();
-      this.startRace();
-      return;
-    }
-
-    if (this.phase === 'paused') {
-      if (this.isPausedRestartButton(point)) {
-        this.assets.playMenuConfirm();
-        this.restartRace();
-        return;
-      }
-      if (this.isPausedAudioButton(point)) {
-        this.assets.playMenuConfirm();
-        this.toggleAudio();
-        return;
-      }
-      this.assets.playMenuConfirm();
-      this.resumeRace('touch');
-      return;
-    }
-
-    if (this.phase === 'finished') {
-      const action = this.finishedAction(point);
-      if (action === 'share') {
-        this.assets.playMenuConfirm();
-        void this.shareResult();
-        return;
-      }
-      if (action === 'leaderboard') {
-        this.assets.playMenuConfirm();
-        void this.showLeaderboard('result');
-        return;
-      }
-      if (action === 'restart') {
-        this.assets.playMenuConfirm();
-        this.restartRace();
-      }
+    if (this.phase !== 'playing') {
+      this.pressedTarget = this.resolvePressedTarget(point);
       return;
     }
 
     if (this.isPauseButton(point)) {
-      this.assets.playMenuConfirm();
-      this.pauseRace('touch');
+      this.pressedTarget = 'pause';
       return;
     }
 
     this.applyTouches(touches);
   }
 
+  private handleTouchEnd(touches: TouchPoint[]): void {
+    const point = touches[0];
+    const target = this.pressedTarget;
+
+    if (target) {
+      this.pressedTarget = null;
+      this.executePressedTarget(target, point);
+      this.resetTouchControls();
+      return;
+    }
+
+    this.resetTouchControls();
+  }
+
+  private updatePressedTarget(point: TouchPoint | undefined): void {
+    if (!this.pressedTarget || !point) return;
+
+    const resolved = this.resolvePressedTarget(point);
+    if (resolved !== this.pressedTarget) this.pressedTarget = null;
+  }
+
+  private resolvePressedTarget(point: TouchPoint): RacerUiPressedTarget {
+    if (this.phase === 'menu') {
+      if (this.isMenuStartButton(point)) return 'menu-start';
+      if (this.isMenuLeaderboardButton(point)) return 'menu-leaderboard';
+      if (this.isMenuAudioButton(point)) return 'menu-audio';
+      return null;
+    }
+
+    if (this.phase === 'paused') {
+      if (this.isPausedResumeButton(point)) return 'paused-resume';
+      if (this.isPausedRestartButton(point)) return 'paused-restart';
+      if (this.isPausedAudioButton(point)) return 'paused-audio';
+      return null;
+    }
+
+    if (this.phase === 'finished') {
+      const action = this.finishedAction(point);
+      if (action === 'restart') return 'finished-restart';
+      if (action === 'share') return 'finished-share';
+      if (action === 'leaderboard') return 'finished-leaderboard';
+      return null;
+    }
+
+    if (this.phase === 'playing' && this.isPauseButton(point)) return 'pause';
+    return null;
+  }
+
+  private executePressedTarget(target: RacerUiPressedTarget, point: TouchPoint | undefined): void {
+    if (!target) return;
+    if (point && this.resolvePressedTarget(point) !== target) return;
+
+    this.assets.playMenuConfirm();
+
+    if (target === 'menu-start') {
+      this.startRace();
+      return;
+    }
+    if (target === 'menu-leaderboard') {
+      void this.showLeaderboard('menu');
+      return;
+    }
+    if (target === 'menu-audio' || target === 'paused-audio') {
+      this.toggleAudio();
+      return;
+    }
+    if (target === 'paused-resume') {
+      this.resumeRace('touch');
+      return;
+    }
+    if (target === 'paused-restart' || target === 'finished-restart') {
+      this.restartRace();
+      return;
+    }
+    if (target === 'finished-share') {
+      void this.shareResult();
+      return;
+    }
+    if (target === 'finished-leaderboard') {
+      void this.showLeaderboard('result');
+      return;
+    }
+    if (target === 'pause') {
+      this.pauseRace('touch');
+    }
+  }
+
   private startRace(): void {
     this.phase = 'playing';
     this.wasPlayingBeforeHidden = false;
+    this.pressedTarget = null;
     this.resetTouchControls();
     this.lastCollisionCount = this.state.collisionCount;
     this.assets.playMusic();
@@ -180,6 +225,7 @@ export class RacerScene extends Scene {
 
   private pauseRace(source: string): void {
     this.phase = 'paused';
+    this.pressedTarget = null;
     this.resetTouchControls();
     this.assets.pauseMusic();
     this.services.analytics.track('race_pause', { source });
@@ -187,6 +233,7 @@ export class RacerScene extends Scene {
 
   private resumeRace(source: string): void {
     this.phase = 'playing';
+    this.pressedTarget = null;
     this.resetTouchControls();
     this.lastCollisionCount = this.state.collisionCount;
     this.assets.playMusic();
@@ -196,6 +243,7 @@ export class RacerScene extends Scene {
   private finishRace(): void {
     this.phase = 'finished';
     this.wasPlayingBeforeHidden = false;
+    this.pressedTarget = null;
     this.resetTouchControls();
     this.persistBestLapIfNeeded();
     this.assets.stopMusic();
@@ -232,11 +280,7 @@ export class RacerScene extends Scene {
     this.state.input.brake = this.brakeActive;
 
     if (joystickTouch) {
-      if (!this.touchActive) {
-        this.joystick.begin(joystickTouch, layout.controls.joystickBase, layout.controls.joystickKnobRadius);
-      } else {
-        this.joystick.begin(joystickTouch, layout.controls.joystickBase, layout.controls.joystickKnobRadius);
-      }
+      this.joystick.begin(joystickTouch, layout.controls.joystickBase, layout.controls.joystickKnobRadius);
       this.joystick.update(joystickTouch);
       this.state.input.steer = this.joystick.steer();
     } else {
@@ -262,12 +306,20 @@ export class RacerScene extends Scene {
     return pointInCircle(point, this.getUiLayout().pauseButton, 10);
   }
 
+  private isMenuStartButton(point: TouchPoint): boolean {
+    return pointInRect(point, this.getUiLayout().menu.startButton);
+  }
+
   private isMenuLeaderboardButton(point: TouchPoint): boolean {
     return pointInRect(point, this.getUiLayout().menu.leaderboardButton);
   }
 
   private isMenuAudioButton(point: TouchPoint): boolean {
     return pointInRect(point, this.getUiLayout().menu.audioButton);
+  }
+
+  private isPausedResumeButton(point: TouchPoint): boolean {
+    return pointInRect(point, this.getUiLayout().paused.resumeButton);
   }
 
   private isPausedRestartButton(point: TouchPoint): boolean {
