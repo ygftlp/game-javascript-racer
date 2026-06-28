@@ -98,6 +98,7 @@ export class Pseudo3DRenderer {
 
     this.drawWorldSprites(ctx, state, projected, assets?.sprites ?? null, playerSegment, playerPercent);
     this.drawHud(ctx, state, assets, options.targetLaps, options.phase === 'playing', options.audioMuted);
+    if (options.phase === 'playing') this.drawTouchHints(ctx, state);
     this.drawOverlay(ctx, state, assets, options.phase, options.targetLaps, options.audioMuted);
   }
 
@@ -320,6 +321,27 @@ export class Pseudo3DRenderer {
       ctx.fillStyle = '#ffffff';
       ctx.fillText('暂停', state.width - 78, 30);
     }
+  }
+
+  private drawTouchHints(ctx: CanvasRenderingContext2D, state: RacerState): void {
+    const bottomY = state.height * 0.74;
+
+    ctx.save();
+    ctx.globalAlpha = 0.16;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, bottomY, state.width, state.height - bottomY);
+    ctx.fillRect(0, 0, state.width * 0.42, state.height);
+    ctx.fillRect(state.width * 0.58, 0, state.width * 0.42, state.height);
+    ctx.globalAlpha = 1;
+
+    ctx.font = '20px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('左转', state.width * 0.21, state.height * 0.64);
+    ctx.fillText('右转', state.width * 0.79, state.height * 0.64);
+    ctx.fillText('刹车', state.width * 0.5, bottomY + (state.height - bottomY) / 2);
+    ctx.restore();
   }
 
   private drawOverlay(ctx: CanvasRenderingContext2D, state: RacerState, assets: RacerAssets | undefined, phase: RacerPhase, targetLaps: number, audioMuted: boolean): void {
