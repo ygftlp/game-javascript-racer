@@ -45,6 +45,7 @@ export interface RacerPausedLayout extends RacerPanelLayout {
   resumeButton: RacerRect;
   restartButton: RacerRect;
   audioButton: RacerRect;
+  menuButton: RacerRect;
 }
 
 export interface RacerFinishedLayout extends RacerPanelLayout {
@@ -110,8 +111,8 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   const menuPanel = panel(width, height, 640, small ? 366 : 412);
   const menuStartY = menuPanel.y + (small ? 166 : 198);
 
-  const pausedPanel = panel(width, height, 620, small ? 350 : 392);
-  const pausedStartY = pausedPanel.y + (small ? 138 : 166);
+  const pausedPanel = panel(width, height, 620, small ? 414 : 466);
+  const pausedStartY = pausedPanel.y + (small ? 132 : 158);
 
   const finishedPanel = panel(width, height, 640, small ? 352 : 398);
   const finishedButtonW = small ? Math.min(144, finishedPanel.w * 0.29) : 164;
@@ -121,7 +122,7 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   const finishedTotalW = finishedButtonW * 3 + finishedGap * 2;
   const finishedStartX = (width - finishedTotalW) / 2;
 
-  const hudPanel = rect(14, 14, small ? 184 : 216, small ? 104 : 116);
+  const hudPanel = rect(14, 14, small ? 184 : 216, small ? 88 : 98);
   const progressBar = rect(hudPanel.x, hudPanel.y + hudPanel.h + 8, hudPanel.w, 8);
 
   const pauseButtonR = small ? 24 : 28;
@@ -143,7 +144,7 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
     hud: {
       panel: hudPanel,
       progressBar,
-      rowHeight: small ? 15 : 17
+      rowHeight: small ? 16 : 18
     },
     controls: {
       joystickBase,
@@ -175,7 +176,8 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
       line3Y: pausedPanel.y + (small ? 142 : 164),
       resumeButton: centeredButton(width, pausedStartY, small ? 226 : 246, buttonH),
       restartButton: centeredButton(width, pausedStartY + buttonH + spacing, small ? 226 : 246, buttonH),
-      audioButton: centeredButton(width, pausedStartY + (buttonH + spacing) * 2, small ? 226 : 246, buttonH)
+      audioButton: centeredButton(width, pausedStartY + (buttonH + spacing) * 2, small ? 226 : 246, buttonH),
+      menuButton: centeredButton(width, pausedStartY + (buttonH + spacing) * 3, small ? 226 : 246, buttonH)
     },
     finished: {
       panel: finishedPanel,
