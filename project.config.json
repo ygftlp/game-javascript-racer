@@ -1,0 +1,16 @@
+{
+  "description": "Retro Racer WeChat Mini Game",
+  "projectname": "game-javascript-racer",
+  "appid": "touristappid",
+  "compileType": "game",
+  "miniprogramRoot": "dist/wechat/",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": false,
+    "minified": true,
+    "newFeature": true
+  },
+  "condition": {}
+}
