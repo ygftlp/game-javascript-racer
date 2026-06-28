@@ -72,7 +72,7 @@ Owner lane: Monetization UX Designer + Monetization and Social Agent.
 
 ### Gate 5: Commercial UI / UX polish
 
-Status: planning spec added; implementation partially complete.
+Status: release/debug UI split implemented; commercial art still needed.
 
 Source of truth:
 
@@ -85,20 +85,24 @@ Source of truth:
 
 Implemented:
 
-- Asset loading / ready / fallback status is visible in HUD and menu for testing.
+- `src/racer/RacerUiFlags.ts` defines release/debug UI switches.
+- Release mode is the default UI mode.
+- Debug-only asset/performance/commercial-safe text is hidden by default.
+- Control labels and player visibility marker are hidden by default.
+- Menu, pause, HUD, and result copy are now player-facing Chinese by default.
 - Audio mute state is persisted through platform storage.
 - Menu and pause overlays include a music toggle.
 - Optional sound effects are wired for engine loop, crash, and menu confirmation audio.
 - Collision events now trigger crash SFX when an audio pack provides it.
 - `RacerUiLayout` centralizes overlay button rectangles and touch zones so renderer and hit tests cannot drift apart.
 - `RacerScene` exposes `handleAppHidden()` and `handleAppShown()` so a platform lifecycle adapter can pause/resume without direct `wx` usage in gameplay code.
-- In-race HUD is compact and includes speed, lap, time, best lap, asset/audio state, and a race progress bar.
+- In-race HUD is compact and includes speed, lap, time, best lap, and a race progress bar.
 - Left-bottom virtual joystick is enlarged and uses lower dead-zone / higher steering gain.
 - `RacerState` now supports analog steering sensitivity instead of only -1 / 0 / 1 input.
 - Right-bottom brake button is implemented as a large circular touch target.
 - Pause button is a circular icon placed away from the WeChat capsule area.
 - Player car rendering is stabilized outside segment projection clipping and clamped to a visible vertical range.
-- Player car now has an always-visible fallback body and visibility marker underneath/over the sprite frame.
+- Player car now has an always-visible fallback body underneath the sprite frame.
 - Canvas image smoothing is disabled for sharper pixel-art sprites and backgrounds.
 - Local compatibility engine now creates a high-DPI canvas using `pixelRatio` and scales the context back to logical coordinates.
 - Menu, pause, and result overlays use a more polished dark panel, accent stripe, shadow, and primary-button styling.
@@ -106,8 +110,6 @@ Implemented:
 
 Still required before commercial release:
 
-- Hide debug-only asset/performance/commercial-safe text in release mode.
-- Finalize release copy in one consistent language.
 - Replace placeholder title/logo with commercial-safe branding.
 - Replace Canvas programmer-art icons with final UI icons.
 - Tune exact joystick/brake sizes on real low-end and high-DPI devices.
@@ -163,9 +165,9 @@ Task file: `docs/agent-tasks/ui-ux-director.md`
 
 Next tasks:
 
-1. Finalize player-facing copy for menu, pause, result, and control hints.
-2. Define release/debug UI split.
-3. Remove debug-only copy from player HUD in release mode.
+1. Validate player-facing Chinese copy in menu, pause, result, and HUD.
+2. Review release/debug UI split in `RacerUiFlags.ts`.
+3. Decide final commercial game name and branding direction.
 
 ### Agent B: Control Feel Designer
 
