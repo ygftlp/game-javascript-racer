@@ -7,7 +7,12 @@
     "build": "npm run build:wx",
     "build:wx": "node scripts/build-wechat.mjs",
     "dev:wx": "node scripts/build-wechat.mjs --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "validate": "npm run validate:assets && npm run validate:production",
+    "validate:assets": "node scripts/validate-assets.mjs default",
+    "validate:assets:legacy": "node scripts/validate-assets.mjs legacy",
+    "validate:production": "node scripts/validate-production.mjs",
+    "prebuild:wx": "npm run validate:production"
   },
   "dependencies": {
     "lite-game-engine": "github:ygftlp/game-engine#feat/lightweight-2d-game-engine"
