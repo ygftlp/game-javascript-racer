@@ -5,6 +5,7 @@ import type { RacerJoystickSnapshot } from './RacerJoystick';
 import type { Segment } from './RacerState';
 import type { AtlasFrame } from './SpriteAtlas';
 import { BACKGROUND, SPRITES, SPRITE_SCALE } from './SpriteAtlas';
+import { RACER_UI_FLAGS } from './RacerUiFlags';
 import { buildRacerUiLayout, type RacerCircle, type RacerRect, type RacerUiLayout } from './RacerUiLayout';
 import type { RacerState } from './RacerState';
 
@@ -321,7 +322,9 @@ export class Pseudo3DRenderer {
       }
     }
 
-    this.drawPlayerVisibilityMarker(ctx, x, carTopY, carW, carH, state.input.steer);
+    if (RACER_UI_FLAGS.showPlayerVisibilityMarker) {
+      this.drawPlayerVisibilityMarker(ctx, x, carTopY, carW, carH, state.input.steer);
+    }
   }
 
   private drawPlayerFallback(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, steer: number): void {
@@ -361,16 +364,19 @@ export class Pseudo3DRenderer {
     const row = layout.hud.rowHeight;
     const progress = Math.min(1, (state.completedLaps + state.position / Math.max(1, state.trackLength)) / targetLaps);
 
-    this.roundedPanel(ctx, hud.x, hud.y, hud.w, hud.h, 'rgba(12, 18, 24, 0.56)', 'rgba(255,255,255,0.22)');
+    this.roundedPanel(ctx, hud.x, hud.y, hud.w, RACER_UI_FLAGS.showDebugHud ? hud.h : hud.h - row, 'rgba(12, 18, 24, 0.52)', 'rgba(255,255,255,0.2)');
     ctx.font = `${layout.fonts.hud}px sans-serif`;
     ctx.textBaseline = 'top';
     ctx.textAlign = 'left';
     ctx.fillStyle = '#ffffff';
     ctx.fillText(`${mph} mph`, hud.x + 12, hud.y + 8);
-    ctx.fillText(`Lap ${state.completedLaps}/${targetLaps}`, hud.x + 12, hud.y + 8 + row);
-    ctx.fillText(`Time ${formatSeconds(state.currentLapTime)}`, hud.x + 12, hud.y + 8 + row * 2);
-    ctx.fillText(`Best ${formatSeconds(state.bestLapTime)}`, hud.x + 12, hud.y + 8 + row * 3);
-    ctx.fillText(`${assets?.statusLabel ?? 'Assets idle'} · ${audioMuted ? 'Music off' : 'Music on'}`, hud.x + 12, hud.y + 8 + row * 4);
+    ctx.fillText(`圈数 ${state.completedLaps}/${targetLaps}`, hud.x + 12, hud.y + 8 + row);
+    ctx.fillText(`时间 ${formatSeconds(state.currentLapTime)}`, hud.x + 12, hud.y + 8 + row * 2);
+    ctx.fillText(`最佳 ${formatSeconds(state.bestLapTime)}`, hud.x + 12, hud.y + 8 + row * 3);
+
+    if (RACER_UI_FLAGS.showDebugHud || RACER_UI_FLAGS.showAssetStatus) {
+      ctx.fillText(`${assets?.statusLabel ?? 'Assets idle'} · ${audioMuted ? 'Music off' : 'Music on'}`, hud.x + 12, hud.y + 8 + row * 4);
+    }
 
     const bar = layout.hud.progressBar;
     this.roundedPanel(ctx, bar.x, bar.y, bar.w, bar.h, 'rgba(0, 0, 0, 0.42)');
@@ -392,11 +398,13 @@ export class Pseudo3DRenderer {
     this.drawCircle(ctx, base, joystick.active ? 'rgba(255,255,255,0.24)' : 'rgba(255,255,255,0.15)', 'rgba(255,255,255,0.48)', 2);
     this.drawCircle(ctx, { x: base.x, y: base.y, r: Math.max(14, base.r * 0.2) }, 'rgba(255,255,255,0.15)');
     this.drawCircle(ctx, { x: knobX, y: knobY, r: layout.controls.joystickKnobRadius }, joystick.active ? 'rgba(255,255,255,0.78)' : 'rgba(255,255,255,0.48)', 'rgba(20,24,32,0.62)', 2);
-    ctx.font = `${layout.fonts.note}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = 'rgba(255,255,255,0.82)';
-    ctx.fillText('STEER', base.x, base.y + base.r + 10);
+    if (RACER_UI_FLAGS.showControlLabels) {
+      ctx.font = `${layout.fonts.note}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = 'rgba(255,255,255,0.82)';
+      ctx.fillText('STEER', base.x, base.y + base.r + 10);
+    }
     ctx.restore();
   }
 
@@ -409,7 +417,7 @@ export class Pseudo3DRenderer {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText('BRAKE', button.x, button.y);
+    ctx.fillText('刹车', button.x, button.y);
     ctx.restore();
   }
 
@@ -440,38 +448,42 @@ export class Pseudo3DRenderer {
 
     if (phase === 'menu') {
       ctx.font = `bold ${layout.fonts.title}px sans-serif`;
-      ctx.fillText('Retro Racer', state.width / 2, layout.menu.titleY);
+      ctx.fillText('极速公路', state.width / 2, layout.menu.titleY);
       ctx.font = `${layout.fonts.body}px sans-serif`;
       ctx.fillStyle = 'rgba(255,255,255,0.86)';
-      ctx.fillText('Arcade Pseudo-3D Racing', state.width / 2, layout.menu.line1Y);
-      ctx.fillText(`${assets?.statusLabel ?? 'Assets idle'} · ${assets?.commercialSafe ? 'Commercial-safe' : 'Legacy assets'}`, state.width / 2, layout.menu.line2Y);
-      ctx.fillText('左下摇杆转向 · 右下按钮刹车', state.width / 2, layout.menu.line3Y);
+      ctx.fillText('复古街机赛车', state.width / 2, layout.menu.line1Y);
+      ctx.fillText('左下摇杆控制方向，右下按钮刹车', state.width / 2, layout.menu.line2Y);
+      if (RACER_UI_FLAGS.showAssetStatus) {
+        ctx.fillText(`${assets?.statusLabel ?? 'Assets idle'} · ${assets?.commercialSafe ? 'Commercial-safe' : 'Legacy assets'}`, state.width / 2, layout.menu.line3Y);
+      } else {
+        ctx.fillText(audioMuted ? '音乐已关闭' : '音乐已开启', state.width / 2, layout.menu.line3Y);
+      }
       this.drawButton(ctx, layout.menu.startButton, '开始比赛', layout, true);
       this.drawButton(ctx, layout.menu.leaderboardButton, '排行榜', layout);
-      this.drawButton(ctx, layout.menu.audioButton, audioMuted ? '音乐：关' : '音乐：开', layout);
+      this.drawButton(ctx, layout.menu.audioButton, audioMuted ? '开启音乐' : '关闭音乐', layout);
     } else if (phase === 'paused') {
       ctx.font = `bold ${layout.fonts.title}px sans-serif`;
-      ctx.fillText('已暂停', state.width / 2, layout.paused.titleY);
+      ctx.fillText('比赛暂停', state.width / 2, layout.paused.titleY);
       ctx.font = `${layout.fonts.body}px sans-serif`;
       ctx.fillStyle = 'rgba(255,255,255,0.86)';
-      ctx.fillText('调整状态后继续比赛', state.width / 2, layout.paused.line1Y);
-      this.drawButton(ctx, layout.paused.resumeButton, '继续', layout, true);
+      ctx.fillText('调整状态后继续冲刺', state.width / 2, layout.paused.line1Y);
+      this.drawButton(ctx, layout.paused.resumeButton, '继续比赛', layout, true);
       this.drawButton(ctx, layout.paused.restartButton, '重新开始', layout);
-      this.drawButton(ctx, layout.paused.audioButton, audioMuted ? '音乐：关' : '音乐：开', layout);
+      this.drawButton(ctx, layout.paused.audioButton, audioMuted ? '开启音乐' : '关闭音乐', layout);
     } else {
       ctx.font = `bold ${layout.fonts.title}px sans-serif`;
       ctx.fillText('比赛完成', state.width / 2, layout.finished.titleY);
       ctx.font = `${layout.fonts.body}px sans-serif`;
       ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.fillText(`圈数 ${state.completedLaps}/${targetLaps}`, state.width / 2, layout.finished.line1Y);
-      ctx.fillText(`总时间 ${formatSeconds(state.totalRaceTime)}`, state.width / 2, layout.finished.line2Y);
-      ctx.fillText(`最快圈 ${formatSeconds(state.bestLapTime)}`, state.width / 2, layout.finished.line3Y);
+      ctx.fillText(`完成圈数 ${state.completedLaps}/${targetLaps}`, state.width / 2, layout.finished.line1Y);
+      ctx.fillText(`总用时 ${formatSeconds(state.totalRaceTime)}`, state.width / 2, layout.finished.line2Y);
+      ctx.fillText(`最佳圈速 ${formatSeconds(state.bestLapTime)}`, state.width / 2, layout.finished.line3Y);
       this.drawButton(ctx, layout.finished.restartButton, '再来一局', layout, true);
       this.drawButton(ctx, layout.finished.shareButton, '分享', layout);
       this.drawButton(ctx, layout.finished.leaderboardButton, '排行榜', layout);
       ctx.font = `${layout.fonts.note}px sans-serif`;
       ctx.fillStyle = 'rgba(255,255,255,0.72)';
-      ctx.fillText('分享/排行榜当前为平台服务占位，后续接微信能力', state.width / 2, layout.finished.noteY);
+      ctx.fillText('刷新成绩，冲击排行榜', state.width / 2, layout.finished.noteY);
     }
 
     ctx.textAlign = 'left';
