@@ -11,11 +11,25 @@ import type { RacerState } from './RacerState';
 
 export type RacerPhase = 'menu' | 'playing' | 'paused' | 'finished';
 
+export type RacerUiPressedTarget =
+  | 'menu-start'
+  | 'menu-leaderboard'
+  | 'menu-audio'
+  | 'paused-resume'
+  | 'paused-restart'
+  | 'paused-audio'
+  | 'finished-restart'
+  | 'finished-share'
+  | 'finished-leaderboard'
+  | 'pause'
+  | null;
+
 export interface RacerRenderOptions {
   phase: RacerPhase;
   targetLaps: number;
   audioMuted: boolean;
   brakeActive: boolean;
+  pressedTarget: RacerUiPressedTarget;
   joystick: RacerJoystickSnapshot;
 }
 
@@ -113,8 +127,8 @@ export class Pseudo3DRenderer {
     this.drawPlayer(ctx, state, assets?.sprites ?? null, playerSegment, playerPercent);
     this.drawHud(ctx, state, assets, options.targetLaps, options.audioMuted, layout);
     if (options.phase === 'playing') this.drawInRaceControls(ctx, layout, options.joystick, options.brakeActive);
-    if (options.phase === 'playing') this.drawPauseButton(ctx, layout.pauseButton);
-    this.drawOverlay(ctx, state, assets, options.phase, options.targetLaps, options.audioMuted, layout);
+    if (options.phase === 'playing') this.drawPauseButton(ctx, layout.pauseButton, options.pressedTarget === 'pause');
+    this.drawOverlay(ctx, state, assets, options.phase, options.targetLaps, options.audioMuted, layout, options.pressedTarget);
   }
 
   private configureCanvas(ctx: CanvasRenderingContext2D): void {
@@ -410,7 +424,7 @@ export class Pseudo3DRenderer {
 
   private drawBrakeButton(ctx: CanvasRenderingContext2D, button: RacerCircle, active: boolean): void {
     const fill = active ? 'rgba(255, 92, 60, 0.9)' : 'rgba(255, 92, 60, 0.62)';
-    this.drawCircle(ctx, { x: button.x, y: button.y, r: button.r + 8 }, 'rgba(0,0,0,0.18)');
+    this.drawCircle(ctx, { x: button.x, y: button.y, r: button.r + (active ? 11 : 8) }, active ? 'rgba(255,92,60,0.22)' : 'rgba(0,0,0,0.18)');
     this.drawCircle(ctx, button, fill, 'rgba(255,255,255,0.62)', 2);
     ctx.save();
     ctx.font = 'bold 18px sans-serif';
@@ -421,23 +435,33 @@ export class Pseudo3DRenderer {
     ctx.restore();
   }
 
-  private drawPauseButton(ctx: CanvasRenderingContext2D, button: RacerCircle): void {
-    this.drawCircle(ctx, { x: button.x, y: button.y, r: button.r + 6 }, 'rgba(0,0,0,0.18)');
-    this.drawCircle(ctx, button, 'rgba(12, 18, 24, 0.68)', 'rgba(255,255,255,0.58)', 2);
+  private drawPauseButton(ctx: CanvasRenderingContext2D, button: RacerCircle, pressed: boolean): void {
+    const radiusOffset = pressed ? 2 : 6;
+    this.drawCircle(ctx, { x: button.x, y: button.y + (pressed ? 2 : 0), r: button.r + radiusOffset }, pressed ? 'rgba(255,207,74,0.28)' : 'rgba(0,0,0,0.18)');
+    this.drawCircle(ctx, { x: button.x, y: button.y + (pressed ? 2 : 0), r: button.r }, pressed ? 'rgba(255, 207, 74, 0.82)' : 'rgba(12, 18, 24, 0.68)', 'rgba(255,255,255,0.58)', 2);
     ctx.save();
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = pressed ? 'rgba(20,24,32,0.96)' : '#ffffff';
     const barW = Math.max(4, button.r * 0.18);
     const barH = button.r * 0.9;
-    ctx.fillRect(button.x - barW * 1.7, button.y - barH / 2, barW, barH);
-    ctx.fillRect(button.x + barW * 0.7, button.y - barH / 2, barW, barH);
+    const y = button.y + (pressed ? 2 : 0);
+    ctx.fillRect(button.x - barW * 1.7, y - barH / 2, barW, barH);
+    ctx.fillRect(button.x + barW * 0.7, y - barH / 2, barW, barH);
     ctx.restore();
   }
 
-  private drawOverlay(ctx: CanvasRenderingContext2D, state: RacerState, assets: RacerAssets | undefined, phase: RacerPhase, targetLaps: number, audioMuted: boolean, layout: RacerUiLayout): void {
+  private drawOverlay(
+    ctx: CanvasRenderingContext2D,
+    state: RacerState,
+    assets: RacerAssets | undefined,
+    phase: RacerPhase,
+    targetLaps: number,
+    audioMuted: boolean,
+    layout: RacerUiLayout,
+    pressedTarget: RacerUiPressedTarget
+  ): void {
     if (phase === 'playing') return;
 
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.64)';
-    ctx.fillRect(0, 0, state.width, state.height);
+    this.drawVignette(ctx, state.width, state.height);
 
     const active = phase === 'menu' ? layout.menu : phase === 'paused' ? layout.paused : layout.finished;
     this.drawModalPanel(ctx, active.panel);
@@ -458,29 +482,30 @@ export class Pseudo3DRenderer {
       } else {
         ctx.fillText(audioMuted ? '音乐已关闭' : '音乐已开启', state.width / 2, layout.menu.line3Y);
       }
-      this.drawButton(ctx, layout.menu.startButton, '开始比赛', layout, true);
-      this.drawButton(ctx, layout.menu.leaderboardButton, '排行榜', layout);
-      this.drawButton(ctx, layout.menu.audioButton, audioMuted ? '开启音乐' : '关闭音乐', layout);
+      this.drawButton(ctx, layout.menu.startButton, '开始比赛', layout, true, pressedTarget === 'menu-start');
+      this.drawButton(ctx, layout.menu.leaderboardButton, '排行榜', layout, false, pressedTarget === 'menu-leaderboard');
+      this.drawButton(ctx, layout.menu.audioButton, audioMuted ? '开启音乐' : '关闭音乐', layout, false, pressedTarget === 'menu-audio');
     } else if (phase === 'paused') {
       ctx.font = `bold ${layout.fonts.title}px sans-serif`;
       ctx.fillText('比赛暂停', state.width / 2, layout.paused.titleY);
       ctx.font = `${layout.fonts.body}px sans-serif`;
       ctx.fillStyle = 'rgba(255,255,255,0.86)';
       ctx.fillText('调整状态后继续冲刺', state.width / 2, layout.paused.line1Y);
-      this.drawButton(ctx, layout.paused.resumeButton, '继续比赛', layout, true);
-      this.drawButton(ctx, layout.paused.restartButton, '重新开始', layout);
-      this.drawButton(ctx, layout.paused.audioButton, audioMuted ? '开启音乐' : '关闭音乐', layout);
+      this.drawButton(ctx, layout.paused.resumeButton, '继续比赛', layout, true, pressedTarget === 'paused-resume');
+      this.drawButton(ctx, layout.paused.restartButton, '重新开始', layout, false, pressedTarget === 'paused-restart');
+      this.drawButton(ctx, layout.paused.audioButton, audioMuted ? '开启音乐' : '关闭音乐', layout, false, pressedTarget === 'paused-audio');
     } else {
+      const grade = this.raceGrade(state);
       ctx.font = `bold ${layout.fonts.title}px sans-serif`;
       ctx.fillText('比赛完成', state.width / 2, layout.finished.titleY);
       ctx.font = `${layout.fonts.body}px sans-serif`;
       ctx.fillStyle = 'rgba(255,255,255,0.9)';
       ctx.fillText(`完成圈数 ${state.completedLaps}/${targetLaps}`, state.width / 2, layout.finished.line1Y);
-      ctx.fillText(`总用时 ${formatSeconds(state.totalRaceTime)}`, state.width / 2, layout.finished.line2Y);
+      ctx.fillText(`总用时 ${formatSeconds(state.totalRaceTime)} · 评级 ${grade}`, state.width / 2, layout.finished.line2Y);
       ctx.fillText(`最佳圈速 ${formatSeconds(state.bestLapTime)}`, state.width / 2, layout.finished.line3Y);
-      this.drawButton(ctx, layout.finished.restartButton, '再来一局', layout, true);
-      this.drawButton(ctx, layout.finished.shareButton, '分享', layout);
-      this.drawButton(ctx, layout.finished.leaderboardButton, '排行榜', layout);
+      this.drawButton(ctx, layout.finished.restartButton, '再来一局', layout, true, pressedTarget === 'finished-restart');
+      this.drawButton(ctx, layout.finished.shareButton, '分享', layout, false, pressedTarget === 'finished-share');
+      this.drawButton(ctx, layout.finished.leaderboardButton, '排行榜', layout, false, pressedTarget === 'finished-leaderboard');
       ctx.font = `${layout.fonts.note}px sans-serif`;
       ctx.fillStyle = 'rgba(255,255,255,0.72)';
       ctx.fillText('刷新成绩，冲击排行榜', state.width / 2, layout.finished.noteY);
@@ -489,23 +514,50 @@ export class Pseudo3DRenderer {
     ctx.textAlign = 'left';
   }
 
-  private drawButton(ctx: CanvasRenderingContext2D, target: RacerRect, text: string, layout: RacerUiLayout, primary = false): void {
-    const fill = primary ? 'rgba(255, 207, 74, 0.92)' : 'rgba(255, 255, 255, 0.14)';
-    const stroke = primary ? 'rgba(255, 255, 255, 0.78)' : 'rgba(255,255,255,0.42)';
-    this.roundedPanel(ctx, target.x, target.y, target.w, target.h, fill, stroke);
+  private raceGrade(state: RacerState): string {
+    if (state.collisionCount === 0 && state.totalRaceTime > 0 && state.totalRaceTime < 140) return 'S';
+    if (state.collisionCount <= 2) return 'A';
+    if (state.collisionCount <= 5) return 'B';
+    return 'C';
+  }
+
+  private drawButton(ctx: CanvasRenderingContext2D, target: RacerRect, text: string, layout: RacerUiLayout, primary = false, pressed = false): void {
+    const inset = pressed ? 3 : 0;
+    const yOffset = pressed ? 3 : 0;
+    const fill = primary
+      ? pressed ? 'rgba(235, 178, 48, 0.96)' : 'rgba(255, 207, 74, 0.94)'
+      : pressed ? 'rgba(255, 255, 255, 0.24)' : 'rgba(255, 255, 255, 0.14)';
+    const stroke = primary ? 'rgba(255, 255, 255, 0.84)' : 'rgba(255,255,255,0.42)';
+
+    if (primary && !pressed) {
+      this.roundedPanel(ctx, target.x - 5, target.y - 5, target.w + 10, target.h + 10, 'rgba(255, 207, 74, 0.12)');
+    }
+
+    this.roundedPanel(ctx, target.x + inset, target.y + yOffset + inset, target.w - inset * 2, target.h - inset * 2, fill, stroke);
     ctx.font = `bold ${layout.fonts.button}px sans-serif`;
     ctx.fillStyle = primary ? 'rgba(20,24,32,0.96)' : '#ffffff';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(text, target.x + target.w / 2, target.y + target.h / 2);
+    ctx.fillText(text, target.x + target.w / 2, target.y + target.h / 2 + yOffset);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
   }
 
+  private drawVignette(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.58)';
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = 'rgba(255, 207, 74, 0.07)';
+    ctx.fillRect(0, 0, width, Math.max(8, height * 0.04));
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+    ctx.fillRect(0, height * 0.78, width, height * 0.22);
+  }
+
   private drawModalPanel(ctx: CanvasRenderingContext2D, target: RacerRect): void {
-    this.roundedPanel(ctx, target.x + 8, target.y + 10, target.w, target.h, 'rgba(0,0,0,0.26)');
-    this.roundedPanel(ctx, target.x, target.y, target.w, target.h, 'rgba(18, 24, 32, 0.94)', 'rgba(255,255,255,0.52)');
-    this.roundedPanel(ctx, target.x + 22, target.y + 18, target.w - 44, 6, 'rgba(255, 207, 74, 0.92)');
+    this.roundedPanel(ctx, target.x + 10, target.y + 12, target.w, target.h, 'rgba(0,0,0,0.3)');
+    this.roundedPanel(ctx, target.x - 2, target.y - 2, target.w + 4, target.h + 4, 'rgba(255,255,255,0.06)');
+    this.roundedPanel(ctx, target.x, target.y, target.w, target.h, 'rgba(18, 24, 32, 0.95)', 'rgba(255,255,255,0.52)');
+    this.roundedPanel(ctx, target.x + 22, target.y + 18, target.w - 44, 6, 'rgba(255, 207, 74, 0.94)');
+    this.roundedPanel(ctx, target.x + 22, target.y + target.h - 24, target.w - 44, 2, 'rgba(255, 255, 255, 0.12)');
   }
 
   private drawCircle(ctx: CanvasRenderingContext2D, target: RacerCircle, fill: string, stroke?: string, lineWidth = 1): void {
