@@ -107,6 +107,12 @@ if (!state.includes('steer: number') || !state.includes('steerDelta = dt * 2.35'
 if (!renderer.includes('RACER_UI_FLAGS') || !renderer.includes('showAssetStatus') || !renderer.includes('极速公路')) {
   missing.push('renderer must use release UI flags and commercial menu copy');
 }
+if (!renderer.includes('RacerUiPressedTarget') || !renderer.includes('pressedTarget ===') || !scene.includes('executePressedTarget')) {
+  missing.push('polished UI press-state confirmation flow');
+}
+if (!renderer.includes('drawVignette') || !renderer.includes('raceGrade') || !renderer.includes('rgba(255, 207, 74, 0.12)')) {
+  missing.push('polished modal hierarchy, primary button glow, and result rating');
+}
 if (!renderer.includes('ctx.imageSmoothingEnabled = false') || !renderer.includes('drawImage(image')) {
   missing.push('crisp pixel-art rendering with smoothing disabled');
 }
