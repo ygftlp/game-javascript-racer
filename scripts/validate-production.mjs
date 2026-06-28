@@ -11,6 +11,7 @@ const requiredFiles = [
   'src/scenes/RacerScene.ts',
   'src/racer/RacerAssetManifest.ts',
   'src/racer/RacerAssets.ts',
+  'src/racer/RacerJoystick.ts',
   'src/racer/RacerServices.ts',
   'src/racer/RacerSettings.ts',
   'src/racer/RacerState.ts',
@@ -61,6 +62,8 @@ const startup = await read('src/platforms/wechat/startup.ts');
 const engineBoundary = await read('src/engine/index.ts');
 const engineModeScript = await read('scripts/use-engine-mode.mjs');
 const liteEngineTypes = await read('src/types/lite-game-engine.d.ts');
+const uiLayout = await read('src/racer/RacerUiLayout.ts');
+const joystick = await read('src/racer/RacerJoystick.ts');
 
 const warnings = [];
 if (manifest.includes('ACTIVE_RACER_ASSET_PACK = LEGACY_RACER_ASSET_PACK')) {
@@ -78,11 +81,23 @@ if (!engineModeScript.includes('file:../game-engine')) {
 if (!liteEngineTypes.includes("declare module 'lite-game-engine'") || !liteEngineTypes.includes('export class Engine')) {
   missing.push('local lite-game-engine type fallback declaration');
 }
+if (!uiLayout.includes('joystickBase') || !uiLayout.includes('brakeButton') || !uiLayout.includes('pauseButton: RacerCircle')) {
+  missing.push('publish UI layout must include joystick, brake, and circle pause controls');
+}
+if (!joystick.includes('class RacerJoystick') || !joystick.includes('deadZone')) {
+  missing.push('virtual joystick model with dead zone');
+}
 if (!scene.includes('TARGET_LAPS')) {
   missing.push('RacerScene TARGET_LAPS race completion flow');
 }
 if (!scene.includes('toggleAudio')) {
   missing.push('RacerScene audio toggle flow');
+}
+if (!scene.includes('RacerJoystick') || !scene.includes('findJoystickTouch') || !scene.includes('brakeActive')) {
+  missing.push('RacerScene joystick and brake input flow');
+}
+if (!renderer.includes('drawJoystick') || !renderer.includes('drawBrakeButton') || !renderer.includes('drawPauseButton')) {
+  missing.push('renderer publish controls: joystick, brake, pause');
 }
 if (!scene.includes('handleAppHidden') || !scene.includes('handleAppShown')) {
   missing.push('RacerScene app lifecycle pause hooks');
