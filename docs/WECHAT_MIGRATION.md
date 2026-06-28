@@ -14,7 +14,7 @@ The WeChat version should be a TypeScript business game that depends on `lite-ga
 src/
   main.wx.ts                 WeChat entry: Engine + WxPlatform + RacerScene
   scenes/                    Scene-level game pages
-  racer/                     Racing gameplay model, state, renderer, track, config, assets, settings, storage, services, tuning
+  racer/                     Racing gameplay model, state, renderer, track, config, assets, settings, storage, services, tuning, ui layout
   platforms/wechat/game.json WeChat game manifest copied during build
 scripts/
   build-wechat.mjs           esbuild bundle, manifest copy, asset copy
@@ -93,7 +93,17 @@ docs/
 - `RacerAssets` now tracks `idle`, `loading`, `ready`, and `fallback` asset states.
 - Menu and HUD now show asset-pack label, commercial-safety flag, and asset loading/fallback state.
 - Menu and pause overlays now include a persisted music on/off toggle.
-- Production validation now checks the audio-toggle flow and settings module.
+- Optional sound effects are wired for engine loop, crash, and menu confirmation audio.
+- Collision events trigger crash SFX when a replacement audio pack provides it.
+- Production validation checks the audio-toggle flow and settings module.
+
+### Checkpoint 7: shared UI layout and lifecycle hook pass
+
+- Added `RacerUiLayout` to centralize overlay panels, buttons, pause button, and touch zones.
+- `Pseudo3DRenderer` and `RacerScene` both use the same layout data, preventing visual buttons and touch hitboxes from drifting apart.
+- The layout adapts font sizes and panel/button dimensions for smaller screens.
+- `RacerScene` now exposes `handleAppHidden()` and `handleAppShown()` for a future SDK/platform lifecycle adapter.
+- Production validation now checks shared UI layout usage and lifecycle hook presence.
 
 ## Current limitations
 
@@ -102,6 +112,7 @@ docs/
 - Ads, analytics, leaderboard, and share are currently no-op service placeholders and need a real WeChat adapter later.
 - Asset licensing still needs replacing before commercial release if using the legacy sprite/music pack.
 - The current UI is Canvas-drawn. It can later be converted to engine `UIManager` / `Button` if richer interaction is needed.
+- App hide/show hooks are exposed in `RacerScene`, but still need to be connected by an SDK/platform lifecycle adapter.
 - This branch can organize multi-agent work, but external agents still need to be run by humans or an orchestration tool.
 
 ## Next steps
@@ -112,5 +123,5 @@ docs/
 - Replace legacy art/music with a commercial-safe asset pack before publishing.
 - Switch `ACTIVE_RACER_ASSET_PACK` only after required commercial files exist and validation passes.
 - Add a WeChat implementation of `RacerServices` once the engine exposes a platform service adapter or the business project is allowed to supply one externally.
-- Add pause/resume hooks for app hide/show after the SDK exposes lifecycle helpers or a platform event abstraction.
+- Connect `RacerScene.handleAppHidden()` / `handleAppShown()` once the SDK exposes lifecycle helpers or a platform event abstraction.
 - Add real-device tuning for draw distance, traffic count, font sizes, and touch-control zones.
