@@ -1,9 +1,11 @@
 import type { Renderer, Texture } from 'lite-game-engine';
 import { COLORS, RACER_CONFIG } from './config';
 import type { RacerAssets } from './RacerAssets';
+import type { Segment } from './RacerState';
 import type { AtlasFrame } from './SpriteAtlas';
 import { BACKGROUND, SPRITES, SPRITE_SCALE } from './SpriteAtlas';
-import type { RacerState, Segment } from './RacerState';
+import { buildRacerUiLayout, type RacerRect, type RacerUiLayout } from './RacerUiLayout';
+import type { RacerState } from './RacerState';
 
 export type RacerPhase = 'menu' | 'playing' | 'paused' | 'finished';
 
@@ -51,6 +53,7 @@ function formatSeconds(seconds: number): string {
 export class Pseudo3DRenderer {
   render(renderer: Renderer, state: RacerState, assets: RacerAssets | undefined, options: RacerRenderOptions): void {
     const ctx = renderer.ctx;
+    const layout = buildRacerUiLayout(state.width, state.height);
     const projected: ProjectedSegment[] = [];
     const baseSegment = state.findSegment(state.position);
     const basePercent = percentRemaining(state.position, RACER_CONFIG.segmentLength);
@@ -97,9 +100,9 @@ export class Pseudo3DRenderer {
     }
 
     this.drawWorldSprites(ctx, state, projected, assets?.sprites ?? null, playerSegment, playerPercent);
-    this.drawHud(ctx, state, assets, options.targetLaps, options.phase === 'playing', options.audioMuted);
-    if (options.phase === 'playing') this.drawTouchHints(ctx, state);
-    this.drawOverlay(ctx, state, assets, options.phase, options.targetLaps, options.audioMuted);
+    this.drawHud(ctx, state, assets, options.targetLaps, options.phase === 'playing', options.audioMuted, layout);
+    if (options.phase === 'playing') this.drawTouchHints(ctx, layout);
+    this.drawOverlay(ctx, state, assets, options.phase, options.targetLaps, options.audioMuted, layout);
   }
 
   private project(
@@ -299,110 +302,111 @@ export class Pseudo3DRenderer {
     this.polygon(ctx, x - carW * 0.22 - lean, y - carH * 0.2, x + carW * 0.22 - lean, y - carH * 0.2, x + carW * 0.1 - lean, y - carH * 0.42, x - carW * 0.1 - lean, y - carH * 0.42, COLORS.playerTrim);
   }
 
-  private drawHud(ctx: CanvasRenderingContext2D, state: RacerState, assets: RacerAssets | undefined, targetLaps: number, showPause: boolean, audioMuted: boolean): void {
+  private drawHud(ctx: CanvasRenderingContext2D, state: RacerState, assets: RacerAssets | undefined, targetLaps: number, showPause: boolean, audioMuted: boolean, layout: RacerUiLayout): void {
     const mph = Math.round(state.speed / RACER_CONFIG.maxSpeed * 220);
+    const hudW = layout.small ? 316 : 380;
+    const hudH = layout.small ? 196 : 236;
+    const row = layout.small ? 26 : 32;
 
-    ctx.font = '24px sans-serif';
+    ctx.font = `${layout.fonts.hud}px sans-serif`;
     ctx.textBaseline = 'top';
     ctx.fillStyle = COLORS.hudShadow;
-    ctx.fillRect(16, 16, 380, 236);
+    ctx.fillRect(16, 16, hudW, hudH);
     ctx.fillStyle = COLORS.hud;
     ctx.fillText(`Speed ${mph} mph`, 32, 30);
-    ctx.fillText(`Lap ${state.completedLaps}/${targetLaps}`, 32, 62);
-    ctx.fillText(`Time ${formatSeconds(state.currentLapTime)}`, 32, 94);
-    ctx.fillText(`Best ${formatSeconds(state.bestLapTime)}`, 32, 126);
-    ctx.fillText(`Perf ${state.tuning.label}`, 32, 158);
-    ctx.fillText(assets?.statusLabel ?? 'Assets idle', 32, 190);
-    ctx.fillText(`Music ${audioMuted ? 'Off' : 'On'}`, 32, 222);
+    ctx.fillText(`Lap ${state.completedLaps}/${targetLaps}`, 32, 30 + row);
+    ctx.fillText(`Time ${formatSeconds(state.currentLapTime)}`, 32, 30 + row * 2);
+    ctx.fillText(`Best ${formatSeconds(state.bestLapTime)}`, 32, 30 + row * 3);
+    ctx.fillText(`Perf ${state.tuning.label}`, 32, 30 + row * 4);
+    ctx.fillText(assets?.statusLabel ?? 'Assets idle', 32, 30 + row * 5);
+    if (!layout.small) ctx.fillText(`Music ${audioMuted ? 'Off' : 'On'}`, 32, 30 + row * 6);
 
     if (showPause) {
-      this.roundedPanel(ctx, state.width - 98, 18, 80, 48, 'rgba(0, 0, 0, 0.48)', '#ffffff');
-      ctx.font = '20px sans-serif';
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText('暂停', state.width - 78, 30);
+      this.drawButton(ctx, layout.pauseButton, '暂停', layout);
     }
   }
 
-  private drawTouchHints(ctx: CanvasRenderingContext2D, state: RacerState): void {
-    const bottomY = state.height * 0.74;
+  private drawTouchHints(ctx: CanvasRenderingContext2D, layout: RacerUiLayout): void {
+    const { left, right, brake } = layout.touchZones;
 
     ctx.save();
-    ctx.globalAlpha = 0.16;
+    ctx.globalAlpha = 0.14;
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, bottomY, state.width, state.height - bottomY);
-    ctx.fillRect(0, 0, state.width * 0.42, state.height);
-    ctx.fillRect(state.width * 0.58, 0, state.width * 0.42, state.height);
+    this.fillRect(ctx, left);
+    this.fillRect(ctx, right);
+    this.fillRect(ctx, brake);
     ctx.globalAlpha = 1;
 
-    ctx.font = '20px sans-serif';
+    ctx.font = `${layout.fonts.body}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText('左转', state.width * 0.21, state.height * 0.64);
-    ctx.fillText('右转', state.width * 0.79, state.height * 0.64);
-    ctx.fillText('刹车', state.width * 0.5, bottomY + (state.height - bottomY) / 2);
+    ctx.fillText('左转', left.x + left.w / 2, left.y + left.h * 0.64);
+    ctx.fillText('右转', right.x + right.w / 2, right.y + right.h * 0.64);
+    ctx.fillText('刹车', brake.x + brake.w / 2, brake.y + brake.h / 2);
     ctx.restore();
   }
 
-  private drawOverlay(ctx: CanvasRenderingContext2D, state: RacerState, assets: RacerAssets | undefined, phase: RacerPhase, targetLaps: number, audioMuted: boolean): void {
+  private drawOverlay(ctx: CanvasRenderingContext2D, state: RacerState, assets: RacerAssets | undefined, phase: RacerPhase, targetLaps: number, audioMuted: boolean, layout: RacerUiLayout): void {
     if (phase === 'playing') return;
 
     ctx.fillStyle = 'rgba(0, 0, 0, 0.56)';
     ctx.fillRect(0, 0, state.width, state.height);
 
-    const panelW = Math.min(600, state.width * 0.78);
-    const panelH = phase === 'finished' ? 380 : phase === 'paused' ? 336 : 384;
-    const panelX = (state.width - panelW) / 2;
-    const panelY = (state.height - panelH) / 2;
-    this.roundedPanel(ctx, panelX, panelY, panelW, panelH, 'rgba(18, 24, 30, 0.92)', '#ffffff');
+    const active = phase === 'menu' ? layout.menu : phase === 'paused' ? layout.paused : layout.finished;
+    this.roundedPanel(ctx, active.panel.x, active.panel.y, active.panel.w, active.panel.h, 'rgba(18, 24, 30, 0.92)', '#ffffff');
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.fillStyle = '#ffffff';
 
     if (phase === 'menu') {
-      ctx.font = '40px sans-serif';
-      ctx.fillText('Retro Racer', state.width / 2, panelY + 24);
-      ctx.font = '20px sans-serif';
-      ctx.fillText(`资源包：${assets?.packLabel ?? 'Unknown'}`, state.width / 2, panelY + 82);
-      ctx.fillText(`${assets?.statusLabel ?? 'Assets idle'} / ${assets?.commercialSafe ? 'Commercial-safe' : 'Legacy assets'}`, state.width / 2, panelY + 112);
-      ctx.fillText('左/右半屏转向，底部区域刹车', state.width / 2, panelY + 142);
-      this.drawButton(ctx, state.width / 2 - 118, panelY + 184, 236, 52, '开始游戏');
-      this.drawButton(ctx, state.width / 2 - 118, panelY + 248, 236, 52, '排行榜');
-      this.drawButton(ctx, state.width / 2 - 118, panelY + 312, 236, 52, audioMuted ? '音乐：关' : '音乐：开');
+      ctx.font = `${layout.fonts.title}px sans-serif`;
+      ctx.fillText('Retro Racer', state.width / 2, layout.menu.titleY);
+      ctx.font = `${layout.fonts.body}px sans-serif`;
+      ctx.fillText(`资源包：${assets?.packLabel ?? 'Unknown'}`, state.width / 2, layout.menu.line1Y);
+      ctx.fillText(`${assets?.statusLabel ?? 'Assets idle'} / ${assets?.commercialSafe ? 'Commercial-safe' : 'Legacy assets'}`, state.width / 2, layout.menu.line2Y);
+      ctx.fillText('左/右半屏转向，底部区域刹车', state.width / 2, layout.menu.line3Y);
+      this.drawButton(ctx, layout.menu.startButton, '开始游戏', layout);
+      this.drawButton(ctx, layout.menu.leaderboardButton, '排行榜', layout);
+      this.drawButton(ctx, layout.menu.audioButton, audioMuted ? '音乐：关' : '音乐：开', layout);
     } else if (phase === 'paused') {
-      ctx.font = '38px sans-serif';
-      ctx.fillText('已暂停', state.width / 2, panelY + 34);
-      ctx.font = '22px sans-serif';
-      ctx.fillText('点击继续，或切换音乐', state.width / 2, panelY + 98);
-      this.drawButton(ctx, state.width / 2 - 110, panelY + 158, 220, 52, '继续');
-      this.drawButton(ctx, state.width / 2 - 110, panelY + 224, 220, 52, audioMuted ? '音乐：关' : '音乐：开');
+      ctx.font = `${layout.fonts.title}px sans-serif`;
+      ctx.fillText('已暂停', state.width / 2, layout.paused.titleY);
+      ctx.font = `${layout.fonts.body}px sans-serif`;
+      ctx.fillText('点击继续，或切换音乐', state.width / 2, layout.paused.line1Y);
+      this.drawButton(ctx, layout.paused.resumeButton, '继续', layout);
+      this.drawButton(ctx, layout.paused.audioButton, audioMuted ? '音乐：关' : '音乐：开', layout);
     } else {
-      ctx.font = '38px sans-serif';
-      ctx.fillText('比赛完成', state.width / 2, panelY + 28);
-      ctx.font = '22px sans-serif';
-      ctx.fillText(`圈数 ${state.completedLaps}/${targetLaps}`, state.width / 2, panelY + 84);
-      ctx.fillText(`总时间 ${formatSeconds(state.totalRaceTime)}`, state.width / 2, panelY + 116);
-      ctx.fillText(`最快圈 ${formatSeconds(state.bestLapTime)}`, state.width / 2, panelY + 148);
-      this.drawButton(ctx, state.width / 2 - 250, panelY + 212, 150, 54, '再来一局');
-      this.drawButton(ctx, state.width / 2 - 75, panelY + 212, 150, 54, '分享');
-      this.drawButton(ctx, state.width / 2 + 100, panelY + 212, 150, 54, '排行榜');
-      ctx.font = '18px sans-serif';
-      ctx.fillText('分享/排行榜当前为平台服务占位，后续接微信能力', state.width / 2, panelY + 294);
+      ctx.font = `${layout.fonts.title}px sans-serif`;
+      ctx.fillText('比赛完成', state.width / 2, layout.finished.titleY);
+      ctx.font = `${layout.fonts.body}px sans-serif`;
+      ctx.fillText(`圈数 ${state.completedLaps}/${targetLaps}`, state.width / 2, layout.finished.line1Y);
+      ctx.fillText(`总时间 ${formatSeconds(state.totalRaceTime)}`, state.width / 2, layout.finished.line2Y);
+      ctx.fillText(`最快圈 ${formatSeconds(state.bestLapTime)}`, state.width / 2, layout.finished.line3Y);
+      this.drawButton(ctx, layout.finished.restartButton, '再来一局', layout);
+      this.drawButton(ctx, layout.finished.shareButton, '分享', layout);
+      this.drawButton(ctx, layout.finished.leaderboardButton, '排行榜', layout);
+      ctx.font = `${layout.fonts.note}px sans-serif`;
+      ctx.fillText('分享/排行榜当前为平台服务占位，后续接微信能力', state.width / 2, layout.finished.noteY);
     }
 
     ctx.textAlign = 'left';
   }
 
-  private drawButton(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, text: string): void {
-    this.roundedPanel(ctx, x, y, w, h, 'rgba(255, 255, 255, 0.16)', '#ffffff');
-    ctx.font = '24px sans-serif';
+  private drawButton(ctx: CanvasRenderingContext2D, target: RacerRect, text: string, layout: RacerUiLayout): void {
+    this.roundedPanel(ctx, target.x, target.y, target.w, target.h, 'rgba(255, 255, 255, 0.16)', '#ffffff');
+    ctx.font = `${layout.fonts.button}px sans-serif`;
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(text, x + w / 2, y + h / 2);
+    ctx.fillText(text, target.x + target.w / 2, target.y + target.h / 2);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
+  }
+
+  private fillRect(ctx: CanvasRenderingContext2D, target: RacerRect): void {
+    ctx.fillRect(target.x, target.y, target.w, target.h);
   }
 
   private roundedPanel(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, fill: string, stroke?: string): void {
