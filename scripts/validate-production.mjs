@@ -18,6 +18,7 @@ const requiredFiles = [
   'src/racer/RacerTuning.ts',
   'src/racer/RacerUiFlags.ts',
   'src/racer/RacerUiLayout.ts',
+  'src/racer/RacerUiRenderer.ts',
   'src/platforms/wechat/startup.ts',
   'src/platforms/wechat/game.json',
   'scripts/build-wechat.mjs',
@@ -35,6 +36,7 @@ const sourceFilesToCheck = [
   'src/racer/RacerAssets.ts',
   'src/racer/RacerSettings.ts',
   'src/racer/RacerStorage.ts',
+  'src/racer/RacerUiRenderer.ts',
   'src/scenes/RacerScene.ts'
 ];
 
@@ -60,6 +62,7 @@ const manifest = await read('src/racer/RacerAssetManifest.ts');
 const services = await read('src/racer/RacerServices.ts');
 const scene = await read('src/scenes/RacerScene.ts');
 const renderer = await read('src/racer/Pseudo3DRenderer.ts');
+const uiRenderer = await read('src/racer/RacerUiRenderer.ts');
 const state = await read('src/racer/RacerState.ts');
 const startup = await read('src/platforms/wechat/startup.ts');
 const engineBoundary = await read('src/engine/index.ts');
@@ -107,25 +110,28 @@ if (!joystick.includes('class RacerJoystick') || !joystick.includes('deadZone = 
 if (!state.includes('steer: number') || !state.includes('steerDelta = dt * 2.35')) {
   missing.push('analog steering state sensitivity');
 }
-if (!renderer.includes('RACER_UI_FLAGS') || !renderer.includes('showAssetStatus') || !renderer.includes('极速公路')) {
-  missing.push('renderer must use release UI flags and commercial menu copy');
+if (!renderer.includes('RacerUiRenderer') || !renderer.includes('this.ui.render(ctx, state, assets, layout, options)')) {
+  missing.push('Pseudo3DRenderer must delegate commercial UI drawing to RacerUiRenderer');
 }
-if (!renderer.includes('RacerUiPressedTarget') || !renderer.includes('pressedTarget ===') || !scene.includes('executePressedTarget')) {
+if (!uiRenderer.includes('RACER_UI_FLAGS') || !uiRenderer.includes('showAssetStatus') || !uiRenderer.includes('极速公路')) {
+  missing.push('RacerUiRenderer must use release UI flags and commercial menu copy');
+}
+if (!uiRenderer.includes('RacerUiPressedTarget') || !uiRenderer.includes('pressedTarget ===') || !scene.includes('executePressedTarget')) {
   missing.push('polished UI press-state confirmation flow');
 }
-if (!renderer.includes('drawControlCoach') || !renderer.includes('操作说明') || !scene.includes('CONTROL_COACH_SECONDS')) {
+if (!uiRenderer.includes('drawControlCoach') || !uiRenderer.includes('操作说明') || !scene.includes('CONTROL_COACH_SECONDS')) {
   missing.push('first-race control coach and help overlay flow');
 }
-if (!scene.includes('returnToMenu') || !scene.includes('paused-menu') || !renderer.includes('返回菜单')) {
+if (!scene.includes('returnToMenu') || !scene.includes('paused-menu') || !uiRenderer.includes('返回菜单')) {
   missing.push('pause return-to-menu interaction');
 }
-if (!renderer.includes('drawVignette') || !renderer.includes('raceGrade') || !renderer.includes('rgba(255, 207, 74, 0.12)')) {
+if (!uiRenderer.includes('drawVignette') || !uiRenderer.includes('raceGrade') || !uiRenderer.includes('rgba(255, 207, 74, 0.12)')) {
   missing.push('polished modal hierarchy, primary button glow, and result rating');
 }
 if (!renderer.includes('ctx.imageSmoothingEnabled = false') || !renderer.includes('drawImage(image')) {
   missing.push('crisp pixel-art rendering with smoothing disabled');
 }
-if (!renderer.includes('drawModalPanel') || !renderer.includes('primary = false')) {
+if (!uiRenderer.includes('drawModalPanel') || !uiRenderer.includes('primary = false')) {
   missing.push('polished modal panel and primary button styling');
 }
 if (!renderer.includes('drawPlayerFallback') || !renderer.includes('drawPlayerVisibilityMarker') || !renderer.includes('state.height - carH - 24')) {
@@ -143,8 +149,8 @@ if (!scene.includes('toggleAudio')) {
 if (!scene.includes('RacerJoystick') || !scene.includes('findJoystickTouch') || !scene.includes('brakeActive')) {
   missing.push('RacerScene joystick and brake input flow');
 }
-if (!renderer.includes('drawJoystick') || !renderer.includes('drawBrakeButton') || !renderer.includes('drawPauseButton')) {
-  missing.push('renderer publish controls: joystick, brake, pause');
+if (!uiRenderer.includes('drawJoystick') || !uiRenderer.includes('drawBrakeButton') || !uiRenderer.includes('drawPauseButton')) {
+  missing.push('RacerUiRenderer publish controls: joystick, brake, pause');
 }
 if (!scene.includes('handleAppHidden') || !scene.includes('handleAppShown')) {
   missing.push('RacerScene app lifecycle pause hooks');
