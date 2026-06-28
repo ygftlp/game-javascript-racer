@@ -1,4 +1,5 @@
 import type { Audio, Engine, Texture } from 'lite-game-engine';
+import { ACTIVE_RACER_ASSET_PACK, type RacerAssetPackManifest } from './RacerAssetManifest';
 
 export class RacerAssets {
   background: Texture | null = null;
@@ -7,13 +8,23 @@ export class RacerAssets {
   loaded = false;
   failed = false;
 
+  constructor(readonly pack: RacerAssetPackManifest = ACTIVE_RACER_ASSET_PACK) {}
+
+  get packLabel(): string {
+    return this.pack.label;
+  }
+
+  get commercialSafe(): boolean {
+    return this.pack.commercialSafe;
+  }
+
   async load(engine: Engine): Promise<void> {
     this.loadMusic(engine);
 
     try {
       const [background, sprites] = await Promise.all([
-        engine.loader.loadTexture('images/background.png'),
-        engine.loader.loadTexture('images/sprites.png')
+        engine.loader.loadTexture(this.pack.images.backgroundAtlas),
+        engine.loader.loadTexture(this.pack.images.spriteAtlas)
       ]);
       this.background = background;
       this.sprites = sprites;
@@ -49,8 +60,10 @@ export class RacerAssets {
   }
 
   private loadMusic(engine: Engine): void {
+    if (!this.pack.audio.music) return;
+
     try {
-      this.music = engine.loader.loadAudio('music/racer.mp3');
+      this.music = engine.loader.loadAudio(this.pack.audio.music);
       this.music.volume = 0.05;
     } catch (error) {
       console.warn('[racer] music loading failed', error);
