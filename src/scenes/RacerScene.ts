@@ -2,7 +2,9 @@ import { Engine, Scene, type Renderer, type TouchPoint } from 'lite-game-engine'
 import { RacerAssets } from '../racer/RacerAssets';
 import { RacerState } from '../racer/RacerState';
 import { RacerStorage } from '../racer/RacerStorage';
-import { Pseudo3DRenderer } from '../racer/Pseudo3DRenderer';
+import { Pseudo3DRenderer, type RacerPhase } from '../racer/Pseudo3DRenderer';
+
+const TARGET_LAPS = 3;
 
 export class RacerScene extends Scene {
   private readonly assets = new RacerAssets();
@@ -11,6 +13,7 @@ export class RacerScene extends Scene {
   private readonly pseudo3d = new Pseudo3DRenderer();
   private savedBestLapTime = 0;
   private touchActive = false;
+  private phase: RacerPhase = 'menu';
 
   constructor(private readonly gameEngine: Engine) {
     super();
@@ -25,6 +28,8 @@ export class RacerScene extends Scene {
   update(dt: number): void {
     super.update(dt);
 
+    if (this.phase !== 'playing') return;
+
     if (!this.touchActive) {
       this.state.input.steer = 0;
       this.state.input.brake = false;
@@ -32,20 +37,89 @@ export class RacerScene extends Scene {
 
     this.state.update(dt);
     this.persistBestLapIfNeeded();
+
+    if (this.state.completedLaps >= TARGET_LAPS) {
+      this.finishRace();
+    }
   }
 
   protected draw(renderer: Renderer): void {
-    this.pseudo3d.render(renderer, this.state, this.assets);
+    this.pseudo3d.render(renderer, this.state, this.assets, {
+      phase: this.phase,
+      targetLaps: TARGET_LAPS
+    });
   }
 
   private bindTouchControls(): void {
-    this.gameEngine.input.onStart((touches) => this.applyTouches(touches), { persistent: true });
-    this.gameEngine.input.onMove((touches) => this.applyTouches(touches), { persistent: true });
+    this.gameEngine.input.onStart((touches) => this.handleTouchStart(touches), { persistent: true });
+    this.gameEngine.input.onMove((touches) => {
+      if (this.phase === 'playing') this.applyTouches(touches);
+    }, { persistent: true });
     this.gameEngine.input.onEnd(() => {
       this.touchActive = false;
       this.state.input.steer = 0;
       this.state.input.brake = false;
     }, { persistent: true });
+  }
+
+  private handleTouchStart(touches: TouchPoint[]): void {
+    const point = touches[0];
+    if (!point) return;
+
+    if (this.phase === 'menu') {
+      this.startRace();
+      return;
+    }
+
+    if (this.phase === 'paused') {
+      this.resumeRace();
+      return;
+    }
+
+    if (this.phase === 'finished') {
+      this.restartRace();
+      return;
+    }
+
+    if (this.isPauseButton(point)) {
+      this.pauseRace();
+      return;
+    }
+
+    this.applyTouches(touches);
+  }
+
+  private startRace(): void {
+    this.phase = 'playing';
+    this.touchActive = false;
+    this.assets.playMusic();
+  }
+
+  private restartRace(): void {
+    this.state.resetRace(this.savedBestLapTime);
+    this.startRace();
+  }
+
+  private pauseRace(): void {
+    this.phase = 'paused';
+    this.touchActive = false;
+    this.state.input.steer = 0;
+    this.state.input.brake = false;
+    this.assets.pauseMusic();
+  }
+
+  private resumeRace(): void {
+    this.phase = 'playing';
+    this.assets.playMusic();
+  }
+
+  private finishRace(): void {
+    this.phase = 'finished';
+    this.touchActive = false;
+    this.state.input.steer = 0;
+    this.state.input.brake = false;
+    this.persistBestLapIfNeeded();
+    this.assets.stopMusic();
   }
 
   private applyTouches(touches: TouchPoint[]): void {
@@ -63,6 +137,10 @@ export class RacerScene extends Scene {
     } else {
       this.state.input.steer = 0;
     }
+  }
+
+  private isPauseButton(point: TouchPoint): boolean {
+    return point.x >= this.gameEngine.width - 112 && point.y <= 82;
   }
 
   private persistBestLapIfNeeded(): void {
