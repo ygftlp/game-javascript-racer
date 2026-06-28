@@ -69,15 +69,20 @@ Owner lane: Monetization and Social Agent.
 
 ### Gate 5: UX polish
 
-Status: functional placeholder implemented.
+Status: improved functional pass implemented.
 
-Required:
+Implemented:
 
-- Improve menu layout and hitboxes on small screens.
-- Add audio toggle if music is enabled by default.
-- Add loading state for assets and first interaction.
+- Asset loading / ready / fallback status is visible in HUD and menu.
+- Audio mute state is persisted through platform storage.
+- Menu and pause overlays include a music toggle.
+- HUD shows music state and asset status.
+
+Still required:
+
+- Improve menu layout and hitboxes on very small screens after real-device testing.
 - Add clearer brake/steer visual affordances.
-- Add result screen share copy and ranking entry.
+- Add result screen share copy and ranking entry polish.
 - Add pause behavior on app hide/show once lifecycle helpers are available.
 
 Owner lane: Runtime Integration Agent + QA and Performance Agent.
@@ -100,9 +105,10 @@ Required manual checks:
 - Open project root in WeChat DevTools.
 - Confirm `project.config.json` points to `dist/wechat/`.
 - Start game from menu.
+- Toggle music in menu and pause overlays.
 - Confirm steering left/right and braking zones.
 - Finish 3 laps and restart.
-- Confirm best lap persists after reload.
+- Confirm best lap and audio preference persist after reload.
 - Confirm no console errors for missing required assets.
 - Check FPS on low-end and mid-range devices.
 - Check package size.
@@ -115,10 +121,10 @@ Owner lane: QA and Performance Agent.
 
 Next tasks:
 
-1. Add loading overlay for asset loading / fallback.
-2. Add app hide/show pause once platform lifecycle adapter exists.
-3. Add optional audio mute toggle.
-4. Replace placeholder Canvas buttons with engine UI components if needed.
+1. Add app hide/show pause once platform lifecycle adapter exists.
+2. Replace placeholder Canvas buttons with engine UI components if needed.
+3. Add SFX playback once audio replacement files are available.
+4. Refine loading and fallback copy after real-device validation.
 
 ### Agent B: Asset Taxonomy
 
@@ -176,5 +182,5 @@ The game is done when:
 - All required art and music are licensed for commercial use.
 - WeChat DevTools opens the game without missing required assets.
 - Core gameplay is playable for a full 3-lap race.
-- Pause, restart, best-lap storage, share entry, leaderboard entry, and ad entry work or are intentionally disabled by config.
+- Pause, restart, best-lap storage, audio preference, share entry, leaderboard entry, and ad entry work or are intentionally disabled by config.
 - Real-device performance is acceptable on the target low-end device profile.
