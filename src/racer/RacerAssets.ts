@@ -1,4 +1,4 @@
-import type { Audio, Engine, Texture } from 'lite-game-engine';
+import type { Audio, Engine, Texture } from '../engine';
 import { ACTIVE_RACER_ASSET_PACK, type RacerAssetPackManifest } from './RacerAssetManifest';
 
 export type RacerAssetStatus = 'idle' | 'loading' | 'ready' | 'fallback';
