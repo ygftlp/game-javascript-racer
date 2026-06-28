@@ -16,6 +16,7 @@ const requiredFiles = [
   'src/racer/RacerSettings.ts',
   'src/racer/RacerState.ts',
   'src/racer/RacerTuning.ts',
+  'src/racer/RacerUiFlags.ts',
   'src/racer/RacerUiLayout.ts',
   'src/platforms/wechat/startup.ts',
   'src/platforms/wechat/game.json',
@@ -24,6 +25,7 @@ const requiredFiles = [
   'scripts/validate-assets.mjs',
   'docs/asset-replacement-guide.md',
   'docs/agent-workstreams.md',
+  'docs/commercial-ui-ux-plan.md',
   'docs/production-completion-plan.md'
 ];
 
@@ -64,6 +66,7 @@ const engineBoundary = await read('src/engine/index.ts');
 const localEngine = await read('src/engine/local-lite-game-engine.ts');
 const engineModeScript = await read('scripts/use-engine-mode.mjs');
 const liteEngineTypes = await read('src/types/lite-game-engine.d.ts');
+const uiFlags = await read('src/racer/RacerUiFlags.ts');
 const uiLayout = await read('src/racer/RacerUiLayout.ts');
 const joystick = await read('src/racer/RacerJoystick.ts');
 
@@ -86,6 +89,9 @@ if (!liteEngineTypes.includes("declare module 'lite-game-engine'") || !liteEngin
 if (!localEngine.includes('this.screen.width * pixelRatio') || !localEngine.includes('ctx.scale(pixelRatio, pixelRatio)')) {
   missing.push('high-DPI local engine canvas scaling');
 }
+if (!uiFlags.includes('releaseMode: true') || !uiFlags.includes('showAssetStatus: false') || !uiFlags.includes('showControlLabels: false')) {
+  missing.push('commercial release UI flags must hide debug and control labels by default');
+}
 if (!uiLayout.includes('joystickBase') || !uiLayout.includes('brakeButton') || !uiLayout.includes('pauseButton: RacerCircle')) {
   missing.push('publish UI layout must include joystick, brake, and circle pause controls');
 }
@@ -97,6 +103,9 @@ if (!joystick.includes('class RacerJoystick') || !joystick.includes('deadZone = 
 }
 if (!state.includes('steer: number') || !state.includes('steerDelta = dt * 2.35')) {
   missing.push('analog steering state sensitivity');
+}
+if (!renderer.includes('RACER_UI_FLAGS') || !renderer.includes('showAssetStatus') || !renderer.includes('极速公路')) {
+  missing.push('renderer must use release UI flags and commercial menu copy');
 }
 if (!renderer.includes('ctx.imageSmoothingEnabled = false') || !renderer.includes('drawImage(image')) {
   missing.push('crisp pixel-art rendering with smoothing disabled');
