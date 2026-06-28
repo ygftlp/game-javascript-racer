@@ -60,6 +60,8 @@ function formatSeconds(seconds: number): string {
 export class Pseudo3DRenderer {
   render(renderer: Renderer, state: RacerState, assets: RacerAssets | undefined, options: RacerRenderOptions): void {
     const ctx = renderer.ctx;
+    this.configureCanvas(ctx);
+
     const layout = buildRacerUiLayout(state.width, state.height);
     const projected: ProjectedSegment[] = [];
     const baseSegment = state.findSegment(state.position);
@@ -112,6 +114,13 @@ export class Pseudo3DRenderer {
     if (options.phase === 'playing') this.drawInRaceControls(ctx, layout, options.joystick, options.brakeActive);
     if (options.phase === 'playing') this.drawPauseButton(ctx, layout.pauseButton);
     this.drawOverlay(ctx, state, assets, options.phase, options.targetLaps, options.audioMuted, layout);
+  }
+
+  private configureCanvas(ctx: CanvasRenderingContext2D): void {
+    ctx.imageSmoothingEnabled = false;
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
   }
 
   private project(
@@ -180,9 +189,9 @@ export class Pseudo3DRenderer {
     const sourceW = Math.min(imageW, frame.x + frame.w - sourceX);
     const destW = Math.floor(state.width * (sourceW / imageW));
 
-    ctx.drawImage(image, sourceX, frame.y, sourceW, frame.h, 0, offset, destW, state.height);
+    ctx.drawImage(image, sourceX, frame.y, sourceW, frame.h, 0, Math.round(offset), destW, state.height);
     if (sourceW < imageW) {
-      ctx.drawImage(image, frame.x, frame.y, imageW - sourceW, frame.h, destW - 1, offset, state.width - destW, state.height);
+      ctx.drawImage(image, frame.x, frame.y, imageW - sourceW, frame.h, destW - 1, Math.round(offset), state.width - destW, state.height);
     }
   }
 
@@ -262,18 +271,24 @@ export class Pseudo3DRenderer {
     state: RacerState,
     fallbackColor: string
   ): void {
-    const destW = frame.w * scale * state.width / 2 * (SPRITE_SCALE * RACER_CONFIG.roadWidth);
-    const destH = frame.h * scale * state.width / 2 * (SPRITE_SCALE * RACER_CONFIG.roadWidth);
-    const x = destX + destW * offsetX;
-    const y = destY + destH * offsetY;
+    const destW = Math.round(frame.w * scale * state.width / 2 * (SPRITE_SCALE * RACER_CONFIG.roadWidth));
+    const destH = Math.round(frame.h * scale * state.width / 2 * (SPRITE_SCALE * RACER_CONFIG.roadWidth));
+    const x = Math.round(destX + destW * offsetX);
+    const y = Math.round(destY + destH * offsetY);
     const clipH = clipY ? Math.max(0, y + destH - clipY) : 0;
 
-    if (clipH >= destH) return;
+    if (clipH >= destH || destW <= 0 || destH <= 0) return;
 
     if (texture?.loaded) {
-      const image = texture.image as unknown as CanvasImageSource;
-      ctx.drawImage(image, frame.x, frame.y, frame.w, frame.h - frame.h * clipH / destH, x, y, destW, destH - clipH);
-      return;
+      try {
+        const image = texture.image as unknown as CanvasImageSource;
+        const visibleSourceH = Math.max(1, frame.h - frame.h * clipH / destH);
+        const visibleDestH = Math.max(1, destH - clipH);
+        ctx.drawImage(image, frame.x, frame.y, frame.w, visibleSourceH, x, y, destW, visibleDestH);
+        return;
+      } catch (error) {
+        console.warn('[racer] sprite draw failed, using fallback shape', error);
+      }
     }
 
     ctx.fillStyle = fallbackColor;
@@ -288,23 +303,56 @@ export class Pseudo3DRenderer {
     playerPercent: number
   ): void {
     const frame = state.input.steer < -0.08 ? SPRITES.PLAYER_LEFT : state.input.steer > 0.08 ? SPRITES.PLAYER_RIGHT : SPRITES.PLAYER_STRAIGHT;
-    const carW = Math.max(82, state.width * 0.108);
-    const carH = carW * (frame.h / frame.w);
+    const carW = Math.round(Math.max(96, state.width * 0.118));
+    const carH = Math.round(carW * (frame.h / frame.w));
     const roadY = state.height / 2 - (state.cameraDepth / state.playerZ * interpolate(playerSegment.y1, playerSegment.y2, playerPercent) * state.height / 2);
     const bounce = 1.2 * Math.random() * state.speed / RACER_CONFIG.maxSpeed * state.resolution;
-    const carTopY = clamp(roadY + bounce, state.height * 0.48, state.height - carH - 18);
-    const x = state.width / 2;
+    const carTopY = Math.round(clamp(roadY + bounce, state.height * 0.5, state.height - carH - 24));
+    const x = Math.round(state.width / 2);
+
+    this.drawPlayerFallback(ctx, x, carTopY, carW, carH, state.input.steer);
 
     if (texture?.loaded) {
-      const image = texture.image as unknown as CanvasImageSource;
-      ctx.drawImage(image, frame.x, frame.y, frame.w, frame.h, x - carW / 2, carTopY, carW, carH);
-      return;
+      try {
+        const image = texture.image as unknown as CanvasImageSource;
+        ctx.drawImage(image, frame.x, frame.y, frame.w, frame.h, Math.round(x - carW / 2), carTopY, carW, carH);
+      } catch (error) {
+        console.warn('[racer] player sprite draw failed, fallback body remains visible', error);
+      }
     }
 
-    const centerY = carTopY + carH / 2;
-    const lean = state.input.steer * carW * 0.08;
-    this.polygon(ctx, x - carW * 0.5 + lean, centerY + carH * 0.45, x + carW * 0.5 + lean, centerY + carH * 0.45, x + carW * 0.28 - lean, centerY - carH * 0.45, x - carW * 0.28 - lean, centerY - carH * 0.45, COLORS.player);
-    this.polygon(ctx, x - carW * 0.22 - lean, centerY - carH * 0.2, x + carW * 0.22 - lean, centerY - carH * 0.2, x + carW * 0.1 - lean, centerY - carH * 0.42, x - carW * 0.1 - lean, centerY - carH * 0.42, COLORS.playerTrim);
+    this.drawPlayerVisibilityMarker(ctx, x, carTopY, carW, carH, state.input.steer);
+  }
+
+  private drawPlayerFallback(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, steer: number): void {
+    const centerY = y + h / 2;
+    const lean = steer * w * 0.06;
+
+    ctx.save();
+    ctx.globalAlpha = 0.92;
+    ctx.fillStyle = 'rgba(0,0,0,0.32)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + h * 0.92, w * 0.46, h * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    this.polygon(ctx, x - w * 0.5 + lean, centerY + h * 0.45, x + w * 0.5 + lean, centerY + h * 0.45, x + w * 0.28 - lean, centerY - h * 0.45, x - w * 0.28 - lean, centerY - h * 0.45, '#1f6fff');
+    this.polygon(ctx, x - w * 0.22 - lean, centerY - h * 0.12, x + w * 0.22 - lean, centerY - h * 0.12, x + w * 0.11 - lean, centerY - h * 0.38, x - w * 0.11 - lean, centerY - h * 0.38, '#d9f2ff');
+    ctx.restore();
+  }
+
+  private drawPlayerVisibilityMarker(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, steer: number): void {
+    const centerY = y + h / 2;
+    const lean = steer * w * 0.06;
+
+    ctx.save();
+    ctx.globalAlpha = 0.38;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = Math.max(2, Math.round(w * 0.018));
+    this.strokePolygon(ctx, x - w * 0.48 + lean, centerY + h * 0.42, x + w * 0.48 + lean, centerY + h * 0.42, x + w * 0.26 - lean, centerY - h * 0.42, x - w * 0.26 - lean, centerY - h * 0.42);
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.fillRect(Math.round(x - w * 0.38), Math.round(y + h * 0.72), Math.max(3, Math.round(w * 0.12)), Math.max(3, Math.round(h * 0.1)));
+    ctx.fillRect(Math.round(x + w * 0.26), Math.round(y + h * 0.72), Math.max(3, Math.round(w * 0.12)), Math.max(3, Math.round(h * 0.1)));
+    ctx.restore();
   }
 
   private drawHud(ctx: CanvasRenderingContext2D, state: RacerState, assets: RacerAssets | undefined, targetLaps: number, audioMuted: boolean, layout: RacerUiLayout): void {
@@ -503,5 +551,25 @@ export class Pseudo3DRenderer {
     ctx.lineTo(x4, y4);
     ctx.closePath();
     ctx.fill();
+  }
+
+  private strokePolygon(
+    ctx: CanvasRenderingContext2D,
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    x3: number,
+    y3: number,
+    x4: number,
+    y4: number
+  ): void {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.lineTo(x3, y3);
+    ctx.lineTo(x4, y4);
+    ctx.closePath();
+    ctx.stroke();
   }
 }
