@@ -61,6 +61,7 @@ const renderer = await read('src/racer/Pseudo3DRenderer.ts');
 const state = await read('src/racer/RacerState.ts');
 const startup = await read('src/platforms/wechat/startup.ts');
 const engineBoundary = await read('src/engine/index.ts');
+const localEngine = await read('src/engine/local-lite-game-engine.ts');
 const engineModeScript = await read('scripts/use-engine-mode.mjs');
 const liteEngineTypes = await read('src/types/lite-game-engine.d.ts');
 const uiLayout = await read('src/racer/RacerUiLayout.ts');
@@ -82,6 +83,9 @@ if (!engineModeScript.includes('file:../game-engine')) {
 if (!liteEngineTypes.includes("declare module 'lite-game-engine'") || !liteEngineTypes.includes('export class Engine')) {
   missing.push('local lite-game-engine type fallback declaration');
 }
+if (!localEngine.includes('this.screen.width * pixelRatio') || !localEngine.includes('ctx.scale(pixelRatio, pixelRatio)')) {
+  missing.push('high-DPI local engine canvas scaling');
+}
 if (!uiLayout.includes('joystickBase') || !uiLayout.includes('brakeButton') || !uiLayout.includes('pauseButton: RacerCircle')) {
   missing.push('publish UI layout must include joystick, brake, and circle pause controls');
 }
@@ -94,10 +98,16 @@ if (!joystick.includes('class RacerJoystick') || !joystick.includes('deadZone = 
 if (!state.includes('steer: number') || !state.includes('steerDelta = dt * 2.35')) {
   missing.push('analog steering state sensitivity');
 }
+if (!renderer.includes('ctx.imageSmoothingEnabled = false') || !renderer.includes('drawImage(image')) {
+  missing.push('crisp pixel-art rendering with smoothing disabled');
+}
 if (!renderer.includes('drawModalPanel') || !renderer.includes('primary = false')) {
   missing.push('polished modal panel and primary button styling');
 }
-if (!renderer.includes('state.height - carH - 18') || !renderer.includes('this.drawPlayer(ctx, state, assets?.sprites ?? null, playerSegment, playerPercent)')) {
+if (!renderer.includes('drawPlayerFallback') || !renderer.includes('drawPlayerVisibilityMarker') || !renderer.includes('state.height - carH - 24')) {
+  missing.push('always-visible player car fallback and visibility marker');
+}
+if (!renderer.includes('this.drawPlayer(ctx, state, assets?.sprites ?? null, playerSegment, playerPercent)')) {
   missing.push('stable player car drawing outside segment projection clipping');
 }
 if (!scene.includes('TARGET_LAPS')) {
