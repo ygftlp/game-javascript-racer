@@ -89,6 +89,7 @@ export class RacerState {
   completedLaps = 0;
   totalRaceTime = 0;
   collisionCooldown = 0;
+  collisionCount = 0;
 
   constructor(width: number, height: number, readonly tuning: RacerTuning = RACER_TUNING_PRESETS.medium) {
     this.width = width;
@@ -159,6 +160,7 @@ export class RacerState {
     this.completedLaps = 0;
     this.totalRaceTime = 0;
     this.collisionCooldown = 0;
+    this.collisionCount = 0;
     this.input.steer = 0;
     this.input.accelerate = true;
     this.input.brake = false;
@@ -321,6 +323,7 @@ export class RacerState {
         this.speed = Math.max(car.speed * (car.speed / Math.max(this.speed, 1)), RACER_CONFIG.maxSpeed / 8);
         this.position = increase(car.z, -this.playerZ, this.trackLength);
         this.collisionCooldown = 0.8;
+        this.collisionCount += 1;
         break;
       }
     }
@@ -336,6 +339,7 @@ export class RacerState {
         this.speed = RACER_CONFIG.maxSpeed / 5;
         this.position = increase(playerSegment.z1, -this.playerZ, this.trackLength);
         this.collisionCooldown = 0.8;
+        this.collisionCount += 1;
         break;
       }
     }
