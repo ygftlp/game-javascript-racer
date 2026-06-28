@@ -14,9 +14,7 @@
     "validate:production": "node scripts/validate-production.mjs",
     "prebuild:wx": "npm run validate:production"
   },
-  "dependencies": {
-    "lite-game-engine": "github:ygftlp/game-engine#feat/lightweight-2d-game-engine"
-  },
+  "dependencies": {},
   "devDependencies": {
     "esbuild": "^0.21.0",
     "typescript": "^5.4.0"
