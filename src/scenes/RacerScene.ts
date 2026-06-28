@@ -1,4 +1,4 @@
-import { Engine, Scene, type Renderer, type TouchPoint } from 'lite-game-engine';
+import { Engine, Scene, type Renderer, type TouchPoint } from '../engine';
 import { RacerAssets } from '../racer/RacerAssets';
 import { createRacerServices, type RaceResult } from '../racer/RacerServices';
 import { RacerSettings } from '../racer/RacerSettings';
@@ -85,8 +85,8 @@ export class RacerScene extends Scene {
   }
 
   private bindTouchControls(): void {
-    this.gameEngine.input.onStart((touches) => this.handleTouchStart(touches), { persistent: true });
-    this.gameEngine.input.onMove((touches) => {
+    this.gameEngine.input.onStart((touches: TouchPoint[]) => this.handleTouchStart(touches), { persistent: true });
+    this.gameEngine.input.onMove((touches: TouchPoint[]) => {
       if (this.phase === 'playing') this.applyTouches(touches);
     }, { persistent: true });
     this.gameEngine.input.onEnd(() => {
