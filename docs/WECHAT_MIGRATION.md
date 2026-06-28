@@ -131,6 +131,15 @@ dist/wechat/assets/**
 - Replaced direct `lite-game-engine` imports in business code with imports from `src/engine`.
 - Production validation now fails if business code imports `lite-game-engine` directly.
 
+### Checkpoint 9: publish UI controls pass
+
+- Added `RacerJoystick` with dead-zone handling, max-radius clamping, and auto-centering.
+- `RacerUiLayout` now defines publish-oriented controls: left-bottom joystick, right-bottom brake button, compact HUD, progress bar, and capsule-safe pause button.
+- `RacerScene` routes touch input through joystick/brake hit areas instead of full-screen left/right zones.
+- `Pseudo3DRenderer` now draws a compact racing HUD, progress bar, joystick, brake button, and circular pause icon.
+- Pause overlay now includes continue, restart, and music controls.
+- Production validation now checks joystick/brake/pause publish controls.
+
 ## Current limitations
 
 - The WeChat version is still a TypeScript rewrite of the v4 runtime, not a byte-for-byte port.
