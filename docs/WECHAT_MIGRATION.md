@@ -8,11 +8,13 @@
 
 ## Target architecture
 
-The WeChat version should be a TypeScript business game that depends on `lite-game-engine`:
+The WeChat version is a TypeScript business game behind an engine boundary. The branch currently uses a local compatibility engine so local typecheck/build is not blocked by the external SDK package missing built `dist` files:
 
 ```text
 src/
   main.wx.ts                    WeChat source entry, calls the startup module
+  engine/index.ts               Engine import boundary
+  engine/local-lite-game-engine.ts Local compatibility engine for local builds and WeChat startup
   scenes/                       Scene-level game pages
   racer/                        Racing gameplay model, state, renderer, track, config, assets, settings, storage, services, tuning, ui layout
   platforms/wechat/startup.ts   Engine + WxPlatform + RacerScene startup and lifecycle binding
@@ -22,7 +24,7 @@ scripts/
   validate-assets.mjs           asset-pack validation
   validate-production.mjs       production structure validation
 docs/
-  local-setup-wechat.md         local setup and ENOENT package.json troubleshooting
+  local-setup-wechat.md         local setup and ENOENT / SDK troubleshooting
   agent-workstreams.md          multi-agent ownership plan
   asset-replacement-guide.md    asset replacement rules
   production-completion-plan.md final definition of done
@@ -41,14 +43,15 @@ dist/wechat/assets/**
 ## Migration strategy
 
 1. Keep the legacy HTML version intact during migration.
-2. Add a WeChat build pipeline and `lite-game-engine` dependency.
-3. Rebuild the v4 runtime as an engine `Scene` so the main loop, canvas, touch input, and platform glue come from the SDK.
-4. Replace keyboard input with touch steering and mobile-friendly braking.
-5. Move DOM HUD rendering into Canvas drawing or engine UI nodes.
-6. Move image/audio loading to `engine.loader` / SDK audio wrappers.
-7. Reintroduce traffic, sprite sheets, music, save data, and analytics in small verified steps.
-8. Keep WeChat-specific sharing, ads, leaderboards, and lifecycle hooks behind service abstractions.
-9. Treat asset replacement, monetization, and QA as parallel workstreams with clear file ownership.
+2. Add a WeChat build pipeline and engine boundary.
+3. Use the local compatibility engine until the external `lite-game-engine` GitHub dependency publishes or commits built `dist/lib` and `dist/types` files.
+4. Rebuild the v4 runtime as an engine `Scene` so the main loop, canvas, touch input, and platform glue come from the boundary.
+5. Replace keyboard input with touch steering and mobile-friendly braking.
+6. Move DOM HUD rendering into Canvas drawing or engine UI nodes.
+7. Move image/audio loading to the engine loader/audio wrappers.
+8. Reintroduce traffic, sprite sheets, music, save data, and analytics in small verified steps.
+9. Keep WeChat-specific sharing, ads, leaderboards, and lifecycle hooks behind service abstractions.
+10. Treat asset replacement, monetization, and QA as parallel workstreams with clear file ownership.
 
 ## Implemented checkpoints
 
@@ -63,15 +66,15 @@ dist/wechat/assets/**
 
 - Build script now copies `images/`, `music/`, and `assets/` into the WeChat package output.
 - Sprite/background atlas coordinates were moved into TypeScript.
-- `RacerAssets` loads `images/background.png` and `images/sprites.png` through `engine.loader.loadTexture()` with procedural drawing as a fallback.
+- `RacerAssets` loads `images/background.png` and `images/sprites.png` through the engine loader with procedural drawing as a fallback.
 - The traffic model was ported into `RacerState`, including car spawning, movement, avoidance, and collision response.
 - Roadside sprites were restored from the original v4 sprite groups.
 - The pseudo-3D renderer now draws sprite-sheet background layers, traffic cars, roadside sprites, the player car, and HUD.
-- Fastest lap time now uses `engine.platform.getStorage()` / `setStorage()` instead of browser `localStorage`.
+- Fastest lap time now uses engine platform storage instead of browser `localStorage`.
 
 ### Checkpoint 3: mobile game flow pass
 
-- `RacerAssets` now loads `music/racer.mp3` through `engine.loader.loadAudio()` and exposes play/pause/stop helpers.
+- `RacerAssets` now loads `music/racer.mp3` through the engine audio loader and exposes play/pause/stop helpers.
 - `RacerScene` now has `menu`, `playing`, `paused`, and `finished` phases.
 - The first touch starts the race and attempts to start looped background music.
 - The top-right pause button pauses gameplay and music; any touch resumes.
@@ -119,9 +122,18 @@ dist/wechat/assets/**
 - `src/main.wx.ts` now delegates startup to `startWeChatRacerGame()`.
 - Production validation now checks shared UI layout usage, lifecycle hook presence, and WeChat startup module presence.
 
+### Checkpoint 8: local engine compatibility pass
+
+- Added `src/engine/index.ts` as the only engine import boundary for business code.
+- Added `src/engine/local-lite-game-engine.ts` with minimal Engine, Scene, Renderer, Input, Loader, Texture, Audio, and WxPlatform compatibility.
+- Removed the direct GitHub dependency on `lite-game-engine` from `package.json` so local `npm install`, typecheck, and build are not blocked by missing SDK dist files.
+- Replaced direct `lite-game-engine` imports in business code with imports from `src/engine`.
+- Production validation now fails if business code imports `lite-game-engine` directly.
+
 ## Current limitations
 
 - The WeChat version is still a TypeScript rewrite of the v4 runtime, not a byte-for-byte port.
+- The branch currently uses local engine compatibility mode. Switch `src/engine/index.ts` to the real SDK only after the SDK package publishes usable `dist/lib` and `dist/types`.
 - Audio playback may require real-device validation because platform autoplay policies can differ.
 - Ads, analytics, leaderboard, and share are currently no-op service placeholders and need a real WeChat adapter later.
 - Asset licensing still needs replacing before commercial release if using the legacy sprite/music pack.
@@ -130,7 +142,8 @@ dist/wechat/assets/**
 
 ## Next steps
 
-- Fix local `ENOENT package.json` by switching/pulling `codex/modularize-v4-racer`; see `docs/local-setup-wechat.md`.
+- Pull the latest `codex/modularize-v4-racer` branch; see `docs/local-setup-wechat.md`.
+- If old dependency state remains locally, delete `node_modules` and `package-lock.json`, then run `npm install` again.
 - Run `npm install`, `npm run typecheck`, `npm run validate`, and `npm run build:wx` locally.
 - Open the repository root in WeChat DevTools; `project.config.json` points DevTools to `dist/wechat/`.
 - Assign each lane from `docs/agent-workstreams.md` to a contributor or coding agent.
