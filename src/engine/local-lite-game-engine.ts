@@ -253,8 +253,17 @@ export class WxPlatform {
   constructor() {
     this.screen = getWindowSize();
     this.canvas = this.createCanvas();
-    this.canvas.width = this.screen.width;
-    this.canvas.height = this.screen.height;
+    const pixelRatio = Math.max(1, this.screen.pixelRatio || 1);
+    this.canvas.width = Math.round(this.screen.width * pixelRatio);
+    this.canvas.height = Math.round(this.screen.height * pixelRatio);
+
+    if (typeof document !== 'undefined' && 'style' in this.canvas) {
+      const styled = this.canvas as CanvasLike & { style?: { width: string; height: string } };
+      if (styled.style) {
+        styled.style.width = `${this.screen.width}px`;
+        styled.style.height = `${this.screen.height}px`;
+      }
+    }
   }
 
   getScreenInfo(): ScreenInfo {
@@ -322,6 +331,10 @@ export class Engine {
 
     const ctx = platform.canvas.getContext('2d');
     if (!ctx) throw new Error('2D canvas context is not available');
+
+    const pixelRatio = Math.max(1, platform.screen.pixelRatio || 1);
+    ctx.scale(pixelRatio, pixelRatio);
+    ctx.imageSmoothingEnabled = false;
 
     this.renderer = new Renderer(ctx, this.width, this.height);
     this.input = new Input(platform.canvas);
