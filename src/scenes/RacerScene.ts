@@ -1,11 +1,12 @@
 import { Engine, Scene, type Renderer, type TouchPoint } from '../engine';
 import { RacerAssets } from '../racer/RacerAssets';
+import { RacerJoystick } from '../racer/RacerJoystick';
 import { createRacerServices, type RaceResult } from '../racer/RacerServices';
 import { RacerSettings } from '../racer/RacerSettings';
 import { RacerState } from '../racer/RacerState';
 import { RacerStorage } from '../racer/RacerStorage';
 import { resolveRacerTuning } from '../racer/RacerTuning';
-import { buildRacerUiLayout, pointInRect } from '../racer/RacerUiLayout';
+import { buildRacerUiLayout, pointInCircle, pointInRect } from '../racer/RacerUiLayout';
 import { Pseudo3DRenderer, type RacerPhase } from '../racer/Pseudo3DRenderer';
 
 const TARGET_LAPS = 3;
@@ -14,6 +15,7 @@ type FinishedAction = 'restart' | 'share' | 'leaderboard' | 'none';
 
 export class RacerScene extends Scene {
   private readonly assets = new RacerAssets();
+  private readonly joystick = new RacerJoystick();
   private readonly services = createRacerServices();
   private readonly settings: RacerSettings;
   private readonly state: RacerState;
@@ -21,6 +23,7 @@ export class RacerScene extends Scene {
   private readonly pseudo3d = new Pseudo3DRenderer();
   private savedBestLapTime = 0;
   private touchActive = false;
+  private brakeActive = false;
   private audioMuted = false;
   private lastCollisionCount = 0;
   private wasPlayingBeforeHidden = false;
@@ -63,10 +66,13 @@ export class RacerScene extends Scene {
   }
 
   protected draw(renderer: Renderer): void {
+    const layout = this.getUiLayout();
     this.pseudo3d.render(renderer, this.state, this.assets, {
       phase: this.phase,
       targetLaps: TARGET_LAPS,
-      audioMuted: this.audioMuted
+      audioMuted: this.audioMuted,
+      brakeActive: this.brakeActive,
+      joystick: this.joystick.snapshot(layout.controls.joystickBase, layout.controls.joystickKnobRadius)
     });
   }
 
@@ -89,11 +95,7 @@ export class RacerScene extends Scene {
     this.gameEngine.input.onMove((touches: TouchPoint[]) => {
       if (this.phase === 'playing') this.applyTouches(touches);
     }, { persistent: true });
-    this.gameEngine.input.onEnd(() => {
-      this.touchActive = false;
-      this.state.input.steer = 0;
-      this.state.input.brake = false;
-    }, { persistent: true });
+    this.gameEngine.input.onEnd(() => this.resetTouchControls(), { persistent: true });
   }
 
   private handleTouchStart(touches: TouchPoint[]): void {
@@ -117,6 +119,11 @@ export class RacerScene extends Scene {
     }
 
     if (this.phase === 'paused') {
+      if (this.isPausedRestartButton(point)) {
+        this.assets.playMenuConfirm();
+        this.restartRace();
+        return;
+      }
       if (this.isPausedAudioButton(point)) {
         this.assets.playMenuConfirm();
         this.toggleAudio();
@@ -139,8 +146,10 @@ export class RacerScene extends Scene {
         void this.showLeaderboard('result');
         return;
       }
-      this.assets.playMenuConfirm();
-      this.restartRace();
+      if (action === 'restart') {
+        this.assets.playMenuConfirm();
+        this.restartRace();
+      }
       return;
     }
 
@@ -156,7 +165,7 @@ export class RacerScene extends Scene {
   private startRace(): void {
     this.phase = 'playing';
     this.wasPlayingBeforeHidden = false;
-    this.touchActive = false;
+    this.resetTouchControls();
     this.lastCollisionCount = this.state.collisionCount;
     this.assets.playMusic();
     this.services.analytics.track('race_start', { tuning: this.state.tuning.profile, audioMuted: this.audioMuted });
@@ -171,15 +180,14 @@ export class RacerScene extends Scene {
 
   private pauseRace(source: string): void {
     this.phase = 'paused';
-    this.touchActive = false;
-    this.state.input.steer = 0;
-    this.state.input.brake = false;
+    this.resetTouchControls();
     this.assets.pauseMusic();
     this.services.analytics.track('race_pause', { source });
   }
 
   private resumeRace(source: string): void {
     this.phase = 'playing';
+    this.resetTouchControls();
     this.lastCollisionCount = this.state.collisionCount;
     this.assets.playMusic();
     this.services.analytics.track('race_resume', { source, audioMuted: this.audioMuted });
@@ -188,9 +196,7 @@ export class RacerScene extends Scene {
   private finishRace(): void {
     this.phase = 'finished';
     this.wasPlayingBeforeHidden = false;
-    this.touchActive = false;
-    this.state.input.steer = 0;
-    this.state.input.brake = false;
+    this.resetTouchControls();
     this.persistBestLapIfNeeded();
     this.assets.stopMusic();
 
@@ -216,25 +222,44 @@ export class RacerScene extends Scene {
   }
 
   private applyTouches(touches: TouchPoint[]): void {
-    const point = touches[0];
-    if (!point) return;
-
     const layout = this.getUiLayout();
-    this.touchActive = true;
-    this.state.input.accelerate = true;
-    this.state.input.brake = pointInRect(point, layout.touchZones.brake);
+    const joystickTouch = this.findJoystickTouch(touches);
+    const brakeTouch = touches.find((touch) => pointInRect(touch, layout.controls.brakeTouchArea) || pointInCircle(touch, layout.controls.brakeButton, 18));
 
-    if (pointInRect(point, layout.touchZones.left)) {
-      this.state.input.steer = -1;
-    } else if (pointInRect(point, layout.touchZones.right)) {
-      this.state.input.steer = 1;
+    this.touchActive = touches.length > 0;
+    this.brakeActive = Boolean(brakeTouch);
+    this.state.input.accelerate = true;
+    this.state.input.brake = this.brakeActive;
+
+    if (joystickTouch) {
+      if (!this.touchActive) {
+        this.joystick.begin(joystickTouch, layout.controls.joystickBase, layout.controls.joystickKnobRadius);
+      } else {
+        this.joystick.begin(joystickTouch, layout.controls.joystickBase, layout.controls.joystickKnobRadius);
+      }
+      this.joystick.update(joystickTouch);
+      this.state.input.steer = this.joystick.steer();
     } else {
+      this.joystick.end();
       this.state.input.steer = 0;
     }
   }
 
+  private findJoystickTouch(touches: TouchPoint[]): TouchPoint | undefined {
+    const layout = this.getUiLayout();
+    return touches.find((touch) => pointInRect(touch, layout.controls.joystickTouchArea) || pointInCircle(touch, layout.controls.joystickBase, 28));
+  }
+
+  private resetTouchControls(): void {
+    this.touchActive = false;
+    this.brakeActive = false;
+    this.joystick.end();
+    this.state.input.steer = 0;
+    this.state.input.brake = false;
+  }
+
   private isPauseButton(point: TouchPoint): boolean {
-    return pointInRect(point, this.getUiLayout().pauseButton);
+    return pointInCircle(point, this.getUiLayout().pauseButton, 10);
   }
 
   private isMenuLeaderboardButton(point: TouchPoint): boolean {
@@ -243,6 +268,10 @@ export class RacerScene extends Scene {
 
   private isMenuAudioButton(point: TouchPoint): boolean {
     return pointInRect(point, this.getUiLayout().menu.audioButton);
+  }
+
+  private isPausedRestartButton(point: TouchPoint): boolean {
+    return pointInRect(point, this.getUiLayout().paused.restartButton);
   }
 
   private isPausedAudioButton(point: TouchPoint): boolean {
@@ -255,7 +284,7 @@ export class RacerScene extends Scene {
     if (pointInRect(point, layout.restartButton)) return 'restart';
     if (pointInRect(point, layout.shareButton)) return 'share';
     if (pointInRect(point, layout.leaderboardButton)) return 'leaderboard';
-    return 'restart';
+    return 'none';
   }
 
   private getUiLayout() {
