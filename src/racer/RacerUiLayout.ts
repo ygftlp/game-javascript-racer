@@ -39,9 +39,15 @@ export interface RacerFinishedLayout extends RacerPanelLayout {
   noteY: number;
 }
 
+export interface RacerHudLayout {
+  panel: RacerRect;
+  rowHeight: number;
+}
+
 export interface RacerUiLayout {
   small: boolean;
   pauseButton: RacerRect;
+  hud: RacerHudLayout;
   touchZones: RacerTouchZones;
   menu: RacerMenuLayout;
   paused: RacerPausedLayout;
@@ -77,8 +83,8 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   const title = small ? 32 : 40;
   const body = small ? 18 : 20;
   const note = small ? 16 : 18;
-  const button = small ? 21 : 24;
-  const hud = small ? 19 : 24;
+  const button = small ? 20 : 22;
+  const hud = small ? 14 : 16;
 
   const menuPanel = panel(width, height, 600, small ? 344 : 384);
   const menuStartY = menuPanel.y + (small ? 156 : 184);
@@ -94,9 +100,19 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   const finishedTotalW = finishedButtonW * 3 + finishedGap * 2;
   const finishedStartX = (width - finishedTotalW) / 2;
 
+  const hudPanel = rect(14, 14, small ? 172 : 196, small ? 114 : 128);
+  const pauseButtonW = small ? 74 : 86;
+  const pauseButtonH = small ? 38 : 42;
+  const pauseSafeY = Math.max(92, height * 0.16);
+  const pauseButton = rect(width - pauseButtonW - 18, pauseSafeY, pauseButtonW, pauseButtonH);
+
   return {
     small,
-    pauseButton: rect(width - 98, 18, 80, 48),
+    pauseButton,
+    hud: {
+      panel: hudPanel,
+      rowHeight: small ? 15 : 17
+    },
     touchZones: {
       left: rect(0, 0, width * 0.42, height),
       right: rect(width * 0.58, 0, width * 0.42, height),
