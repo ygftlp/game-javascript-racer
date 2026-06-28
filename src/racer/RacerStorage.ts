@@ -1,4 +1,4 @@
-import type { Engine } from 'lite-game-engine';
+import type { Engine } from '../engine';
 
 const FAST_LAP_KEY = 'racer.v4.fast_lap_time';
 
