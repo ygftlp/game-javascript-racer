@@ -7,10 +7,24 @@ export interface RacerRect {
   h: number;
 }
 
+export interface RacerCircle {
+  x: number;
+  y: number;
+  r: number;
+}
+
 export interface RacerTouchZones {
   left: RacerRect;
   right: RacerRect;
   brake: RacerRect;
+}
+
+export interface RacerControlLayout {
+  joystickBase: RacerCircle;
+  joystickKnobRadius: number;
+  joystickTouchArea: RacerRect;
+  brakeButton: RacerCircle;
+  brakeTouchArea: RacerRect;
 }
 
 export interface RacerPanelLayout {
@@ -29,6 +43,7 @@ export interface RacerMenuLayout extends RacerPanelLayout {
 
 export interface RacerPausedLayout extends RacerPanelLayout {
   resumeButton: RacerRect;
+  restartButton: RacerRect;
   audioButton: RacerRect;
 }
 
@@ -41,13 +56,15 @@ export interface RacerFinishedLayout extends RacerPanelLayout {
 
 export interface RacerHudLayout {
   panel: RacerRect;
+  progressBar: RacerRect;
   rowHeight: number;
 }
 
 export interface RacerUiLayout {
   small: boolean;
-  pauseButton: RacerRect;
+  pauseButton: RacerCircle;
   hud: RacerHudLayout;
+  controls: RacerControlLayout;
   touchZones: RacerTouchZones;
   menu: RacerMenuLayout;
   paused: RacerPausedLayout;
@@ -63,6 +80,10 @@ export interface RacerUiLayout {
 
 function rect(x: number, y: number, w: number, h: number): RacerRect {
   return { x, y, w, h };
+}
+
+function circle(x: number, y: number, r: number): RacerCircle {
+  return { x, y, r };
 }
 
 function centeredButton(width: number, y: number, buttonW: number, buttonH: number): RacerRect {
@@ -89,8 +110,8 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   const menuPanel = panel(width, height, 600, small ? 344 : 384);
   const menuStartY = menuPanel.y + (small ? 156 : 184);
 
-  const pausedPanel = panel(width, height, 600, small ? 292 : 336);
-  const pausedStartY = pausedPanel.y + (small ? 132 : 158);
+  const pausedPanel = panel(width, height, 600, small ? 330 : 374);
+  const pausedStartY = pausedPanel.y + (small ? 128 : 154);
 
   const finishedPanel = panel(width, height, 600, small ? 336 : 380);
   const finishedButtonW = small ? Math.min(132, finishedPanel.w * 0.28) : 150;
@@ -100,23 +121,41 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   const finishedTotalW = finishedButtonW * 3 + finishedGap * 2;
   const finishedStartX = (width - finishedTotalW) / 2;
 
-  const hudPanel = rect(14, 14, small ? 172 : 196, small ? 114 : 128);
-  const pauseButtonW = small ? 74 : 86;
-  const pauseButtonH = small ? 38 : 42;
-  const pauseSafeY = Math.max(92, height * 0.16);
-  const pauseButton = rect(width - pauseButtonW - 18, pauseSafeY, pauseButtonW, pauseButtonH);
+  const hudPanel = rect(14, 14, small ? 176 : 206, small ? 104 : 116);
+  const progressBar = rect(hudPanel.x, hudPanel.y + hudPanel.h + 8, hudPanel.w, 8);
+
+  const pauseButtonR = small ? 22 : 25;
+  const pauseSafeY = Math.max(94, height * 0.17);
+  const pauseButton = circle(width - pauseButtonR - 20, pauseSafeY + pauseButtonR, pauseButtonR);
+
+  const joystickRadius = Math.max(52, Math.min(70, width * 0.06, height * 0.14));
+  const joystickKnobRadius = joystickRadius * 0.38;
+  const joystickBase = circle(joystickRadius + 34, height - joystickRadius - 34, joystickRadius);
+  const joystickTouchArea = rect(0, height * 0.48, Math.min(width * 0.48, joystickBase.x + joystickRadius + 42), height * 0.52);
+
+  const brakeRadius = Math.max(42, Math.min(58, width * 0.052, height * 0.12));
+  const brakeButton = circle(width - brakeRadius - 44, height - brakeRadius - 42, brakeRadius);
+  const brakeTouchArea = rect(width * 0.56, height * 0.54, width * 0.44, height * 0.46);
 
   return {
     small,
     pauseButton,
     hud: {
       panel: hudPanel,
+      progressBar,
       rowHeight: small ? 15 : 17
+    },
+    controls: {
+      joystickBase,
+      joystickKnobRadius,
+      joystickTouchArea,
+      brakeButton,
+      brakeTouchArea
     },
     touchZones: {
       left: rect(0, 0, width * 0.42, height),
       right: rect(width * 0.58, 0, width * 0.42, height),
-      brake: rect(0, height * 0.74, width, height * 0.26)
+      brake: brakeTouchArea
     },
     menu: {
       panel: menuPanel,
@@ -130,12 +169,13 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
     },
     paused: {
       panel: pausedPanel,
-      titleY: pausedPanel.y + (small ? 28 : 34),
-      line1Y: pausedPanel.y + (small ? 86 : 98),
-      line2Y: pausedPanel.y + (small ? 110 : 126),
-      line3Y: pausedPanel.y + (small ? 134 : 154),
-      resumeButton: centeredButton(width, pausedStartY, small ? 200 : 220, buttonH),
-      audioButton: centeredButton(width, pausedStartY + buttonH + spacing, small ? 200 : 220, buttonH)
+      titleY: pausedPanel.y + (small ? 24 : 30),
+      line1Y: pausedPanel.y + (small ? 76 : 90),
+      line2Y: pausedPanel.y + (small ? 104 : 122),
+      line3Y: pausedPanel.y + (small ? 132 : 154),
+      resumeButton: centeredButton(width, pausedStartY, small ? 206 : 224, buttonH),
+      restartButton: centeredButton(width, pausedStartY + buttonH + spacing, small ? 206 : 224, buttonH),
+      audioButton: centeredButton(width, pausedStartY + (buttonH + spacing) * 2, small ? 206 : 224, buttonH)
     },
     finished: {
       panel: finishedPanel,
@@ -154,4 +194,8 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
 
 export function pointInRect(point: { x: number; y: number }, target: RacerRect): boolean {
   return point.x >= target.x && point.x <= target.x + target.w && point.y >= target.y && point.y <= target.y + target.h;
+}
+
+export function pointInCircle(point: { x: number; y: number }, target: RacerCircle, padding = 0): boolean {
+  return Math.hypot(point.x - target.x, point.y - target.y) <= target.r + padding;
 }
