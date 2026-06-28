@@ -1,0 +1,26 @@
+{
+  "id": "legacy",
+  "label": "Legacy OutRun-style demo assets",
+  "version": "0.1.0",
+  "commercialSafe": false,
+  "images": {
+    "backgroundAtlas": "images/background.png",
+    "spriteAtlas": "images/sprites.png"
+  },
+  "audio": {
+    "music": "music/racer.mp3"
+  },
+  "categories": [
+    "background.sky-hills-trees",
+    "sprites.player-car",
+    "sprites.traffic-cars",
+    "sprites.roadside-billboards",
+    "sprites.roadside-plants",
+    "sprites.roadside-props",
+    "audio.music"
+  ],
+  "notes": [
+    "This pack preserves the original demo layout for migration compatibility.",
+    "Do not treat this pack as commercial-safe without replacing art and music."
+  ]
+}
