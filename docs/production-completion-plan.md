@@ -15,7 +15,8 @@ Status: mostly implemented.
 Required:
 
 - WeChat entry uses `Engine + WxPlatform + RacerScene`.
-- Game loop, input, rendering, storage, and audio are routed through `lite-game-engine`.
+- Game loop, input, rendering, storage, and audio are routed through the `src/engine` boundary.
+- Local builds use `src/engine/local-lite-game-engine.ts` until the external SDK package publishes built `dist/lib` and `dist/types` files.
 - Business code does not directly depend on DOM or `wx` globals.
 - Legacy HTML demo remains available for reference.
 
@@ -85,9 +86,9 @@ Implemented:
 
 Still required:
 
-- Connect lifecycle hooks to the SDK/platform adapter once lifecycle events are available.
 - Improve menu layout and hitboxes on very small screens after real-device testing.
 - Add result screen share copy and ranking entry polish.
+- Switch `src/engine/index.ts` to the real SDK after the SDK package is built/published correctly.
 
 Owner lane: Runtime Integration Agent + QA and Performance Agent.
 
@@ -113,7 +114,7 @@ Required manual checks:
 - Confirm steering left/right and braking zones.
 - Confirm displayed buttons and click hitboxes match on small and large screens.
 - Confirm crash SFX plays when an audio pack provides `crash.mp3`.
-- Simulate app hide/show once lifecycle adapter is available.
+- Simulate app hide/show lifecycle pause/resume.
 - Finish 3 laps and restart.
 - Confirm best lap and audio preference persist after reload.
 - Confirm no console errors for missing required assets.
@@ -128,9 +129,10 @@ Owner lane: QA and Performance Agent.
 
 Next tasks:
 
-1. Connect `handleAppHidden()` / `handleAppShown()` to platform lifecycle events once the SDK exposes them.
-2. Replace placeholder Canvas buttons with engine UI components if needed.
-3. Refine loading, fallback, and touch-hint copy after real-device validation.
+1. Validate local compatibility engine in WeChat DevTools and on device.
+2. Switch `src/engine/index.ts` to the real SDK once `lite-game-engine` publishes usable dist files.
+3. Replace placeholder Canvas buttons with engine UI components if needed.
+4. Refine loading, fallback, and touch-hint copy after real-device validation.
 
 ### Agent B: Asset Taxonomy
 
