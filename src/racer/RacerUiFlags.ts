@@ -12,6 +12,6 @@ export const RACER_UI_FLAGS: RacerUiFlags = {
   showDebugHud: false,
   showAssetStatus: false,
   showPerformanceStatus: false,
-  showControlLabels: true,
+  showControlLabels: false,
   showPlayerVisibilityMarker: false
 };
