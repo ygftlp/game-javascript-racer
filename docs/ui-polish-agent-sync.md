@@ -18,6 +18,8 @@ The UI has moved from prototype interactions to a more commercial mobile-game in
 - Help screen explains steering, braking, pause, and 3-lap objective.
 - Pause screen now includes `返回菜单`.
 - First race shows a short control coach hint during gameplay.
+- `RacerUiRenderer` now owns HUD, controls, overlays, help, and onboarding UI.
+- `Pseudo3DRenderer` now focuses on backdrop, road, world sprites, and player car rendering, then delegates UI drawing.
 
 ## Agent A: UX Director
 
@@ -62,6 +64,7 @@ Focus:
 - Modal hierarchy.
 - Button state system.
 - Help/onboarding readability.
+- Future icon/logo integration through the UI renderer.
 
 Checklist:
 
@@ -95,6 +98,7 @@ Focus:
 - UI overlap and readability.
 - Car visibility under UI and road effects.
 - Onboarding flow safety.
+- Renderer separation regression checks.
 
 Checklist:
 
@@ -103,6 +107,7 @@ Checklist:
 - Control coach disappears automatically and can be dismissed by driving input.
 - Overlay transitions do not leave stale pressed states.
 - Result screen appears after 3 laps without input glitches.
+- Extracting `RacerUiRenderer` does not change visual order: world first, player car, then UI.
 
 ## Agent F: Implementation Engineer
 
@@ -111,19 +116,21 @@ Focus:
 - Keep code maintainable.
 - Keep validation updated.
 - Preserve shared layout/hitbox source of truth.
+- Keep world rendering and UI rendering separated.
 
 Implemented files:
 
 - `src/scenes/RacerScene.ts`
 - `src/racer/Pseudo3DRenderer.ts`
+- `src/racer/RacerUiRenderer.ts`
 - `src/racer/RacerUiFlags.ts`
 - `src/racer/RacerUiLayout.ts`
 - `scripts/validate-production.mjs`
 
 Next recommended implementation pass:
 
-1. Extract a real `RacerUiRenderer` from `Pseudo3DRenderer` so world rendering and UI rendering are separate.
-2. Add final icon assets for pause/music/share/leaderboard/help.
-3. Add optional settings overlay for music and control help.
-4. Persist whether the first-race coach has already been shown.
-5. Add final UI logo when commercial art is ready.
+1. Add final icon assets for pause/music/share/leaderboard/help.
+2. Add optional settings overlay for music and control help.
+3. Persist whether the first-race coach has already been shown.
+4. Add final UI logo when commercial art is ready.
+5. Move repeated visual constants into UI theme tokens before the final skin pass.
