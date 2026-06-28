@@ -33,6 +33,10 @@ interface ProjectedSegment {
   clipY: number;
 }
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(value, max));
+}
+
 function percentRemaining(n: number, total: number): number {
   return (n % total) / total;
 }
@@ -102,7 +106,8 @@ export class Pseudo3DRenderer {
       maxY = p1.y;
     }
 
-    this.drawWorldSprites(ctx, state, projected, assets?.sprites ?? null, playerSegment, playerPercent);
+    this.drawWorldSprites(ctx, state, projected, assets?.sprites ?? null);
+    this.drawPlayer(ctx, state, assets?.sprites ?? null, playerSegment, playerPercent);
     this.drawHud(ctx, state, assets, options.targetLaps, options.audioMuted, layout);
     if (options.phase === 'playing') this.drawInRaceControls(ctx, layout, options.joystick, options.brakeActive);
     if (options.phase === 'playing') this.drawPauseButton(ctx, layout.pauseButton);
@@ -222,9 +227,7 @@ export class Pseudo3DRenderer {
     ctx: CanvasRenderingContext2D,
     state: RacerState,
     projected: ProjectedSegment[],
-    texture: Texture | null,
-    playerSegment: Segment,
-    playerPercent: number
+    texture: Texture | null
   ): void {
     for (let n = projected.length - 1; n >= 0; n -= 1) {
       const current = projected[n];
@@ -242,10 +245,6 @@ export class Pseudo3DRenderer {
         const spriteX = current.p1.x + spriteScale * sprite.offset * RACER_CONFIG.roadWidth * state.width / 2;
         const spriteY = current.p1.y;
         this.drawAtlasSprite(ctx, texture, sprite.frame, spriteScale, spriteX, spriteY, sprite.offset < 0 ? -1 : 0, -1, current.clipY, state, '#0d5f2a');
-      }
-
-      if (segment === playerSegment) {
-        this.drawPlayer(ctx, state, texture, playerSegment, playerPercent);
       }
     }
   }
@@ -288,22 +287,24 @@ export class Pseudo3DRenderer {
     playerSegment: Segment,
     playerPercent: number
   ): void {
-    const frame = state.input.steer < 0 ? SPRITES.PLAYER_LEFT : state.input.steer > 0 ? SPRITES.PLAYER_RIGHT : SPRITES.PLAYER_STRAIGHT;
-    const x = state.width / 2;
-    const y = state.height / 2 - (state.cameraDepth / state.playerZ * interpolate(playerSegment.y1, playerSegment.y2, playerPercent) * state.height / 2);
-    const carW = Math.max(72, state.width * 0.1);
+    const frame = state.input.steer < -0.08 ? SPRITES.PLAYER_LEFT : state.input.steer > 0.08 ? SPRITES.PLAYER_RIGHT : SPRITES.PLAYER_STRAIGHT;
+    const carW = Math.max(82, state.width * 0.108);
     const carH = carW * (frame.h / frame.w);
-    const bounce = 1.5 * Math.random() * state.speed / RACER_CONFIG.maxSpeed * state.resolution;
+    const roadY = state.height / 2 - (state.cameraDepth / state.playerZ * interpolate(playerSegment.y1, playerSegment.y2, playerPercent) * state.height / 2);
+    const bounce = 1.2 * Math.random() * state.speed / RACER_CONFIG.maxSpeed * state.resolution;
+    const carTopY = clamp(roadY + bounce, state.height * 0.48, state.height - carH - 18);
+    const x = state.width / 2;
 
     if (texture?.loaded) {
       const image = texture.image as unknown as CanvasImageSource;
-      ctx.drawImage(image, frame.x, frame.y, frame.w, frame.h, x - carW / 2, y + bounce, carW, carH);
+      ctx.drawImage(image, frame.x, frame.y, frame.w, frame.h, x - carW / 2, carTopY, carW, carH);
       return;
     }
 
+    const centerY = carTopY + carH / 2;
     const lean = state.input.steer * carW * 0.08;
-    this.polygon(ctx, x - carW * 0.5 + lean, y + carH * 0.45, x + carW * 0.5 + lean, y + carH * 0.45, x + carW * 0.28 - lean, y - carH * 0.45, x - carW * 0.28 - lean, y - carH * 0.45, COLORS.player);
-    this.polygon(ctx, x - carW * 0.22 - lean, y - carH * 0.2, x + carW * 0.22 - lean, y - carH * 0.2, x + carW * 0.1 - lean, y - carH * 0.42, x - carW * 0.1 - lean, y - carH * 0.42, COLORS.playerTrim);
+    this.polygon(ctx, x - carW * 0.5 + lean, centerY + carH * 0.45, x + carW * 0.5 + lean, centerY + carH * 0.45, x + carW * 0.28 - lean, centerY - carH * 0.45, x - carW * 0.28 - lean, centerY - carH * 0.45, COLORS.player);
+    this.polygon(ctx, x - carW * 0.22 - lean, centerY - carH * 0.2, x + carW * 0.22 - lean, centerY - carH * 0.2, x + carW * 0.1 - lean, centerY - carH * 0.42, x - carW * 0.1 - lean, centerY - carH * 0.42, COLORS.playerTrim);
   }
 
   private drawHud(ctx: CanvasRenderingContext2D, state: RacerState, assets: RacerAssets | undefined, targetLaps: number, audioMuted: boolean, layout: RacerUiLayout): void {
@@ -312,7 +313,7 @@ export class Pseudo3DRenderer {
     const row = layout.hud.rowHeight;
     const progress = Math.min(1, (state.completedLaps + state.position / Math.max(1, state.trackLength)) / targetLaps);
 
-    this.roundedPanel(ctx, hud.x, hud.y, hud.w, hud.h, 'rgba(12, 18, 24, 0.58)', 'rgba(255,255,255,0.24)');
+    this.roundedPanel(ctx, hud.x, hud.y, hud.w, hud.h, 'rgba(12, 18, 24, 0.56)', 'rgba(255,255,255,0.22)');
     ctx.font = `${layout.fonts.hud}px sans-serif`;
     ctx.textBaseline = 'top';
     ctx.textAlign = 'left';
@@ -339,20 +340,22 @@ export class Pseudo3DRenderer {
     const knobY = joystick.active ? joystick.knobY : base.y;
 
     ctx.save();
-    this.drawCircle(ctx, base, joystick.active ? 'rgba(255,255,255,0.20)' : 'rgba(255,255,255,0.13)', 'rgba(255,255,255,0.42)', 2);
-    this.drawCircle(ctx, { x: base.x, y: base.y, r: Math.max(10, base.r * 0.18) }, 'rgba(255,255,255,0.16)');
-    this.drawCircle(ctx, { x: knobX, y: knobY, r: layout.controls.joystickKnobRadius }, joystick.active ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.42)', 'rgba(20,24,32,0.62)', 2);
+    this.drawCircle(ctx, { x: base.x, y: base.y, r: base.r + 10 }, 'rgba(0,0,0,0.18)');
+    this.drawCircle(ctx, base, joystick.active ? 'rgba(255,255,255,0.24)' : 'rgba(255,255,255,0.15)', 'rgba(255,255,255,0.48)', 2);
+    this.drawCircle(ctx, { x: base.x, y: base.y, r: Math.max(14, base.r * 0.2) }, 'rgba(255,255,255,0.15)');
+    this.drawCircle(ctx, { x: knobX, y: knobY, r: layout.controls.joystickKnobRadius }, joystick.active ? 'rgba(255,255,255,0.78)' : 'rgba(255,255,255,0.48)', 'rgba(20,24,32,0.62)', 2);
     ctx.font = `${layout.fonts.note}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillStyle = 'rgba(255,255,255,0.78)';
+    ctx.fillStyle = 'rgba(255,255,255,0.82)';
     ctx.fillText('STEER', base.x, base.y + base.r + 10);
     ctx.restore();
   }
 
   private drawBrakeButton(ctx: CanvasRenderingContext2D, button: RacerCircle, active: boolean): void {
-    const fill = active ? 'rgba(255, 92, 60, 0.86)' : 'rgba(255, 92, 60, 0.58)';
-    this.drawCircle(ctx, button, fill, 'rgba(255,255,255,0.56)', 2);
+    const fill = active ? 'rgba(255, 92, 60, 0.9)' : 'rgba(255, 92, 60, 0.62)';
+    this.drawCircle(ctx, { x: button.x, y: button.y, r: button.r + 8 }, 'rgba(0,0,0,0.18)');
+    this.drawCircle(ctx, button, fill, 'rgba(255,255,255,0.62)', 2);
     ctx.save();
     ctx.font = 'bold 18px sans-serif';
     ctx.textAlign = 'center';
@@ -363,11 +366,12 @@ export class Pseudo3DRenderer {
   }
 
   private drawPauseButton(ctx: CanvasRenderingContext2D, button: RacerCircle): void {
-    this.drawCircle(ctx, button, 'rgba(12, 18, 24, 0.62)', 'rgba(255,255,255,0.52)', 2);
+    this.drawCircle(ctx, { x: button.x, y: button.y, r: button.r + 6 }, 'rgba(0,0,0,0.18)');
+    this.drawCircle(ctx, button, 'rgba(12, 18, 24, 0.68)', 'rgba(255,255,255,0.58)', 2);
     ctx.save();
     ctx.fillStyle = '#ffffff';
     const barW = Math.max(4, button.r * 0.18);
-    const barH = button.r * 0.92;
+    const barH = button.r * 0.9;
     ctx.fillRect(button.x - barW * 1.7, button.y - barH / 2, barW, barH);
     ctx.fillRect(button.x + barW * 0.7, button.y - barH / 2, barW, barH);
     ctx.restore();
@@ -376,60 +380,72 @@ export class Pseudo3DRenderer {
   private drawOverlay(ctx: CanvasRenderingContext2D, state: RacerState, assets: RacerAssets | undefined, phase: RacerPhase, targetLaps: number, audioMuted: boolean, layout: RacerUiLayout): void {
     if (phase === 'playing') return;
 
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.56)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.64)';
     ctx.fillRect(0, 0, state.width, state.height);
 
     const active = phase === 'menu' ? layout.menu : phase === 'paused' ? layout.paused : layout.finished;
-    this.roundedPanel(ctx, active.panel.x, active.panel.y, active.panel.w, active.panel.h, 'rgba(18, 24, 30, 0.92)', '#ffffff');
+    this.drawModalPanel(ctx, active.panel);
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.fillStyle = '#ffffff';
 
     if (phase === 'menu') {
-      ctx.font = `${layout.fonts.title}px sans-serif`;
+      ctx.font = `bold ${layout.fonts.title}px sans-serif`;
       ctx.fillText('Retro Racer', state.width / 2, layout.menu.titleY);
       ctx.font = `${layout.fonts.body}px sans-serif`;
-      ctx.fillText(`资源包：${assets?.packLabel ?? 'Unknown'}`, state.width / 2, layout.menu.line1Y);
-      ctx.fillText(`${assets?.statusLabel ?? 'Assets idle'} / ${assets?.commercialSafe ? 'Commercial-safe' : 'Legacy assets'}`, state.width / 2, layout.menu.line2Y);
-      ctx.fillText('左下摇杆转向，右下按钮刹车', state.width / 2, layout.menu.line3Y);
-      this.drawButton(ctx, layout.menu.startButton, '开始比赛', layout);
+      ctx.fillStyle = 'rgba(255,255,255,0.86)';
+      ctx.fillText('Arcade Pseudo-3D Racing', state.width / 2, layout.menu.line1Y);
+      ctx.fillText(`${assets?.statusLabel ?? 'Assets idle'} · ${assets?.commercialSafe ? 'Commercial-safe' : 'Legacy assets'}`, state.width / 2, layout.menu.line2Y);
+      ctx.fillText('左下摇杆转向 · 右下按钮刹车', state.width / 2, layout.menu.line3Y);
+      this.drawButton(ctx, layout.menu.startButton, '开始比赛', layout, true);
       this.drawButton(ctx, layout.menu.leaderboardButton, '排行榜', layout);
       this.drawButton(ctx, layout.menu.audioButton, audioMuted ? '音乐：关' : '音乐：开', layout);
     } else if (phase === 'paused') {
-      ctx.font = `${layout.fonts.title}px sans-serif`;
+      ctx.font = `bold ${layout.fonts.title}px sans-serif`;
       ctx.fillText('已暂停', state.width / 2, layout.paused.titleY);
       ctx.font = `${layout.fonts.body}px sans-serif`;
-      ctx.fillText('继续比赛、重新开始，或切换音乐', state.width / 2, layout.paused.line1Y);
-      this.drawButton(ctx, layout.paused.resumeButton, '继续', layout);
+      ctx.fillStyle = 'rgba(255,255,255,0.86)';
+      ctx.fillText('调整状态后继续比赛', state.width / 2, layout.paused.line1Y);
+      this.drawButton(ctx, layout.paused.resumeButton, '继续', layout, true);
       this.drawButton(ctx, layout.paused.restartButton, '重新开始', layout);
       this.drawButton(ctx, layout.paused.audioButton, audioMuted ? '音乐：关' : '音乐：开', layout);
     } else {
-      ctx.font = `${layout.fonts.title}px sans-serif`;
+      ctx.font = `bold ${layout.fonts.title}px sans-serif`;
       ctx.fillText('比赛完成', state.width / 2, layout.finished.titleY);
       ctx.font = `${layout.fonts.body}px sans-serif`;
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
       ctx.fillText(`圈数 ${state.completedLaps}/${targetLaps}`, state.width / 2, layout.finished.line1Y);
       ctx.fillText(`总时间 ${formatSeconds(state.totalRaceTime)}`, state.width / 2, layout.finished.line2Y);
       ctx.fillText(`最快圈 ${formatSeconds(state.bestLapTime)}`, state.width / 2, layout.finished.line3Y);
-      this.drawButton(ctx, layout.finished.restartButton, '再来一局', layout);
+      this.drawButton(ctx, layout.finished.restartButton, '再来一局', layout, true);
       this.drawButton(ctx, layout.finished.shareButton, '分享', layout);
       this.drawButton(ctx, layout.finished.leaderboardButton, '排行榜', layout);
       ctx.font = `${layout.fonts.note}px sans-serif`;
+      ctx.fillStyle = 'rgba(255,255,255,0.72)';
       ctx.fillText('分享/排行榜当前为平台服务占位，后续接微信能力', state.width / 2, layout.finished.noteY);
     }
 
     ctx.textAlign = 'left';
   }
 
-  private drawButton(ctx: CanvasRenderingContext2D, target: RacerRect, text: string, layout: RacerUiLayout): void {
-    this.roundedPanel(ctx, target.x, target.y, target.w, target.h, 'rgba(255, 255, 255, 0.16)', '#ffffff');
-    ctx.font = `${layout.fonts.button}px sans-serif`;
-    ctx.fillStyle = '#ffffff';
+  private drawButton(ctx: CanvasRenderingContext2D, target: RacerRect, text: string, layout: RacerUiLayout, primary = false): void {
+    const fill = primary ? 'rgba(255, 207, 74, 0.92)' : 'rgba(255, 255, 255, 0.14)';
+    const stroke = primary ? 'rgba(255, 255, 255, 0.78)' : 'rgba(255,255,255,0.42)';
+    this.roundedPanel(ctx, target.x, target.y, target.w, target.h, fill, stroke);
+    ctx.font = `bold ${layout.fonts.button}px sans-serif`;
+    ctx.fillStyle = primary ? 'rgba(20,24,32,0.96)' : '#ffffff';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(text, target.x + target.w / 2, target.y + target.h / 2);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
+  }
+
+  private drawModalPanel(ctx: CanvasRenderingContext2D, target: RacerRect): void {
+    this.roundedPanel(ctx, target.x + 8, target.y + 10, target.w, target.h, 'rgba(0,0,0,0.26)');
+    this.roundedPanel(ctx, target.x, target.y, target.w, target.h, 'rgba(18, 24, 32, 0.94)', 'rgba(255,255,255,0.52)');
+    this.roundedPanel(ctx, target.x + 22, target.y + 18, target.w - 44, 6, 'rgba(255, 207, 74, 0.92)');
   }
 
   private drawCircle(ctx: CanvasRenderingContext2D, target: RacerCircle, fill: string, stroke?: string, lineWidth = 1): void {
@@ -446,7 +462,7 @@ export class Pseudo3DRenderer {
   }
 
   private roundedPanel(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, fill: string, stroke?: string): void {
-    const r = Math.min(16, w / 4, h / 4);
+    const r = Math.min(18, w / 4, h / 4);
     ctx.beginPath();
     ctx.moveTo(x + r, y);
     ctx.lineTo(x + w - r, y);
