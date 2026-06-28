@@ -5,6 +5,13 @@ import type { AtlasFrame } from './SpriteAtlas';
 import { BACKGROUND, SPRITES, SPRITE_SCALE } from './SpriteAtlas';
 import type { RacerState, Segment } from './RacerState';
 
+export type RacerPhase = 'menu' | 'playing' | 'paused' | 'finished';
+
+export interface RacerRenderOptions {
+  phase: RacerPhase;
+  targetLaps: number;
+}
+
 interface ProjectedPoint {
   cameraZ: number;
   scale: number;
@@ -32,8 +39,16 @@ function exponentialFog(distance: number, density: number): number {
   return 1 / Math.pow(Math.E, distance * distance * density);
 }
 
+function formatSeconds(seconds: number): string {
+  if (!seconds) return '--';
+  const minutes = Math.floor(seconds / 60);
+  const wholeSeconds = Math.floor(seconds - minutes * 60);
+  const tenths = Math.floor(10 * (seconds - Math.floor(seconds)));
+  return minutes > 0 ? `${minutes}:${wholeSeconds.toString().padStart(2, '0')}.${tenths}` : `${wholeSeconds}.${tenths}`;
+}
+
 export class Pseudo3DRenderer {
-  render(renderer: Renderer, state: RacerState, assets?: RacerAssets): void {
+  render(renderer: Renderer, state: RacerState, assets: RacerAssets | undefined, options: RacerRenderOptions): void {
     const ctx = renderer.ctx;
     const projected: ProjectedSegment[] = [];
     const baseSegment = state.findSegment(state.position);
@@ -81,7 +96,8 @@ export class Pseudo3DRenderer {
     }
 
     this.drawWorldSprites(ctx, state, projected, assets?.sprites ?? null, playerSegment, playerPercent);
-    this.drawHud(ctx, state, assets?.loaded ?? false);
+    this.drawHud(ctx, state, assets?.loaded ?? false, options.targetLaps, options.phase === 'playing');
+    this.drawOverlay(ctx, state, options.phase, options.targetLaps);
   }
 
   private project(
@@ -281,23 +297,101 @@ export class Pseudo3DRenderer {
     this.polygon(ctx, x - carW * 0.22 - lean, y - carH * 0.2, x + carW * 0.22 - lean, y - carH * 0.2, x + carW * 0.1 - lean, y - carH * 0.42, x - carW * 0.1 - lean, y - carH * 0.42, COLORS.playerTrim);
   }
 
-  private drawHud(ctx: CanvasRenderingContext2D, state: RacerState, assetsLoaded: boolean): void {
+  private drawHud(ctx: CanvasRenderingContext2D, state: RacerState, assetsLoaded: boolean, targetLaps: number, showPause: boolean): void {
     const mph = Math.round(state.speed / RACER_CONFIG.maxSpeed * 220);
-    const lap = state.currentLapTime.toFixed(1);
-    const best = state.bestLapTime ? state.bestLapTime.toFixed(1) : '--';
 
     ctx.font = '24px sans-serif';
     ctx.textBaseline = 'top';
     ctx.fillStyle = COLORS.hudShadow;
-    ctx.fillRect(16, 16, 300, 140);
+    ctx.fillRect(16, 16, 324, 172);
     ctx.fillStyle = COLORS.hud;
     ctx.fillText(`Speed ${mph} mph`, 32, 30);
-    ctx.fillText(`Lap ${lap}s`, 32, 62);
-    ctx.fillText(`Best ${best}s`, 32, 94);
-    ctx.fillText(assetsLoaded ? 'Assets loaded' : 'Loading assets...', 32, 126);
+    ctx.fillText(`Lap ${state.completedLaps}/${targetLaps}`, 32, 62);
+    ctx.fillText(`Time ${formatSeconds(state.currentLapTime)}`, 32, 94);
+    ctx.fillText(`Best ${formatSeconds(state.bestLapTime)}`, 32, 126);
+    ctx.fillText(assetsLoaded ? 'Assets loaded' : 'Loading assets...', 32, 158);
 
-    ctx.font = '18px sans-serif';
-    ctx.fillText('触摸左/右转向，底部区域刹车', state.width - 300, 30);
+    if (showPause) {
+      this.roundedPanel(ctx, state.width - 98, 18, 80, 48, 'rgba(0, 0, 0, 0.48)', '#ffffff');
+      ctx.font = '20px sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('暂停', state.width - 78, 30);
+    }
+  }
+
+  private drawOverlay(ctx: CanvasRenderingContext2D, state: RacerState, phase: RacerPhase, targetLaps: number): void {
+    if (phase === 'playing') return;
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.56)';
+    ctx.fillRect(0, 0, state.width, state.height);
+
+    const panelW = Math.min(520, state.width * 0.72);
+    const panelH = phase === 'finished' ? 310 : 250;
+    const panelX = (state.width - panelW) / 2;
+    const panelY = (state.height - panelH) / 2;
+    this.roundedPanel(ctx, panelX, panelY, panelW, panelH, 'rgba(18, 24, 30, 0.92)', '#ffffff');
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = '#ffffff';
+
+    if (phase === 'menu') {
+      ctx.font = '40px sans-serif';
+      ctx.fillText('Retro Racer', state.width / 2, panelY + 34);
+      ctx.font = '22px sans-serif';
+      ctx.fillText('触摸开始比赛', state.width / 2, panelY + 100);
+      ctx.fillText('左/右半屏转向，底部区域刹车', state.width / 2, panelY + 138);
+      this.drawButton(ctx, state.width / 2 - 110, panelY + 180, 220, 52, '开始游戏');
+    } else if (phase === 'paused') {
+      ctx.font = '38px sans-serif';
+      ctx.fillText('已暂停', state.width / 2, panelY + 42);
+      ctx.font = '22px sans-serif';
+      ctx.fillText('触摸任意位置继续', state.width / 2, panelY + 112);
+      this.drawButton(ctx, state.width / 2 - 110, panelY + 170, 220, 52, '继续');
+    } else {
+      ctx.font = '38px sans-serif';
+      ctx.fillText('比赛完成', state.width / 2, panelY + 32);
+      ctx.font = '22px sans-serif';
+      ctx.fillText(`圈数 ${state.completedLaps}/${targetLaps}`, state.width / 2, panelY + 92);
+      ctx.fillText(`总时间 ${formatSeconds(state.totalRaceTime)}`, state.width / 2, panelY + 126);
+      ctx.fillText(`最快圈 ${formatSeconds(state.bestLapTime)}`, state.width / 2, panelY + 160);
+      this.drawButton(ctx, state.width / 2 - 120, panelY + 222, 240, 56, '再来一局');
+    }
+
+    ctx.textAlign = 'left';
+  }
+
+  private drawButton(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, text: string): void {
+    this.roundedPanel(ctx, x, y, w, h, 'rgba(255, 255, 255, 0.16)', '#ffffff');
+    ctx.font = '24px sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x + w / 2, y + h / 2);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+  }
+
+  private roundedPanel(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, fill: string, stroke?: string): void {
+    const r = 16;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (stroke) {
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
   }
 
   private polygon(
