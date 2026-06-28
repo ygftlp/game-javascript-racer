@@ -1,5 +1,6 @@
 import { COLORS, RACER_CONFIG, TRACK_SECTIONS, type RoadColor } from './config';
 import { BILLBOARDS, CARS, PLANTS, SPRITE_SCALE, type AtlasFrame } from './SpriteAtlas';
+import { RACER_TUNING_PRESETS, type RacerTuning } from './RacerTuning';
 
 export interface RacerInputState {
   steer: -1 | 0 | 1;
@@ -89,7 +90,7 @@ export class RacerState {
   totalRaceTime = 0;
   collisionCooldown = 0;
 
-  constructor(width: number, height: number) {
+  constructor(width: number, height: number, readonly tuning: RacerTuning = RACER_TUNING_PRESETS.medium) {
     this.width = width;
     this.height = height;
     this.cameraDepth = 1 / Math.tan((RACER_CONFIG.fieldOfView / 2) * Math.PI / 180);
@@ -212,9 +213,7 @@ export class RacerState {
   }
 
   private resetTraffic(): void {
-    const totalCars = 90;
-
-    for (let n = 0; n < totalCars; n += 1) {
+    for (let n = 0; n < this.tuning.totalCars; n += 1) {
       const frame = randomChoice(CARS);
       const z = Math.floor(Math.random() * this.segments.length) * RACER_CONFIG.segmentLength;
       const car: TrafficCar = {
@@ -289,7 +288,7 @@ export class RacerState {
     const lookahead = 20;
     const carWidth = car.frame.w * SPRITE_SCALE;
 
-    if (carSegment.index - playerSegment.index > RACER_CONFIG.drawDistance) return 0;
+    if (carSegment.index - playerSegment.index > this.tuning.drawDistance) return 0;
 
     for (let i = 1; i < lookahead; i += 1) {
       const segment = this.segments[(carSegment.index + i) % this.segments.length];
