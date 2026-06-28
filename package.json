@@ -12,6 +12,8 @@
     "validate:assets": "node scripts/validate-assets.mjs default",
     "validate:assets:legacy": "node scripts/validate-assets.mjs legacy",
     "validate:production": "node scripts/validate-production.mjs",
+    "engine:compat": "node scripts/use-engine-mode.mjs compat",
+    "engine:local": "node scripts/use-engine-mode.mjs local-sdk",
     "prebuild:wx": "npm run validate:production"
   },
   "dependencies": {},
