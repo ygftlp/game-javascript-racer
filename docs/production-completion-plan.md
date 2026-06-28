@@ -70,7 +70,7 @@ Owner lane: Monetization and Social Agent.
 
 ### Gate 5: UX polish
 
-Status: publish controls pass implemented.
+Status: publish controls + emergency bugfix pass implemented.
 
 Implemented:
 
@@ -82,9 +82,12 @@ Implemented:
 - `RacerUiLayout` centralizes overlay button rectangles and touch zones so renderer and hit tests cannot drift apart.
 - `RacerScene` exposes `handleAppHidden()` and `handleAppShown()` so a platform lifecycle adapter can pause/resume without direct `wx` usage in gameplay code.
 - In-race HUD is compact and includes speed, lap, time, best lap, asset/audio state, and a race progress bar.
-- Left-bottom virtual joystick is implemented with dead zone, clamping, and auto-centering.
+- Left-bottom virtual joystick is enlarged and uses lower dead-zone / higher steering gain.
+- `RacerState` now supports analog steering sensitivity instead of only -1 / 0 / 1 input.
 - Right-bottom brake button is implemented as a large circular touch target.
 - Pause button is a circular icon placed away from the WeChat capsule area.
+- Player car rendering is stabilized outside segment projection clipping and clamped to a visible vertical range.
+- Menu, pause, and result overlays use a more polished dark panel, accent stripe, shadow, and primary-button styling.
 - Pause overlay now includes continue, restart, and music controls.
 
 Still required:
@@ -114,7 +117,8 @@ Required manual checks:
 - Confirm `project.config.json` points to `dist/wechat/`.
 - Start game from menu.
 - Toggle music in menu and pause overlays.
-- Confirm left-bottom joystick steers the car and returns to center on release.
+- Confirm left-bottom joystick steers the car quickly enough and returns to center on release.
+- Confirm player car remains visible through hills, curves, traffic, collisions, and lap wraparound.
 - Confirm right-bottom brake button slows the car while held.
 - Confirm pause button is not blocked by the WeChat capsule.
 - Confirm displayed buttons and click hitboxes match on small and large screens.
@@ -130,16 +134,39 @@ Owner lane: QA and Performance Agent.
 
 ## Agent task board
 
-### Agent A: Runtime Integration
+### Agent A: Control Feel
 
 Next tasks:
 
-1. Validate joystick, brake, and pause controls in WeChat DevTools and on device.
-2. Switch `src/engine/index.ts` to the real SDK once `lite-game-engine` publishes usable dist files.
-3. Replace placeholder Canvas buttons with engine UI components if needed.
-4. Refine loading, fallback, and control copy after real-device validation.
+1. Validate joystick radius, dead-zone, and steering gain in WeChat DevTools.
+2. Test one-hand control comfort on target devices.
+3. Tune `RacerJoystick.ts`, `RacerUiLayout.ts`, and `RacerState.ts` from device feedback.
 
-### Agent B: Asset Taxonomy
+### Agent B: UI Polish
+
+Next tasks:
+
+1. Review modal readability against the active art pack.
+2. Polish result screen copy and ranking entry.
+3. Replace Canvas placeholder styling with final art assets if available.
+
+### Agent C: Critical Bug QA
+
+Next tasks:
+
+1. Reproduce long runs across hills, heavy curves, collisions, and lap wraparound.
+2. Confirm the player car never disappears after the renderer stabilization fix.
+3. Capture screenshots or recordings for any remaining visibility issue.
+
+### Agent D: Runtime Integration
+
+Next tasks:
+
+1. Validate compatibility/local SDK engine modes in WeChat DevTools and on device.
+2. Switch `src/engine/index.ts` to the real SDK once `lite-game-engine` publishes usable dist files.
+3. Refine loading, fallback, and control copy after real-device validation.
+
+### Agent E: Asset Taxonomy
 
 Next tasks:
 
@@ -148,7 +175,7 @@ Next tasks:
 3. Update `SpriteAtlas.ts` if the art pipeline exports new coordinates.
 4. Keep `asset-replacement-guide.md` in sync.
 
-### Agent C: Art Replacement
+### Agent F: Art Replacement
 
 Next tasks:
 
@@ -157,7 +184,7 @@ Next tasks:
 3. Verify visual scale and anchors for player, traffic, billboards, plants, and props.
 4. Provide proof of commercial usage rights.
 
-### Agent D: Audio Replacement
+### Agent G: Audio Replacement
 
 Next tasks:
 
@@ -165,7 +192,7 @@ Next tasks:
 2. Produce optional `engine-loop.mp3`, `crash.mp3`, and `menu-confirm.mp3`.
 3. Validate playback and package size.
 
-### Agent E: Monetization and Social
+### Agent H: Monetization and Social
 
 Next tasks:
 
@@ -173,16 +200,6 @@ Next tasks:
 2. Implement a leaderboard adapter.
 3. Implement interstitial and rewarded video ad adapters.
 4. Add configuration docs for app id and ad placements.
-
-### Agent F: QA and Performance
-
-Next tasks:
-
-1. Run build and typecheck locally.
-2. Test low / medium / high tuning profiles.
-3. Record FPS and memory by device.
-4. Tune `RacerTuning.ts` thresholds.
-5. Maintain release checklist.
 
 ## Final definition of done
 
@@ -197,4 +214,5 @@ The game is done when:
 - Core gameplay is playable for a full 3-lap race.
 - Pause, restart, best-lap storage, audio preference, share entry, leaderboard entry, and ad entry work or are intentionally disabled by config.
 - Joystick, brake, and pause controls are validated on target devices.
+- Player car visibility is verified across long runs and edge cases.
 - Real-device performance is acceptable on the target low-end device profile.
