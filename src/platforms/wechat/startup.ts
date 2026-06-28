@@ -1,4 +1,4 @@
-import { Engine, WxPlatform } from 'lite-game-engine';
+import { Engine, WxPlatform } from '../../engine';
 import { RacerScene } from '../../scenes/RacerScene';
 
 interface WeChatLifecycleHost {
