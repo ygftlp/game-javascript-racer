@@ -9,15 +9,19 @@ import { RACER_UI_FLAGS } from './RacerUiFlags';
 import { buildRacerUiLayout, type RacerCircle, type RacerRect, type RacerUiLayout } from './RacerUiLayout';
 import type { RacerState } from './RacerState';
 
-export type RacerPhase = 'menu' | 'playing' | 'paused' | 'finished';
+export type RacerPhase = 'menu' | 'playing' | 'paused' | 'finished' | 'help';
 
 export type RacerUiPressedTarget =
   | 'menu-start'
   | 'menu-leaderboard'
+  | 'menu-help'
   | 'menu-audio'
+  | 'help-start'
+  | 'help-back'
   | 'paused-resume'
   | 'paused-restart'
   | 'paused-audio'
+  | 'paused-menu'
   | 'finished-restart'
   | 'finished-share'
   | 'finished-leaderboard'
@@ -30,6 +34,7 @@ export interface RacerRenderOptions {
   audioMuted: boolean;
   brakeActive: boolean;
   pressedTarget: RacerUiPressedTarget;
+  controlCoachTimeLeft: number;
   joystick: RacerJoystickSnapshot;
 }
 
@@ -95,23 +100,8 @@ export class Pseudo3DRenderer {
       const segment = state.segments[(baseSegment.index + n) % state.segments.length];
       const looped = segment.index < baseSegment.index;
       const fog = exponentialFog(n / state.tuning.drawDistance, 5);
-
-      const p1 = this.project(
-        segment.y1,
-        segment.z1 - (looped ? state.trackLength : 0),
-        state.playerX * RACER_CONFIG.roadWidth - x,
-        playerY + RACER_CONFIG.cameraHeight,
-        state.position,
-        state
-      );
-      const p2 = this.project(
-        segment.y2,
-        segment.z2 - (looped ? state.trackLength : 0),
-        state.playerX * RACER_CONFIG.roadWidth - x - dx,
-        playerY + RACER_CONFIG.cameraHeight,
-        state.position,
-        state
-      );
+      const p1 = this.project(segment.y1, segment.z1 - (looped ? state.trackLength : 0), state.playerX * RACER_CONFIG.roadWidth - x, playerY + RACER_CONFIG.cameraHeight, state.position, state);
+      const p2 = this.project(segment.y2, segment.z2 - (looped ? state.trackLength : 0), state.playerX * RACER_CONFIG.roadWidth - x - dx, playerY + RACER_CONFIG.cameraHeight, state.position, state);
 
       x += dx;
       dx += segment.curve;
@@ -126,8 +116,13 @@ export class Pseudo3DRenderer {
     this.drawWorldSprites(ctx, state, projected, assets?.sprites ?? null);
     this.drawPlayer(ctx, state, assets?.sprites ?? null, playerSegment, playerPercent);
     this.drawHud(ctx, state, assets, options.targetLaps, options.audioMuted, layout);
-    if (options.phase === 'playing') this.drawInRaceControls(ctx, layout, options.joystick, options.brakeActive);
-    if (options.phase === 'playing') this.drawPauseButton(ctx, layout.pauseButton, options.pressedTarget === 'pause');
+
+    if (options.phase === 'playing') {
+      this.drawInRaceControls(ctx, layout, options.joystick, options.brakeActive);
+      this.drawPauseButton(ctx, layout.pauseButton, options.pressedTarget === 'pause');
+      if (options.controlCoachTimeLeft > 0) this.drawControlCoach(ctx, state, layout, options.controlCoachTimeLeft);
+    }
+
     this.drawOverlay(ctx, state, assets, options.phase, options.targetLaps, options.audioMuted, layout, options.pressedTarget);
   }
 
@@ -138,18 +133,10 @@ export class Pseudo3DRenderer {
     ctx.globalAlpha = 1;
   }
 
-  private project(
-    worldY: number,
-    worldZ: number,
-    cameraX: number,
-    cameraY: number,
-    cameraZ: number,
-    state: RacerState
-  ): ProjectedPoint {
+  private project(worldY: number, worldZ: number, cameraX: number, cameraY: number, cameraZ: number, state: RacerState): ProjectedPoint {
     const cameraRelativeY = worldY - cameraY;
     const cameraRelativeZ = worldZ - cameraZ;
     const scale = state.cameraDepth / cameraRelativeZ;
-
     return {
       cameraZ: cameraRelativeZ,
       scale,
@@ -173,7 +160,6 @@ export class Pseudo3DRenderer {
 
     ctx.fillStyle = COLORS.sky;
     ctx.fillRect(0, 0, state.width, state.height);
-
     ctx.fillStyle = COLORS.farHill;
     ctx.beginPath();
     ctx.moveTo(0, state.height * 0.42);
@@ -186,38 +172,22 @@ export class Pseudo3DRenderer {
     ctx.lineTo(0, state.height);
     ctx.closePath();
     ctx.fill();
-
     ctx.fillStyle = COLORS.nearHill;
     ctx.fillRect(0, state.height * 0.42, state.width, state.height * 0.12);
   }
 
-  private drawBackgroundLayer(
-    ctx: CanvasRenderingContext2D,
-    image: CanvasImageSource,
-    state: RacerState,
-    frame: AtlasFrame,
-    rotation: number,
-    offset: number
-  ): void {
+  private drawBackgroundLayer(ctx: CanvasRenderingContext2D, image: CanvasImageSource, state: RacerState, frame: AtlasFrame, rotation: number, offset: number): void {
     const imageW = frame.w / 2;
     const sourceX = frame.x + Math.floor(frame.w * rotation);
     const sourceW = Math.min(imageW, frame.x + frame.w - sourceX);
     const destW = Math.floor(state.width * (sourceW / imageW));
-
     ctx.drawImage(image, sourceX, frame.y, sourceW, frame.h, 0, Math.round(offset), destW, state.height);
     if (sourceW < imageW) {
       ctx.drawImage(image, frame.x, frame.y, imageW - sourceW, frame.h, destW - 1, Math.round(offset), state.width - destW, state.height);
     }
   }
 
-  private drawSegment(
-    ctx: CanvasRenderingContext2D,
-    state: RacerState,
-    segment: Segment,
-    p1: ProjectedPoint,
-    p2: ProjectedPoint,
-    fog: number
-  ): void {
+  private drawSegment(ctx: CanvasRenderingContext2D, state: RacerState, segment: Segment, p1: ProjectedPoint, p2: ProjectedPoint, fog: number): void {
     const rumble1 = p1.w / Math.max(6, 2 * RACER_CONFIG.lanes);
     const rumble2 = p2.w / Math.max(6, 2 * RACER_CONFIG.lanes);
     const lane1 = p1.w / Math.max(32, 8 * RACER_CONFIG.lanes);
@@ -225,7 +195,6 @@ export class Pseudo3DRenderer {
 
     ctx.fillStyle = segment.color.grass;
     ctx.fillRect(0, p2.y, state.width, p1.y - p2.y);
-
     this.polygon(ctx, p1.x - p1.w - rumble1, p1.y, p1.x + p1.w + rumble1, p1.y, p2.x + p2.w + rumble2, p2.y, p2.x - p2.w - rumble2, p2.y, segment.color.rumble);
     this.polygon(ctx, p1.x - p1.w, p1.y, p1.x + p1.w, p1.y, p2.x + p2.w, p2.y, p2.x - p2.w, p2.y, segment.color.road);
 
@@ -247,23 +216,16 @@ export class Pseudo3DRenderer {
     }
   }
 
-  private drawWorldSprites(
-    ctx: CanvasRenderingContext2D,
-    state: RacerState,
-    projected: ProjectedSegment[],
-    texture: Texture | null
-  ): void {
+  private drawWorldSprites(ctx: CanvasRenderingContext2D, state: RacerState, projected: ProjectedSegment[], texture: Texture | null): void {
     for (let n = projected.length - 1; n >= 0; n -= 1) {
       const current = projected[n];
       const segment = current.segment;
-
       for (const car of segment.cars) {
         const spriteScale = interpolate(current.p1.scale, current.p2.scale, car.percent);
         const spriteX = interpolate(current.p1.x, current.p2.x, car.percent) + spriteScale * car.offset * RACER_CONFIG.roadWidth * state.width / 2;
         const spriteY = interpolate(current.p1.y, current.p2.y, car.percent);
         this.drawAtlasSprite(ctx, texture, car.frame, spriteScale, spriteX, spriteY, -0.5, -1, current.clipY, state, '#da4f49');
       }
-
       for (const sprite of segment.sprites) {
         const spriteScale = current.p1.scale;
         const spriteX = current.p1.x + spriteScale * sprite.offset * RACER_CONFIG.roadWidth * state.width / 2;
@@ -273,25 +235,12 @@ export class Pseudo3DRenderer {
     }
   }
 
-  private drawAtlasSprite(
-    ctx: CanvasRenderingContext2D,
-    texture: Texture | null,
-    frame: AtlasFrame,
-    scale: number,
-    destX: number,
-    destY: number,
-    offsetX: number,
-    offsetY: number,
-    clipY: number,
-    state: RacerState,
-    fallbackColor: string
-  ): void {
+  private drawAtlasSprite(ctx: CanvasRenderingContext2D, texture: Texture | null, frame: AtlasFrame, scale: number, destX: number, destY: number, offsetX: number, offsetY: number, clipY: number, state: RacerState, fallbackColor: string): void {
     const destW = Math.round(frame.w * scale * state.width / 2 * (SPRITE_SCALE * RACER_CONFIG.roadWidth));
     const destH = Math.round(frame.h * scale * state.width / 2 * (SPRITE_SCALE * RACER_CONFIG.roadWidth));
     const x = Math.round(destX + destW * offsetX);
     const y = Math.round(destY + destH * offsetY);
     const clipH = clipY ? Math.max(0, y + destH - clipY) : 0;
-
     if (clipH >= destH || destW <= 0 || destH <= 0) return;
 
     if (texture?.loaded) {
@@ -310,13 +259,7 @@ export class Pseudo3DRenderer {
     ctx.fillRect(x, y, destW, destH - clipH);
   }
 
-  private drawPlayer(
-    ctx: CanvasRenderingContext2D,
-    state: RacerState,
-    texture: Texture | null,
-    playerSegment: Segment,
-    playerPercent: number
-  ): void {
+  private drawPlayer(ctx: CanvasRenderingContext2D, state: RacerState, texture: Texture | null, playerSegment: Segment, playerPercent: number): void {
     const frame = state.input.steer < -0.08 ? SPRITES.PLAYER_LEFT : state.input.steer > 0.08 ? SPRITES.PLAYER_RIGHT : SPRITES.PLAYER_STRAIGHT;
     const carW = Math.round(Math.max(96, state.width * 0.118));
     const carH = Math.round(carW * (frame.h / frame.w));
@@ -326,7 +269,6 @@ export class Pseudo3DRenderer {
     const x = Math.round(state.width / 2);
 
     this.drawPlayerFallback(ctx, x, carTopY, carW, carH, state.input.steer);
-
     if (texture?.loaded) {
       try {
         const image = texture.image as unknown as CanvasImageSource;
@@ -335,23 +277,18 @@ export class Pseudo3DRenderer {
         console.warn('[racer] player sprite draw failed, fallback body remains visible', error);
       }
     }
-
-    if (RACER_UI_FLAGS.showPlayerVisibilityMarker) {
-      this.drawPlayerVisibilityMarker(ctx, x, carTopY, carW, carH, state.input.steer);
-    }
+    if (RACER_UI_FLAGS.showPlayerVisibilityMarker) this.drawPlayerVisibilityMarker(ctx, x, carTopY, carW, carH, state.input.steer);
   }
 
   private drawPlayerFallback(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, steer: number): void {
     const centerY = y + h / 2;
     const lean = steer * w * 0.06;
-
     ctx.save();
     ctx.globalAlpha = 0.92;
     ctx.fillStyle = 'rgba(0,0,0,0.32)';
     ctx.beginPath();
     ctx.ellipse(x, y + h * 0.92, w * 0.46, h * 0.18, 0, 0, Math.PI * 2);
     ctx.fill();
-
     this.polygon(ctx, x - w * 0.5 + lean, centerY + h * 0.45, x + w * 0.5 + lean, centerY + h * 0.45, x + w * 0.28 - lean, centerY - h * 0.45, x - w * 0.28 - lean, centerY - h * 0.45, '#1f6fff');
     this.polygon(ctx, x - w * 0.22 - lean, centerY - h * 0.12, x + w * 0.22 - lean, centerY - h * 0.12, x + w * 0.11 - lean, centerY - h * 0.38, x - w * 0.11 - lean, centerY - h * 0.38, '#d9f2ff');
     ctx.restore();
@@ -360,15 +297,11 @@ export class Pseudo3DRenderer {
   private drawPlayerVisibilityMarker(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, steer: number): void {
     const centerY = y + h / 2;
     const lean = steer * w * 0.06;
-
     ctx.save();
     ctx.globalAlpha = 0.38;
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = Math.max(2, Math.round(w * 0.018));
     this.strokePolygon(ctx, x - w * 0.48 + lean, centerY + h * 0.42, x + w * 0.48 + lean, centerY + h * 0.42, x + w * 0.26 - lean, centerY - h * 0.42, x - w * 0.26 - lean, centerY - h * 0.42);
-    ctx.fillStyle = 'rgba(255,255,255,0.72)';
-    ctx.fillRect(Math.round(x - w * 0.38), Math.round(y + h * 0.72), Math.max(3, Math.round(w * 0.12)), Math.max(3, Math.round(h * 0.1)));
-    ctx.fillRect(Math.round(x + w * 0.26), Math.round(y + h * 0.72), Math.max(3, Math.round(w * 0.12)), Math.max(3, Math.round(h * 0.1)));
     ctx.restore();
   }
 
@@ -377,7 +310,6 @@ export class Pseudo3DRenderer {
     const hud = layout.hud.panel;
     const row = layout.hud.rowHeight;
     const progress = Math.min(1, (state.completedLaps + state.position / Math.max(1, state.trackLength)) / targetLaps);
-
     this.roundedPanel(ctx, hud.x, hud.y, hud.w, RACER_UI_FLAGS.showDebugHud ? hud.h : hud.h - row, 'rgba(12, 18, 24, 0.52)', 'rgba(255,255,255,0.2)');
     ctx.font = `${layout.fonts.hud}px sans-serif`;
     ctx.textBaseline = 'top';
@@ -387,11 +319,7 @@ export class Pseudo3DRenderer {
     ctx.fillText(`圈数 ${state.completedLaps}/${targetLaps}`, hud.x + 12, hud.y + 8 + row);
     ctx.fillText(`时间 ${formatSeconds(state.currentLapTime)}`, hud.x + 12, hud.y + 8 + row * 2);
     ctx.fillText(`最佳 ${formatSeconds(state.bestLapTime)}`, hud.x + 12, hud.y + 8 + row * 3);
-
-    if (RACER_UI_FLAGS.showDebugHud || RACER_UI_FLAGS.showAssetStatus) {
-      ctx.fillText(`${assets?.statusLabel ?? 'Assets idle'} · ${audioMuted ? 'Music off' : 'Music on'}`, hud.x + 12, hud.y + 8 + row * 4);
-    }
-
+    if (RACER_UI_FLAGS.showDebugHud || RACER_UI_FLAGS.showAssetStatus) ctx.fillText(`${assets?.statusLabel ?? 'Assets idle'} · ${audioMuted ? 'Music off' : 'Music on'}`, hud.x + 12, hud.y + 8 + row * 4);
     const bar = layout.hud.progressBar;
     this.roundedPanel(ctx, bar.x, bar.y, bar.w, bar.h, 'rgba(0, 0, 0, 0.42)');
     this.roundedPanel(ctx, bar.x, bar.y, Math.max(6, bar.w * progress), bar.h, 'rgba(255, 220, 88, 0.92)');
@@ -406,11 +334,9 @@ export class Pseudo3DRenderer {
     const base = layout.controls.joystickBase;
     const knobX = joystick.active ? joystick.knobX : base.x;
     const knobY = joystick.active ? joystick.knobY : base.y;
-
     ctx.save();
     this.drawCircle(ctx, { x: base.x, y: base.y, r: base.r + 10 }, 'rgba(0,0,0,0.18)');
     this.drawCircle(ctx, base, joystick.active ? 'rgba(255,255,255,0.24)' : 'rgba(255,255,255,0.15)', 'rgba(255,255,255,0.48)', 2);
-    this.drawCircle(ctx, { x: base.x, y: base.y, r: Math.max(14, base.r * 0.2) }, 'rgba(255,255,255,0.15)');
     this.drawCircle(ctx, { x: knobX, y: knobY, r: layout.controls.joystickKnobRadius }, joystick.active ? 'rgba(255,255,255,0.78)' : 'rgba(255,255,255,0.48)', 'rgba(20,24,32,0.62)', 2);
     if (RACER_UI_FLAGS.showControlLabels) {
       ctx.font = `${layout.fonts.note}px sans-serif`;
@@ -436,36 +362,40 @@ export class Pseudo3DRenderer {
   }
 
   private drawPauseButton(ctx: CanvasRenderingContext2D, button: RacerCircle, pressed: boolean): void {
-    const radiusOffset = pressed ? 2 : 6;
-    this.drawCircle(ctx, { x: button.x, y: button.y + (pressed ? 2 : 0), r: button.r + radiusOffset }, pressed ? 'rgba(255,207,74,0.28)' : 'rgba(0,0,0,0.18)');
-    this.drawCircle(ctx, { x: button.x, y: button.y + (pressed ? 2 : 0), r: button.r }, pressed ? 'rgba(255, 207, 74, 0.82)' : 'rgba(12, 18, 24, 0.68)', 'rgba(255,255,255,0.58)', 2);
+    const y = button.y + (pressed ? 2 : 0);
+    this.drawCircle(ctx, { x: button.x, y, r: button.r + (pressed ? 2 : 6) }, pressed ? 'rgba(255,207,74,0.28)' : 'rgba(0,0,0,0.18)');
+    this.drawCircle(ctx, { x: button.x, y, r: button.r }, pressed ? 'rgba(255, 207, 74, 0.82)' : 'rgba(12, 18, 24, 0.68)', 'rgba(255,255,255,0.58)', 2);
     ctx.save();
     ctx.fillStyle = pressed ? 'rgba(20,24,32,0.96)' : '#ffffff';
     const barW = Math.max(4, button.r * 0.18);
     const barH = button.r * 0.9;
-    const y = button.y + (pressed ? 2 : 0);
     ctx.fillRect(button.x - barW * 1.7, y - barH / 2, barW, barH);
     ctx.fillRect(button.x + barW * 0.7, y - barH / 2, barW, barH);
     ctx.restore();
   }
 
-  private drawOverlay(
-    ctx: CanvasRenderingContext2D,
-    state: RacerState,
-    assets: RacerAssets | undefined,
-    phase: RacerPhase,
-    targetLaps: number,
-    audioMuted: boolean,
-    layout: RacerUiLayout,
-    pressedTarget: RacerUiPressedTarget
-  ): void {
+  private drawControlCoach(ctx: CanvasRenderingContext2D, state: RacerState, layout: RacerUiLayout, secondsLeft: number): void {
+    const alpha = clamp(secondsLeft / 1.4, 0, 1);
+    const w = Math.min(460, state.width * 0.72);
+    const h = layout.small ? 58 : 66;
+    const x = (state.width - w) / 2;
+    const y = state.height * 0.18;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    this.roundedPanel(ctx, x, y, w, h, 'rgba(18,24,32,0.82)', 'rgba(255,207,74,0.62)');
+    ctx.font = `bold ${layout.fonts.body}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('左下摇杆控制方向 · 右下按钮刹车', state.width / 2, y + h / 2);
+    ctx.restore();
+  }
+
+  private drawOverlay(ctx: CanvasRenderingContext2D, state: RacerState, assets: RacerAssets | undefined, phase: RacerPhase, targetLaps: number, audioMuted: boolean, layout: RacerUiLayout, pressedTarget: RacerUiPressedTarget): void {
     if (phase === 'playing') return;
-
     this.drawVignette(ctx, state.width, state.height);
-
-    const active = phase === 'menu' ? layout.menu : phase === 'paused' ? layout.paused : layout.finished;
+    const active = phase === 'menu' ? layout.menu : phase === 'paused' ? layout.paused : phase === 'help' ? layout.help : layout.finished;
     this.drawModalPanel(ctx, active.panel);
-
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.fillStyle = '#ffffff';
@@ -477,14 +407,23 @@ export class Pseudo3DRenderer {
       ctx.fillStyle = 'rgba(255,255,255,0.86)';
       ctx.fillText('复古街机赛车', state.width / 2, layout.menu.line1Y);
       ctx.fillText('左下摇杆控制方向，右下按钮刹车', state.width / 2, layout.menu.line2Y);
-      if (RACER_UI_FLAGS.showAssetStatus) {
-        ctx.fillText(`${assets?.statusLabel ?? 'Assets idle'} · ${assets?.commercialSafe ? 'Commercial-safe' : 'Legacy assets'}`, state.width / 2, layout.menu.line3Y);
-      } else {
-        ctx.fillText(audioMuted ? '音乐已关闭' : '音乐已开启', state.width / 2, layout.menu.line3Y);
-      }
+      ctx.fillText(audioMuted ? '音乐已关闭' : '音乐已开启', state.width / 2, layout.menu.line3Y);
+      if (RACER_UI_FLAGS.showAssetStatus) ctx.fillText(`${assets?.statusLabel ?? 'Assets idle'}`, state.width / 2, layout.menu.line3Y);
       this.drawButton(ctx, layout.menu.startButton, '开始比赛', layout, true, pressedTarget === 'menu-start');
       this.drawButton(ctx, layout.menu.leaderboardButton, '排行榜', layout, false, pressedTarget === 'menu-leaderboard');
+      this.drawButton(ctx, layout.menu.helpButton, '操作说明', layout, false, pressedTarget === 'menu-help');
       this.drawButton(ctx, layout.menu.audioButton, audioMuted ? '开启音乐' : '关闭音乐', layout, false, pressedTarget === 'menu-audio');
+    } else if (phase === 'help') {
+      ctx.font = `bold ${layout.fonts.title}px sans-serif`;
+      ctx.fillText('操作说明', state.width / 2, layout.help.titleY);
+      ctx.font = `${layout.fonts.body}px sans-serif`;
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.fillText('左下摇杆：控制赛车方向', state.width / 2, layout.help.line1Y);
+      ctx.fillText('右下刹车：过弯和避让时减速', state.width / 2, layout.help.line2Y);
+      ctx.fillText('右侧暂停：暂停、重开或返回菜单', state.width / 2, layout.help.line3Y);
+      ctx.fillText('目标：完成 3 圈，刷新最佳圈速', state.width / 2, layout.help.line4Y);
+      this.drawButton(ctx, layout.help.startButton, '开始比赛', layout, true, pressedTarget === 'help-start');
+      this.drawButton(ctx, layout.help.backButton, '返回菜单', layout, false, pressedTarget === 'help-back');
     } else if (phase === 'paused') {
       ctx.font = `bold ${layout.fonts.title}px sans-serif`;
       ctx.fillText('比赛暂停', state.width / 2, layout.paused.titleY);
@@ -494,6 +433,7 @@ export class Pseudo3DRenderer {
       this.drawButton(ctx, layout.paused.resumeButton, '继续比赛', layout, true, pressedTarget === 'paused-resume');
       this.drawButton(ctx, layout.paused.restartButton, '重新开始', layout, false, pressedTarget === 'paused-restart');
       this.drawButton(ctx, layout.paused.audioButton, audioMuted ? '开启音乐' : '关闭音乐', layout, false, pressedTarget === 'paused-audio');
+      this.drawButton(ctx, layout.paused.menuButton, '返回菜单', layout, false, pressedTarget === 'paused-menu');
     } else {
       const grade = this.raceGrade(state);
       ctx.font = `bold ${layout.fonts.title}px sans-serif`;
@@ -510,7 +450,6 @@ export class Pseudo3DRenderer {
       ctx.fillStyle = 'rgba(255,255,255,0.72)';
       ctx.fillText('刷新成绩，冲击排行榜', state.width / 2, layout.finished.noteY);
     }
-
     ctx.textAlign = 'left';
   }
 
@@ -524,15 +463,9 @@ export class Pseudo3DRenderer {
   private drawButton(ctx: CanvasRenderingContext2D, target: RacerRect, text: string, layout: RacerUiLayout, primary = false, pressed = false): void {
     const inset = pressed ? 3 : 0;
     const yOffset = pressed ? 3 : 0;
-    const fill = primary
-      ? pressed ? 'rgba(235, 178, 48, 0.96)' : 'rgba(255, 207, 74, 0.94)'
-      : pressed ? 'rgba(255, 255, 255, 0.24)' : 'rgba(255, 255, 255, 0.14)';
+    const fill = primary ? pressed ? 'rgba(235, 178, 48, 0.96)' : 'rgba(255, 207, 74, 0.94)' : pressed ? 'rgba(255, 255, 255, 0.24)' : 'rgba(255, 255, 255, 0.14)';
     const stroke = primary ? 'rgba(255, 255, 255, 0.84)' : 'rgba(255,255,255,0.42)';
-
-    if (primary && !pressed) {
-      this.roundedPanel(ctx, target.x - 5, target.y - 5, target.w + 10, target.h + 10, 'rgba(255, 207, 74, 0.12)');
-    }
-
+    if (primary && !pressed) this.roundedPanel(ctx, target.x - 5, target.y - 5, target.w + 10, target.h + 10, 'rgba(255, 207, 74, 0.12)');
     this.roundedPanel(ctx, target.x + inset, target.y + yOffset + inset, target.w - inset * 2, target.h - inset * 2, fill, stroke);
     ctx.font = `bold ${layout.fonts.button}px sans-serif`;
     ctx.fillStyle = primary ? 'rgba(20,24,32,0.96)' : '#ffffff';
@@ -595,18 +528,7 @@ export class Pseudo3DRenderer {
     }
   }
 
-  private polygon(
-    ctx: CanvasRenderingContext2D,
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-    x3: number,
-    y3: number,
-    x4: number,
-    y4: number,
-    color: string
-  ): void {
+  private polygon(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, x4: number, y4: number, color: string): void {
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.moveTo(x1, y1);
@@ -617,17 +539,7 @@ export class Pseudo3DRenderer {
     ctx.fill();
   }
 
-  private strokePolygon(
-    ctx: CanvasRenderingContext2D,
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-    x3: number,
-    y3: number,
-    x4: number,
-    y4: number
-  ): void {
+  private strokePolygon(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, x4: number, y4: number): void {
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
