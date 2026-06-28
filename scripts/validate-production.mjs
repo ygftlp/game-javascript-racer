@@ -95,6 +95,9 @@ if (!uiFlags.includes('releaseMode: true') || !uiFlags.includes('showAssetStatus
 if (!uiLayout.includes('joystickBase') || !uiLayout.includes('brakeButton') || !uiLayout.includes('pauseButton: RacerCircle')) {
   missing.push('publish UI layout must include joystick, brake, and circle pause controls');
 }
+if (!uiLayout.includes('helpButton') || !uiLayout.includes('RacerHelpLayout') || !uiLayout.includes('menuButton')) {
+  missing.push('commercial onboarding help screen and pause return-menu layout');
+}
 if (!uiLayout.includes('Math.max(76') || !uiLayout.includes('joystickTouchArea')) {
   missing.push('enlarged joystick layout and touch area');
 }
@@ -109,6 +112,12 @@ if (!renderer.includes('RACER_UI_FLAGS') || !renderer.includes('showAssetStatus'
 }
 if (!renderer.includes('RacerUiPressedTarget') || !renderer.includes('pressedTarget ===') || !scene.includes('executePressedTarget')) {
   missing.push('polished UI press-state confirmation flow');
+}
+if (!renderer.includes('drawControlCoach') || !renderer.includes('操作说明') || !scene.includes('CONTROL_COACH_SECONDS')) {
+  missing.push('first-race control coach and help overlay flow');
+}
+if (!scene.includes('returnToMenu') || !scene.includes('paused-menu') || !renderer.includes('返回菜单')) {
+  missing.push('pause return-to-menu interaction');
 }
 if (!renderer.includes('drawVignette') || !renderer.includes('raceGrade') || !renderer.includes('rgba(255, 207, 74, 0.12)')) {
   missing.push('polished modal hierarchy, primary button glow, and result rating');
