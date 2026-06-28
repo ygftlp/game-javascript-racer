@@ -107,7 +107,13 @@ so that `src/engine/index.ts` re-exports the real SDK package and `package.json`
 }
 ```
 
-If the local engine does not have `dist/lib` and `dist/types`, build it first from `D:\JavaWorkspace\game-engine`.
+If the local engine has `dist/lib` but no usable `dist/types`, the racer project includes this fallback declaration:
+
+```text
+src/types/lite-game-engine.d.ts
+```
+
+This declaration is only a type fallback for local development. It does not replace runtime code; runtime code still comes from `D:\JavaWorkspace\game-engine\dist` when using local SDK mode.
 
 ## Source import rule
 
@@ -158,6 +164,7 @@ dist/wechat/
 src/main.wx.ts                       Mini game source entry
 src/engine/index.ts                  Engine import boundary
 src/engine/local-lite-game-engine.ts Local compatibility engine for development/builds
+src/types/lite-game-engine.d.ts      Type fallback for local SDK mode
 src/platforms/wechat/startup.ts      Engine + WxPlatform startup and lifecycle binding
 src/platforms/wechat/game.json       WeChat game manifest copied to dist
 src/scenes/RacerScene.ts             Main racer scene
