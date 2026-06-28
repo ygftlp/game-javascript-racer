@@ -14,7 +14,7 @@ The WeChat version should be a TypeScript business game that depends on `lite-ga
 src/
   main.wx.ts                 WeChat entry: Engine + WxPlatform + RacerScene
   scenes/                    Scene-level game pages
-  racer/                     Racing gameplay model, state, renderer, track, config, assets, storage, services, tuning
+  racer/                     Racing gameplay model, state, renderer, track, config, assets, settings, storage, services, tuning
   platforms/wechat/game.json WeChat game manifest copied during build
 scripts/
   build-wechat.mjs           esbuild bundle, manifest copy, asset copy
@@ -86,6 +86,14 @@ docs/
 - Added `scripts/validate-production.mjs` to validate required production modules and warn about launch blockers.
 - Added `npm run validate`, `validate:assets`, `validate:assets:legacy`, and `validate:production` scripts.
 - Added `prebuild:wx` quality gate before the WeChat build.
+
+### Checkpoint 6: runtime polish pass
+
+- Added `RacerSettings` for persisted player preferences through platform storage.
+- `RacerAssets` now tracks `idle`, `loading`, `ready`, and `fallback` asset states.
+- Menu and HUD now show asset-pack label, commercial-safety flag, and asset loading/fallback state.
+- Menu and pause overlays now include a persisted music on/off toggle.
+- Production validation now checks the audio-toggle flow and settings module.
 
 ## Current limitations
 
