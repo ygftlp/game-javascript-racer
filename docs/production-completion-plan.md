@@ -77,11 +77,13 @@ Implemented:
 - Audio mute state is persisted through platform storage.
 - Menu and pause overlays include a music toggle.
 - HUD shows music state and asset status.
+- Optional sound effects are wired for engine loop, crash, and menu confirmation audio.
+- Collision events now trigger crash SFX when an audio pack provides it.
+- In-race Canvas touch hints show left steer, right steer, and brake zones.
 
 Still required:
 
 - Improve menu layout and hitboxes on very small screens after real-device testing.
-- Add clearer brake/steer visual affordances.
 - Add result screen share copy and ranking entry polish.
 - Add pause behavior on app hide/show once lifecycle helpers are available.
 
@@ -107,6 +109,7 @@ Required manual checks:
 - Start game from menu.
 - Toggle music in menu and pause overlays.
 - Confirm steering left/right and braking zones.
+- Confirm crash SFX plays when an audio pack provides `crash.mp3`.
 - Finish 3 laps and restart.
 - Confirm best lap and audio preference persist after reload.
 - Confirm no console errors for missing required assets.
@@ -123,8 +126,7 @@ Next tasks:
 
 1. Add app hide/show pause once platform lifecycle adapter exists.
 2. Replace placeholder Canvas buttons with engine UI components if needed.
-3. Add SFX playback once audio replacement files are available.
-4. Refine loading and fallback copy after real-device validation.
+3. Refine loading, fallback, and touch-hint copy after real-device validation.
 
 ### Agent B: Asset Taxonomy
 
