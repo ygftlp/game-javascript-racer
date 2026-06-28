@@ -12,6 +12,7 @@ const requiredFiles = [
   'src/racer/RacerSettings.ts',
   'src/racer/RacerState.ts',
   'src/racer/RacerTuning.ts',
+  'src/racer/RacerUiLayout.ts',
   'src/platforms/wechat/game.json',
   'scripts/build-wechat.mjs',
   'scripts/validate-assets.mjs',
@@ -41,6 +42,7 @@ for (const file of requiredFiles) {
 const manifest = await read('src/racer/RacerAssetManifest.ts');
 const services = await read('src/racer/RacerServices.ts');
 const scene = await read('src/scenes/RacerScene.ts');
+const renderer = await read('src/racer/Pseudo3DRenderer.ts');
 
 const warnings = [];
 if (manifest.includes('ACTIVE_RACER_ASSET_PACK = LEGACY_RACER_ASSET_PACK')) {
@@ -54,6 +56,12 @@ if (!scene.includes('TARGET_LAPS')) {
 }
 if (!scene.includes('toggleAudio')) {
   missing.push('RacerScene audio toggle flow');
+}
+if (!scene.includes('handleAppHidden') || !scene.includes('handleAppShown')) {
+  missing.push('RacerScene app lifecycle pause hooks');
+}
+if (!scene.includes('buildRacerUiLayout') || !renderer.includes('buildRacerUiLayout')) {
+  missing.push('shared RacerUiLayout usage in scene and renderer');
 }
 
 if (warnings.length) {
