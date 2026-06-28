@@ -1,12 +1,23 @@
-import type { Renderer } from 'lite-game-engine';
+import type { Renderer, Texture } from 'lite-game-engine';
 import { COLORS, RACER_CONFIG } from './config';
+import type { RacerAssets } from './RacerAssets';
+import type { AtlasFrame } from './SpriteAtlas';
+import { BACKGROUND, SPRITES, SPRITE_SCALE } from './SpriteAtlas';
 import type { RacerState, Segment } from './RacerState';
 
 interface ProjectedPoint {
   cameraZ: number;
+  scale: number;
   x: number;
   y: number;
   w: number;
+}
+
+interface ProjectedSegment {
+  segment: Segment;
+  p1: ProjectedPoint;
+  p2: ProjectedPoint;
+  clipY: number;
 }
 
 function percentRemaining(n: number, total: number): number {
@@ -22,8 +33,9 @@ function exponentialFog(distance: number, density: number): number {
 }
 
 export class Pseudo3DRenderer {
-  render(renderer: Renderer, state: RacerState): void {
+  render(renderer: Renderer, state: RacerState, assets?: RacerAssets): void {
     const ctx = renderer.ctx;
+    const projected: ProjectedSegment[] = [];
     const baseSegment = state.findSegment(state.position);
     const basePercent = percentRemaining(state.position, RACER_CONFIG.segmentLength);
     const playerSegment = state.findSegment(state.position + state.playerZ);
@@ -34,7 +46,7 @@ export class Pseudo3DRenderer {
     let x = 0;
     let dx = -(baseSegment.curve * basePercent);
 
-    this.drawBackdrop(ctx, state);
+    this.drawBackdrop(ctx, state, assets?.background ?? null, playerY);
 
     for (let n = 0; n < RACER_CONFIG.drawDistance; n += 1) {
       const segment = state.segments[(baseSegment.index + n) % state.segments.length];
@@ -64,11 +76,12 @@ export class Pseudo3DRenderer {
       if (p1.cameraZ <= state.cameraDepth || p2.y >= p1.y || p2.y >= maxY) continue;
 
       this.drawSegment(ctx, state, segment, p1, p2, fog);
+      projected.push({ segment, p1, p2, clipY: maxY });
       maxY = p1.y;
     }
 
-    this.drawPlayer(ctx, state);
-    this.drawHud(ctx, state);
+    this.drawWorldSprites(ctx, state, projected, assets?.sprites ?? null, playerSegment, playerPercent);
+    this.drawHud(ctx, state, assets?.loaded ?? false);
   }
 
   private project(
@@ -85,13 +98,25 @@ export class Pseudo3DRenderer {
 
     return {
       cameraZ: cameraRelativeZ,
+      scale,
       x: Math.round(state.width / 2 + scale * -cameraX * state.width / 2),
       y: Math.round(state.height / 2 - scale * cameraRelativeY * state.height / 2),
       w: Math.round(scale * RACER_CONFIG.roadWidth * state.width / 2)
     };
   }
 
-  private drawBackdrop(ctx: CanvasRenderingContext2D, state: RacerState): void {
+  private drawBackdrop(ctx: CanvasRenderingContext2D, state: RacerState, texture: Texture | null, playerY: number): void {
+    if (texture?.loaded) {
+      const image = texture.image as unknown as CanvasImageSource;
+      const skyOffset = state.resolution * 0.001 * playerY;
+      const hillOffset = state.resolution * 0.002 * playerY;
+      const treeOffset = state.resolution * 0.003 * playerY;
+      this.drawBackgroundLayer(ctx, image, state, BACKGROUND.SKY, 0, skyOffset);
+      this.drawBackgroundLayer(ctx, image, state, BACKGROUND.HILLS, 0, hillOffset);
+      this.drawBackgroundLayer(ctx, image, state, BACKGROUND.TREES, 0, treeOffset);
+      return;
+    }
+
     ctx.fillStyle = COLORS.sky;
     ctx.fillRect(0, 0, state.width, state.height);
 
@@ -110,6 +135,25 @@ export class Pseudo3DRenderer {
 
     ctx.fillStyle = COLORS.nearHill;
     ctx.fillRect(0, state.height * 0.42, state.width, state.height * 0.12);
+  }
+
+  private drawBackgroundLayer(
+    ctx: CanvasRenderingContext2D,
+    image: CanvasImageSource,
+    state: RacerState,
+    frame: AtlasFrame,
+    rotation: number,
+    offset: number
+  ): void {
+    const imageW = frame.w / 2;
+    const sourceX = frame.x + Math.floor(frame.w * rotation);
+    const sourceW = Math.min(imageW, frame.x + frame.w - sourceX);
+    const destW = Math.floor(state.width * (sourceW / imageW));
+
+    ctx.drawImage(image, sourceX, frame.y, sourceW, frame.h, 0, offset, destW, state.height);
+    if (sourceW < imageW) {
+      ctx.drawImage(image, frame.x, frame.y, imageW - sourceW, frame.h, destW - 1, offset, state.width - destW, state.height);
+    }
   }
 
   private drawSegment(
@@ -149,18 +193,95 @@ export class Pseudo3DRenderer {
     }
   }
 
-  private drawPlayer(ctx: CanvasRenderingContext2D, state: RacerState): void {
-    const carW = Math.max(72, state.width * 0.1);
-    const carH = carW * 0.58;
-    const x = state.width / 2;
-    const y = state.height * 0.84;
-    const lean = state.input.steer * carW * 0.08;
+  private drawWorldSprites(
+    ctx: CanvasRenderingContext2D,
+    state: RacerState,
+    projected: ProjectedSegment[],
+    texture: Texture | null,
+    playerSegment: Segment,
+    playerPercent: number
+  ): void {
+    for (let n = projected.length - 1; n >= 0; n -= 1) {
+      const current = projected[n];
+      const segment = current.segment;
 
+      for (const car of segment.cars) {
+        const spriteScale = interpolate(current.p1.scale, current.p2.scale, car.percent);
+        const spriteX = interpolate(current.p1.x, current.p2.x, car.percent) + spriteScale * car.offset * RACER_CONFIG.roadWidth * state.width / 2;
+        const spriteY = interpolate(current.p1.y, current.p2.y, car.percent);
+        this.drawAtlasSprite(ctx, texture, car.frame, spriteScale, spriteX, spriteY, -0.5, -1, current.clipY, state, '#da4f49');
+      }
+
+      for (const sprite of segment.sprites) {
+        const spriteScale = current.p1.scale;
+        const spriteX = current.p1.x + spriteScale * sprite.offset * RACER_CONFIG.roadWidth * state.width / 2;
+        const spriteY = current.p1.y;
+        this.drawAtlasSprite(ctx, texture, sprite.frame, spriteScale, spriteX, spriteY, sprite.offset < 0 ? -1 : 0, -1, current.clipY, state, '#0d5f2a');
+      }
+
+      if (segment === playerSegment) {
+        this.drawPlayer(ctx, state, texture, playerSegment, playerPercent);
+      }
+    }
+  }
+
+  private drawAtlasSprite(
+    ctx: CanvasRenderingContext2D,
+    texture: Texture | null,
+    frame: AtlasFrame,
+    scale: number,
+    destX: number,
+    destY: number,
+    offsetX: number,
+    offsetY: number,
+    clipY: number,
+    state: RacerState,
+    fallbackColor: string
+  ): void {
+    const destW = frame.w * scale * state.width / 2 * (SPRITE_SCALE * RACER_CONFIG.roadWidth);
+    const destH = frame.h * scale * state.width / 2 * (SPRITE_SCALE * RACER_CONFIG.roadWidth);
+    const x = destX + destW * offsetX;
+    const y = destY + destH * offsetY;
+    const clipH = clipY ? Math.max(0, y + destH - clipY) : 0;
+
+    if (clipH >= destH) return;
+
+    if (texture?.loaded) {
+      const image = texture.image as unknown as CanvasImageSource;
+      ctx.drawImage(image, frame.x, frame.y, frame.w, frame.h - frame.h * clipH / destH, x, y, destW, destH - clipH);
+      return;
+    }
+
+    ctx.fillStyle = fallbackColor;
+    ctx.fillRect(x, y, destW, destH - clipH);
+  }
+
+  private drawPlayer(
+    ctx: CanvasRenderingContext2D,
+    state: RacerState,
+    texture: Texture | null,
+    playerSegment: Segment,
+    playerPercent: number
+  ): void {
+    const frame = state.input.steer < 0 ? SPRITES.PLAYER_LEFT : state.input.steer > 0 ? SPRITES.PLAYER_RIGHT : SPRITES.PLAYER_STRAIGHT;
+    const x = state.width / 2;
+    const y = state.height / 2 - (state.cameraDepth / state.playerZ * interpolate(playerSegment.y1, playerSegment.y2, playerPercent) * state.height / 2);
+    const carW = Math.max(72, state.width * 0.1);
+    const carH = carW * (frame.h / frame.w);
+    const bounce = 1.5 * Math.random() * state.speed / RACER_CONFIG.maxSpeed * state.resolution;
+
+    if (texture?.loaded) {
+      const image = texture.image as unknown as CanvasImageSource;
+      ctx.drawImage(image, frame.x, frame.y, frame.w, frame.h, x - carW / 2, y + bounce, carW, carH);
+      return;
+    }
+
+    const lean = state.input.steer * carW * 0.08;
     this.polygon(ctx, x - carW * 0.5 + lean, y + carH * 0.45, x + carW * 0.5 + lean, y + carH * 0.45, x + carW * 0.28 - lean, y - carH * 0.45, x - carW * 0.28 - lean, y - carH * 0.45, COLORS.player);
     this.polygon(ctx, x - carW * 0.22 - lean, y - carH * 0.2, x + carW * 0.22 - lean, y - carH * 0.2, x + carW * 0.1 - lean, y - carH * 0.42, x - carW * 0.1 - lean, y - carH * 0.42, COLORS.playerTrim);
   }
 
-  private drawHud(ctx: CanvasRenderingContext2D, state: RacerState): void {
+  private drawHud(ctx: CanvasRenderingContext2D, state: RacerState, assetsLoaded: boolean): void {
     const mph = Math.round(state.speed / RACER_CONFIG.maxSpeed * 220);
     const lap = state.currentLapTime.toFixed(1);
     const best = state.bestLapTime ? state.bestLapTime.toFixed(1) : '--';
@@ -168,11 +289,12 @@ export class Pseudo3DRenderer {
     ctx.font = '24px sans-serif';
     ctx.textBaseline = 'top';
     ctx.fillStyle = COLORS.hudShadow;
-    ctx.fillRect(16, 16, 260, 112);
+    ctx.fillRect(16, 16, 300, 140);
     ctx.fillStyle = COLORS.hud;
     ctx.fillText(`Speed ${mph} mph`, 32, 30);
     ctx.fillText(`Lap ${lap}s`, 32, 62);
     ctx.fillText(`Best ${best}s`, 32, 94);
+    ctx.fillText(assetsLoaded ? 'Assets loaded' : 'Loading assets...', 32, 126);
 
     ctx.font = '18px sans-serif';
     ctx.fillText('触摸左/右转向，底部区域刹车', state.width - 300, 30);
