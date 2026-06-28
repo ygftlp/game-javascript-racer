@@ -12,18 +12,30 @@ The WeChat version should be a TypeScript business game that depends on `lite-ga
 
 ```text
 src/
-  main.wx.ts                 WeChat entry: Engine + WxPlatform + RacerScene
-  scenes/                    Scene-level game pages
-  racer/                     Racing gameplay model, state, renderer, track, config, assets, settings, storage, services, tuning, ui layout
-  platforms/wechat/game.json WeChat game manifest copied during build
+  main.wx.ts                    WeChat source entry, calls the startup module
+  scenes/                       Scene-level game pages
+  racer/                        Racing gameplay model, state, renderer, track, config, assets, settings, storage, services, tuning, ui layout
+  platforms/wechat/startup.ts   Engine + WxPlatform + RacerScene startup and lifecycle binding
+  platforms/wechat/game.json    WeChat game manifest copied during build
 scripts/
-  build-wechat.mjs           esbuild bundle, manifest copy, asset copy
-  validate-assets.mjs        asset-pack validation
-  validate-production.mjs    production structure validation
+  build-wechat.mjs              esbuild bundle, manifest copy, asset copy
+  validate-assets.mjs           asset-pack validation
+  validate-production.mjs       production structure validation
 docs/
-  agent-workstreams.md       multi-agent ownership plan
-  asset-replacement-guide.md asset replacement rules
+  local-setup-wechat.md         local setup and ENOENT package.json troubleshooting
+  agent-workstreams.md          multi-agent ownership plan
+  asset-replacement-guide.md    asset replacement rules
   production-completion-plan.md final definition of done
+```
+
+Build output:
+
+```text
+dist/wechat/game.js
+dist/wechat/game.json
+dist/wechat/images/**
+dist/wechat/music/**
+dist/wechat/assets/**
 ```
 
 ## Migration strategy
@@ -102,8 +114,10 @@ docs/
 - Added `RacerUiLayout` to centralize overlay panels, buttons, pause button, and touch zones.
 - `Pseudo3DRenderer` and `RacerScene` both use the same layout data, preventing visual buttons and touch hitboxes from drifting apart.
 - The layout adapts font sizes and panel/button dimensions for smaller screens.
-- `RacerScene` now exposes `handleAppHidden()` and `handleAppShown()` for a future SDK/platform lifecycle adapter.
-- Production validation now checks shared UI layout usage and lifecycle hook presence.
+- `RacerScene` now exposes `handleAppHidden()` and `handleAppShown()` for lifecycle pause/resume.
+- Added `src/platforms/wechat/startup.ts` to create `Engine + WxPlatform + RacerScene`, bind `wx.onHide/onShow`, set the scene, and start the engine.
+- `src/main.wx.ts` now delegates startup to `startWeChatRacerGame()`.
+- Production validation now checks shared UI layout usage, lifecycle hook presence, and WeChat startup module presence.
 
 ## Current limitations
 
@@ -112,16 +126,15 @@ docs/
 - Ads, analytics, leaderboard, and share are currently no-op service placeholders and need a real WeChat adapter later.
 - Asset licensing still needs replacing before commercial release if using the legacy sprite/music pack.
 - The current UI is Canvas-drawn. It can later be converted to engine `UIManager` / `Button` if richer interaction is needed.
-- App hide/show hooks are exposed in `RacerScene`, but still need to be connected by an SDK/platform lifecycle adapter.
 - This branch can organize multi-agent work, but external agents still need to be run by humans or an orchestration tool.
 
 ## Next steps
 
+- Fix local `ENOENT package.json` by switching/pulling `codex/modularize-v4-racer`; see `docs/local-setup-wechat.md`.
 - Run `npm install`, `npm run typecheck`, `npm run validate`, and `npm run build:wx` locally.
 - Open the repository root in WeChat DevTools; `project.config.json` points DevTools to `dist/wechat/`.
 - Assign each lane from `docs/agent-workstreams.md` to a contributor or coding agent.
 - Replace legacy art/music with a commercial-safe asset pack before publishing.
 - Switch `ACTIVE_RACER_ASSET_PACK` only after required commercial files exist and validation passes.
-- Add a WeChat implementation of `RacerServices` once the engine exposes a platform service adapter or the business project is allowed to supply one externally.
-- Connect `RacerScene.handleAppHidden()` / `handleAppShown()` once the SDK exposes lifecycle helpers or a platform event abstraction.
+- Add a real WeChat implementation of `RacerServices` for share, leaderboard, ads, and analytics.
 - Add real-device tuning for draw distance, traffic count, font sizes, and touch-control zones.
