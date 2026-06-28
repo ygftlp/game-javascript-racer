@@ -9,6 +9,7 @@ const requiredFiles = [
   'src/racer/RacerAssetManifest.ts',
   'src/racer/RacerAssets.ts',
   'src/racer/RacerServices.ts',
+  'src/racer/RacerSettings.ts',
   'src/racer/RacerState.ts',
   'src/racer/RacerTuning.ts',
   'src/platforms/wechat/game.json',
@@ -50,6 +51,9 @@ if (services.includes('placeholder')) {
 }
 if (!scene.includes('TARGET_LAPS')) {
   missing.push('RacerScene TARGET_LAPS race completion flow');
+}
+if (!scene.includes('toggleAudio')) {
+  missing.push('RacerScene audio toggle flow');
 }
 
 if (warnings.length) {
