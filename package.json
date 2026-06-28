@@ -1,0 +1,19 @@
+{
+  "name": "game-javascript-racer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "npm run build:wx",
+    "build:wx": "node scripts/build-wechat.mjs",
+    "dev:wx": "node scripts/build-wechat.mjs --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "lite-game-engine": "github:ygftlp/game-engine#feat/lightweight-2d-game-engine"
+  },
+  "devDependencies": {
+    "esbuild": "^0.21.0",
+    "typescript": "^5.4.0"
+  }
+}
