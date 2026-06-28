@@ -70,23 +70,26 @@ Owner lane: Monetization and Social Agent.
 
 ### Gate 5: UX polish
 
-Status: improved functional pass implemented.
+Status: publish controls pass implemented.
 
 Implemented:
 
 - Asset loading / ready / fallback status is visible in HUD and menu.
 - Audio mute state is persisted through platform storage.
 - Menu and pause overlays include a music toggle.
-- HUD shows music state and asset status.
 - Optional sound effects are wired for engine loop, crash, and menu confirmation audio.
 - Collision events now trigger crash SFX when an audio pack provides it.
-- In-race Canvas touch hints show left steer, right steer, and brake zones.
 - `RacerUiLayout` centralizes overlay button rectangles and touch zones so renderer and hit tests cannot drift apart.
 - `RacerScene` exposes `handleAppHidden()` and `handleAppShown()` so a platform lifecycle adapter can pause/resume without direct `wx` usage in gameplay code.
+- In-race HUD is compact and includes speed, lap, time, best lap, asset/audio state, and a race progress bar.
+- Left-bottom virtual joystick is implemented with dead zone, clamping, and auto-centering.
+- Right-bottom brake button is implemented as a large circular touch target.
+- Pause button is a circular icon placed away from the WeChat capsule area.
+- Pause overlay now includes continue, restart, and music controls.
 
 Still required:
 
-- Improve menu layout and hitboxes on very small screens after real-device testing.
+- Tune exact joystick/brake sizes on real low-end and high-DPI devices.
 - Add result screen share copy and ranking entry polish.
 - Switch `src/engine/index.ts` to the real SDK after the SDK package is built/published correctly.
 
@@ -111,7 +114,9 @@ Required manual checks:
 - Confirm `project.config.json` points to `dist/wechat/`.
 - Start game from menu.
 - Toggle music in menu and pause overlays.
-- Confirm steering left/right and braking zones.
+- Confirm left-bottom joystick steers the car and returns to center on release.
+- Confirm right-bottom brake button slows the car while held.
+- Confirm pause button is not blocked by the WeChat capsule.
 - Confirm displayed buttons and click hitboxes match on small and large screens.
 - Confirm crash SFX plays when an audio pack provides `crash.mp3`.
 - Simulate app hide/show lifecycle pause/resume.
@@ -129,10 +134,10 @@ Owner lane: QA and Performance Agent.
 
 Next tasks:
 
-1. Validate local compatibility engine in WeChat DevTools and on device.
+1. Validate joystick, brake, and pause controls in WeChat DevTools and on device.
 2. Switch `src/engine/index.ts` to the real SDK once `lite-game-engine` publishes usable dist files.
 3. Replace placeholder Canvas buttons with engine UI components if needed.
-4. Refine loading, fallback, and touch-hint copy after real-device validation.
+4. Refine loading, fallback, and control copy after real-device validation.
 
 ### Agent B: Asset Taxonomy
 
@@ -191,4 +196,5 @@ The game is done when:
 - WeChat DevTools opens the game without missing required assets.
 - Core gameplay is playable for a full 3-lap race.
 - Pause, restart, best-lap storage, audio preference, share entry, leaderboard entry, and ad entry work or are intentionally disabled by config.
+- Joystick, brake, and pause controls are validated on target devices.
 - Real-device performance is acceptable on the target low-end device profile.
