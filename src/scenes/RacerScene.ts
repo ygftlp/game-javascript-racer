@@ -1,6 +1,7 @@
 import { Engine, Scene, type Renderer, type TouchPoint } from 'lite-game-engine';
 import { RacerAssets } from '../racer/RacerAssets';
 import { createRacerServices, type RaceResult } from '../racer/RacerServices';
+import { RacerSettings } from '../racer/RacerSettings';
 import { RacerState } from '../racer/RacerState';
 import { RacerStorage } from '../racer/RacerStorage';
 import { resolveRacerTuning } from '../racer/RacerTuning';
@@ -13,11 +14,13 @@ type FinishedAction = 'restart' | 'share' | 'leaderboard' | 'none';
 export class RacerScene extends Scene {
   private readonly assets = new RacerAssets();
   private readonly services = createRacerServices();
+  private readonly settings: RacerSettings;
   private readonly state: RacerState;
   private readonly storage: RacerStorage;
   private readonly pseudo3d = new Pseudo3DRenderer();
   private savedBestLapTime = 0;
   private touchActive = false;
+  private audioMuted = false;
   private phase: RacerPhase = 'menu';
 
   constructor(private readonly gameEngine: Engine) {
@@ -25,13 +28,16 @@ export class RacerScene extends Scene {
     const screen = gameEngine.platform.getScreenInfo();
     const tuning = resolveRacerTuning(gameEngine.width, gameEngine.height, screen.pixelRatio);
 
+    this.settings = new RacerSettings(gameEngine);
     this.storage = new RacerStorage(gameEngine);
     this.state = new RacerState(gameEngine.width, gameEngine.height, tuning);
     this.savedBestLapTime = this.storage.getBestLapTime();
+    this.audioMuted = this.settings.isAudioMuted();
+    this.assets.setMuted(this.audioMuted);
     this.state.bestLapTime = this.savedBestLapTime;
     this.bindTouchControls();
     void this.assets.load(gameEngine);
-    this.services.analytics.track('scene_ready', { tuning: tuning.profile });
+    this.services.analytics.track('scene_ready', { tuning: tuning.profile, audioMuted: this.audioMuted });
   }
 
   update(dt: number): void {
@@ -55,7 +61,8 @@ export class RacerScene extends Scene {
   protected draw(renderer: Renderer): void {
     this.pseudo3d.render(renderer, this.state, this.assets, {
       phase: this.phase,
-      targetLaps: TARGET_LAPS
+      targetLaps: TARGET_LAPS,
+      audioMuted: this.audioMuted
     });
   }
 
@@ -80,11 +87,19 @@ export class RacerScene extends Scene {
         void this.showLeaderboard('menu');
         return;
       }
+      if (this.isMenuAudioButton(point)) {
+        this.toggleAudio();
+        return;
+      }
       this.startRace();
       return;
     }
 
     if (this.phase === 'paused') {
+      if (this.isPausedAudioButton(point)) {
+        this.toggleAudio();
+        return;
+      }
       this.resumeRace();
       return;
     }
@@ -115,7 +130,7 @@ export class RacerScene extends Scene {
     this.phase = 'playing';
     this.touchActive = false;
     this.assets.playMusic();
-    this.services.analytics.track('race_start', { tuning: this.state.tuning.profile });
+    this.services.analytics.track('race_start', { tuning: this.state.tuning.profile, audioMuted: this.audioMuted });
   }
 
   private restartRace(): void {
@@ -136,7 +151,7 @@ export class RacerScene extends Scene {
   private resumeRace(): void {
     this.phase = 'playing';
     this.assets.playMusic();
-    this.services.analytics.track('race_resume');
+    this.services.analytics.track('race_resume', { audioMuted: this.audioMuted });
   }
 
   private finishRace(): void {
@@ -151,6 +166,14 @@ export class RacerScene extends Scene {
     this.services.analytics.track('race_finish', result);
     void this.services.leaderboard.submitScore(result);
     void this.services.ads.showInterstitial('race_finish');
+  }
+
+  private toggleAudio(): void {
+    this.audioMuted = !this.audioMuted;
+    this.settings.setAudioMuted(this.audioMuted);
+    this.assets.setMuted(this.audioMuted);
+    if (!this.audioMuted && this.phase === 'playing') this.assets.playMusic();
+    this.services.analytics.track('audio_toggle', { muted: this.audioMuted, phase: this.phase });
   }
 
   private applyTouches(touches: TouchPoint[]): void {
@@ -176,7 +199,17 @@ export class RacerScene extends Scene {
 
   private isMenuLeaderboardButton(point: TouchPoint): boolean {
     const panelY = this.overlayPanelY('menu');
-    return this.isInRect(point, this.gameEngine.width / 2 - 118, panelY + 242, 236, 52);
+    return this.isInRect(point, this.gameEngine.width / 2 - 118, panelY + 248, 236, 52);
+  }
+
+  private isMenuAudioButton(point: TouchPoint): boolean {
+    const panelY = this.overlayPanelY('menu');
+    return this.isInRect(point, this.gameEngine.width / 2 - 118, panelY + 312, 236, 52);
+  }
+
+  private isPausedAudioButton(point: TouchPoint): boolean {
+    const panelY = this.overlayPanelY('paused');
+    return this.isInRect(point, this.gameEngine.width / 2 - 110, panelY + 224, 220, 52);
   }
 
   private finishedAction(point: TouchPoint): FinishedAction {
@@ -190,8 +223,8 @@ export class RacerScene extends Scene {
     return 'restart';
   }
 
-  private overlayPanelY(phase: 'menu' | 'finished'): number {
-    const panelH = phase === 'finished' ? 380 : 318;
+  private overlayPanelY(phase: 'menu' | 'paused' | 'finished'): number {
+    const panelH = phase === 'finished' ? 380 : phase === 'paused' ? 336 : 384;
     return (this.gameEngine.height - panelH) / 2;
   }
 
