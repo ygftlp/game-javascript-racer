@@ -5,6 +5,8 @@ const requiredFiles = [
   'package.json',
   'project.config.json',
   'src/main.wx.ts',
+  'src/engine/index.ts',
+  'src/engine/local-lite-game-engine.ts',
   'src/scenes/RacerScene.ts',
   'src/racer/RacerAssetManifest.ts',
   'src/racer/RacerAssets.ts',
@@ -20,6 +22,15 @@ const requiredFiles = [
   'docs/asset-replacement-guide.md',
   'docs/agent-workstreams.md',
   'docs/production-completion-plan.md'
+];
+
+const sourceFilesToCheck = [
+  'src/platforms/wechat/startup.ts',
+  'src/racer/Pseudo3DRenderer.ts',
+  'src/racer/RacerAssets.ts',
+  'src/racer/RacerSettings.ts',
+  'src/racer/RacerStorage.ts',
+  'src/scenes/RacerScene.ts'
 ];
 
 async function exists(path) {
@@ -45,6 +56,7 @@ const services = await read('src/racer/RacerServices.ts');
 const scene = await read('src/scenes/RacerScene.ts');
 const renderer = await read('src/racer/Pseudo3DRenderer.ts');
 const startup = await read('src/platforms/wechat/startup.ts');
+const engineBoundary = await read('src/engine/index.ts');
 
 const warnings = [];
 if (manifest.includes('ACTIVE_RACER_ASSET_PACK = LEGACY_RACER_ASSET_PACK')) {
@@ -52,6 +64,9 @@ if (manifest.includes('ACTIVE_RACER_ASSET_PACK = LEGACY_RACER_ASSET_PACK')) {
 }
 if (services.includes('placeholder')) {
   warnings.push('RacerServices still uses placeholder implementations for ads/share/leaderboard. Replace with a WeChat adapter before launch.');
+}
+if (engineBoundary.includes('local-lite-game-engine')) {
+  warnings.push('Engine boundary currently uses local compatibility mode. Switch src/engine/index.ts to the real SDK after lite-game-engine publishes dist/lib and dist/types.');
 }
 if (!scene.includes('TARGET_LAPS')) {
   missing.push('RacerScene TARGET_LAPS race completion flow');
@@ -70,6 +85,13 @@ if (!startup.includes('startWeChatRacerGame') || !startup.includes('new WxPlatfo
 }
 if (!startup.includes('onHide') || !startup.includes('onShow')) {
   missing.push('WeChat startup module lifecycle binding');
+}
+
+for (const file of sourceFilesToCheck) {
+  const content = await read(file);
+  if (content.includes("from 'lite-game-engine'") || content.includes('from "lite-game-engine"')) {
+    missing.push(`${file} still imports lite-game-engine directly; use src/engine boundary instead`);
+  }
 }
 
 if (warnings.length) {
