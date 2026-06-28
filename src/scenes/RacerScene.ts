@@ -5,6 +5,7 @@ import { RacerSettings } from '../racer/RacerSettings';
 import { RacerState } from '../racer/RacerState';
 import { RacerStorage } from '../racer/RacerStorage';
 import { resolveRacerTuning } from '../racer/RacerTuning';
+import { buildRacerUiLayout, pointInRect } from '../racer/RacerUiLayout';
 import { Pseudo3DRenderer, type RacerPhase } from '../racer/Pseudo3DRenderer';
 
 const TARGET_LAPS = 3;
@@ -22,6 +23,7 @@ export class RacerScene extends Scene {
   private touchActive = false;
   private audioMuted = false;
   private lastCollisionCount = 0;
+  private wasPlayingBeforeHidden = false;
   private phase: RacerPhase = 'menu';
 
   constructor(private readonly gameEngine: Engine) {
@@ -68,6 +70,20 @@ export class RacerScene extends Scene {
     });
   }
 
+  handleAppHidden(): void {
+    this.wasPlayingBeforeHidden = this.phase === 'playing';
+    if (!this.wasPlayingBeforeHidden) return;
+
+    this.pauseRace('app_hide');
+  }
+
+  handleAppShown(): void {
+    if (!this.wasPlayingBeforeHidden || this.phase !== 'paused') return;
+
+    this.wasPlayingBeforeHidden = false;
+    this.resumeRace('app_show');
+  }
+
   private bindTouchControls(): void {
     this.gameEngine.input.onStart((touches) => this.handleTouchStart(touches), { persistent: true });
     this.gameEngine.input.onMove((touches) => {
@@ -107,7 +123,7 @@ export class RacerScene extends Scene {
         return;
       }
       this.assets.playMenuConfirm();
-      this.resumeRace();
+      this.resumeRace('touch');
       return;
     }
 
@@ -130,7 +146,7 @@ export class RacerScene extends Scene {
 
     if (this.isPauseButton(point)) {
       this.assets.playMenuConfirm();
-      this.pauseRace();
+      this.pauseRace('touch');
       return;
     }
 
@@ -139,6 +155,7 @@ export class RacerScene extends Scene {
 
   private startRace(): void {
     this.phase = 'playing';
+    this.wasPlayingBeforeHidden = false;
     this.touchActive = false;
     this.lastCollisionCount = this.state.collisionCount;
     this.assets.playMusic();
@@ -152,24 +169,25 @@ export class RacerScene extends Scene {
     this.startRace();
   }
 
-  private pauseRace(): void {
+  private pauseRace(source: string): void {
     this.phase = 'paused';
     this.touchActive = false;
     this.state.input.steer = 0;
     this.state.input.brake = false;
     this.assets.pauseMusic();
-    this.services.analytics.track('race_pause');
+    this.services.analytics.track('race_pause', { source });
   }
 
-  private resumeRace(): void {
+  private resumeRace(source: string): void {
     this.phase = 'playing';
     this.lastCollisionCount = this.state.collisionCount;
     this.assets.playMusic();
-    this.services.analytics.track('race_resume', { audioMuted: this.audioMuted });
+    this.services.analytics.track('race_resume', { source, audioMuted: this.audioMuted });
   }
 
   private finishRace(): void {
     this.phase = 'finished';
+    this.wasPlayingBeforeHidden = false;
     this.touchActive = false;
     this.state.input.steer = 0;
     this.state.input.brake = false;
@@ -201,13 +219,14 @@ export class RacerScene extends Scene {
     const point = touches[0];
     if (!point) return;
 
+    const layout = this.getUiLayout();
     this.touchActive = true;
     this.state.input.accelerate = true;
-    this.state.input.brake = point.y > this.gameEngine.height * 0.74;
+    this.state.input.brake = pointInRect(point, layout.touchZones.brake);
 
-    if (point.x < this.gameEngine.width * 0.42) {
+    if (pointInRect(point, layout.touchZones.left)) {
       this.state.input.steer = -1;
-    } else if (point.x > this.gameEngine.width * 0.58) {
+    } else if (pointInRect(point, layout.touchZones.right)) {
       this.state.input.steer = 1;
     } else {
       this.state.input.steer = 0;
@@ -215,42 +234,32 @@ export class RacerScene extends Scene {
   }
 
   private isPauseButton(point: TouchPoint): boolean {
-    return point.x >= this.gameEngine.width - 112 && point.y <= 82;
+    return pointInRect(point, this.getUiLayout().pauseButton);
   }
 
   private isMenuLeaderboardButton(point: TouchPoint): boolean {
-    const panelY = this.overlayPanelY('menu');
-    return this.isInRect(point, this.gameEngine.width / 2 - 118, panelY + 248, 236, 52);
+    return pointInRect(point, this.getUiLayout().menu.leaderboardButton);
   }
 
   private isMenuAudioButton(point: TouchPoint): boolean {
-    const panelY = this.overlayPanelY('menu');
-    return this.isInRect(point, this.gameEngine.width / 2 - 118, panelY + 312, 236, 52);
+    return pointInRect(point, this.getUiLayout().menu.audioButton);
   }
 
   private isPausedAudioButton(point: TouchPoint): boolean {
-    const panelY = this.overlayPanelY('paused');
-    return this.isInRect(point, this.gameEngine.width / 2 - 110, panelY + 224, 220, 52);
+    return pointInRect(point, this.getUiLayout().paused.audioButton);
   }
 
   private finishedAction(point: TouchPoint): FinishedAction {
-    const panelY = this.overlayPanelY('finished');
-    const center = this.gameEngine.width / 2;
-    const y = panelY + 212;
+    const layout = this.getUiLayout().finished;
 
-    if (this.isInRect(point, center - 250, y, 150, 54)) return 'restart';
-    if (this.isInRect(point, center - 75, y, 150, 54)) return 'share';
-    if (this.isInRect(point, center + 100, y, 150, 54)) return 'leaderboard';
+    if (pointInRect(point, layout.restartButton)) return 'restart';
+    if (pointInRect(point, layout.shareButton)) return 'share';
+    if (pointInRect(point, layout.leaderboardButton)) return 'leaderboard';
     return 'restart';
   }
 
-  private overlayPanelY(phase: 'menu' | 'paused' | 'finished'): number {
-    const panelH = phase === 'finished' ? 380 : phase === 'paused' ? 336 : 384;
-    return (this.gameEngine.height - panelH) / 2;
-  }
-
-  private isInRect(point: TouchPoint, x: number, y: number, width: number, height: number): boolean {
-    return point.x >= x && point.x <= x + width && point.y >= y && point.y <= y + height;
+  private getUiLayout() {
+    return buildRacerUiLayout(this.gameEngine.width, this.gameEngine.height);
   }
 
   private buildRaceResult(): RaceResult {
