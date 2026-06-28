@@ -1,16 +1,25 @@
 import { Engine, Scene, type Renderer, type TouchPoint } from 'lite-game-engine';
+import { RacerAssets } from '../racer/RacerAssets';
 import { RacerState } from '../racer/RacerState';
+import { RacerStorage } from '../racer/RacerStorage';
 import { Pseudo3DRenderer } from '../racer/Pseudo3DRenderer';
 
 export class RacerScene extends Scene {
+  private readonly assets = new RacerAssets();
   private readonly state: RacerState;
+  private readonly storage: RacerStorage;
   private readonly pseudo3d = new Pseudo3DRenderer();
+  private savedBestLapTime = 0;
   private touchActive = false;
 
   constructor(private readonly gameEngine: Engine) {
     super();
+    this.storage = new RacerStorage(gameEngine);
     this.state = new RacerState(gameEngine.width, gameEngine.height);
+    this.savedBestLapTime = this.storage.getBestLapTime();
+    this.state.bestLapTime = this.savedBestLapTime;
     this.bindTouchControls();
+    void this.assets.load(gameEngine);
   }
 
   update(dt: number): void {
@@ -22,10 +31,11 @@ export class RacerScene extends Scene {
     }
 
     this.state.update(dt);
+    this.persistBestLapIfNeeded();
   }
 
   protected draw(renderer: Renderer): void {
-    this.pseudo3d.render(renderer, this.state);
+    this.pseudo3d.render(renderer, this.state, this.assets);
   }
 
   private bindTouchControls(): void {
@@ -52,6 +62,13 @@ export class RacerScene extends Scene {
       this.state.input.steer = 1;
     } else {
       this.state.input.steer = 0;
+    }
+  }
+
+  private persistBestLapIfNeeded(): void {
+    if (this.state.bestLapTime > 0 && this.state.bestLapTime !== this.savedBestLapTime) {
+      this.savedBestLapTime = this.state.bestLapTime;
+      this.storage.setBestLapTime(this.savedBestLapTime);
     }
   }
 }
