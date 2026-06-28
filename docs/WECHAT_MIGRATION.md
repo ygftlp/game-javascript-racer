@@ -18,6 +18,12 @@ src/
   platforms/wechat/game.json WeChat game manifest copied during build
 scripts/
   build-wechat.mjs           esbuild bundle, manifest copy, asset copy
+  validate-assets.mjs        asset-pack validation
+  validate-production.mjs    production structure validation
+docs/
+  agent-workstreams.md       multi-agent ownership plan
+  asset-replacement-guide.md asset replacement rules
+  production-completion-plan.md final definition of done
 ```
 
 ## Migration strategy
@@ -30,6 +36,7 @@ scripts/
 6. Move image/audio loading to `engine.loader` / SDK audio wrappers.
 7. Reintroduce traffic, sprite sheets, music, save data, and analytics in small verified steps.
 8. Keep WeChat-specific sharing, ads, leaderboards, and lifecycle hooks behind service abstractions.
+9. Treat asset replacement, monetization, and QA as parallel workstreams with clear file ownership.
 
 ## Implemented checkpoints
 
@@ -70,6 +77,16 @@ scripts/
 - Menu and result overlays now expose leaderboard and share buttons.
 - Result flow submits score, tracks analytics, and calls interstitial-ad placeholder services without direct `wx` access.
 
+### Checkpoint 5: completion gate and agent execution scaffold
+
+- Added `docs/agent-workstreams.md` to split runtime, asset taxonomy, art, audio, monetization, and QA lanes.
+- Added `docs/asset-replacement-guide.md` for commercial-safe replacement rules.
+- Added `docs/production-completion-plan.md` with final launch definition of done.
+- Added `scripts/validate-assets.mjs` to validate asset-pack files.
+- Added `scripts/validate-production.mjs` to validate required production modules and warn about launch blockers.
+- Added `npm run validate`, `validate:assets`, `validate:assets:legacy`, and `validate:production` scripts.
+- Added `prebuild:wx` quality gate before the WeChat build.
+
 ## Current limitations
 
 - The WeChat version is still a TypeScript rewrite of the v4 runtime, not a byte-for-byte port.
@@ -77,13 +94,15 @@ scripts/
 - Ads, analytics, leaderboard, and share are currently no-op service placeholders and need a real WeChat adapter later.
 - Asset licensing still needs replacing before commercial release if using the legacy sprite/music pack.
 - The current UI is Canvas-drawn. It can later be converted to engine `UIManager` / `Button` if richer interaction is needed.
+- This branch can organize multi-agent work, but external agents still need to be run by humans or an orchestration tool.
 
 ## Next steps
 
-- Run `npm install`, `npm run typecheck`, and `npm run build:wx` locally.
+- Run `npm install`, `npm run typecheck`, `npm run validate`, and `npm run build:wx` locally.
 - Open the repository root in WeChat DevTools; `project.config.json` points DevTools to `dist/wechat/`.
+- Assign each lane from `docs/agent-workstreams.md` to a contributor or coding agent.
+- Replace legacy art/music with a commercial-safe asset pack before publishing.
+- Switch `ACTIVE_RACER_ASSET_PACK` only after required commercial files exist and validation passes.
 - Add a WeChat implementation of `RacerServices` once the engine exposes a platform service adapter or the business project is allowed to supply one externally.
 - Add pause/resume hooks for app hide/show after the SDK exposes lifecycle helpers or a platform event abstraction.
-- Replace legacy art/music with a commercial-safe asset pack before publishing.
 - Add real-device tuning for draw distance, traffic count, font sizes, and touch-control zones.
-- Add leaderboard/share/ads integration behind platform-independent interfaces.
