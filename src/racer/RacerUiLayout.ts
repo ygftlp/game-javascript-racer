@@ -1,4 +1,4 @@
-export type RacerOverlayPhase = 'menu' | 'paused' | 'finished';
+export type RacerOverlayPhase = 'menu' | 'paused' | 'finished' | 'help';
 
 export interface RacerRect {
   x: number;
@@ -38,6 +38,7 @@ export interface RacerPanelLayout {
 export interface RacerMenuLayout extends RacerPanelLayout {
   startButton: RacerRect;
   leaderboardButton: RacerRect;
+  helpButton: RacerRect;
   audioButton: RacerRect;
 }
 
@@ -55,6 +56,12 @@ export interface RacerFinishedLayout extends RacerPanelLayout {
   noteY: number;
 }
 
+export interface RacerHelpLayout extends RacerPanelLayout {
+  line4Y: number;
+  startButton: RacerRect;
+  backButton: RacerRect;
+}
+
 export interface RacerHudLayout {
   panel: RacerRect;
   progressBar: RacerRect;
@@ -70,6 +77,7 @@ export interface RacerUiLayout {
   menu: RacerMenuLayout;
   paused: RacerPausedLayout;
   finished: RacerFinishedLayout;
+  help: RacerHelpLayout;
   fonts: {
     title: number;
     body: number;
@@ -100,19 +108,22 @@ function panel(width: number, height: number, desiredW: number, desiredH: number
 export function buildRacerUiLayout(width: number, height: number): RacerUiLayout {
   const small = width < 760 || height < 430;
   const buttonW = small ? Math.min(248, width * 0.46) : 268;
-  const buttonH = small ? 48 : 56;
-  const spacing = small ? 12 : 14;
+  const buttonH = small ? 46 : 54;
+  const spacing = small ? 10 : 12;
   const title = small ? 34 : 44;
   const body = small ? 18 : 21;
   const note = small ? 16 : 18;
-  const button = small ? 21 : 24;
+  const button = small ? 20 : 23;
   const hud = small ? 14 : 16;
 
-  const menuPanel = panel(width, height, 640, small ? 366 : 412);
-  const menuStartY = menuPanel.y + (small ? 166 : 198);
+  const menuPanel = panel(width, height, 640, small ? 410 : 468);
+  const menuStartY = menuPanel.y + (small ? 154 : 188);
 
   const pausedPanel = panel(width, height, 620, small ? 414 : 466);
   const pausedStartY = pausedPanel.y + (small ? 132 : 158);
+
+  const helpPanel = panel(width, height, 640, small ? 398 : 448);
+  const helpButtonY = helpPanel.y + (small ? 298 : 336);
 
   const finishedPanel = panel(width, height, 640, small ? 352 : 398);
   const finishedButtonW = small ? Math.min(144, finishedPanel.w * 0.29) : 164;
@@ -161,12 +172,13 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
     menu: {
       panel: menuPanel,
       titleY: menuPanel.y + (small ? 22 : 28),
-      line1Y: menuPanel.y + (small ? 82 : 98),
-      line2Y: menuPanel.y + (small ? 112 : 130),
-      line3Y: menuPanel.y + (small ? 140 : 162),
+      line1Y: menuPanel.y + (small ? 78 : 94),
+      line2Y: menuPanel.y + (small ? 108 : 126),
+      line3Y: menuPanel.y + (small ? 136 : 158),
       startButton: centeredButton(width, menuStartY, buttonW, buttonH),
       leaderboardButton: centeredButton(width, menuStartY + buttonH + spacing, buttonW, buttonH),
-      audioButton: centeredButton(width, menuStartY + (buttonH + spacing) * 2, buttonW, buttonH)
+      helpButton: centeredButton(width, menuStartY + (buttonH + spacing) * 2, buttonW, buttonH),
+      audioButton: centeredButton(width, menuStartY + (buttonH + spacing) * 3, buttonW, buttonH)
     },
     paused: {
       panel: pausedPanel,
@@ -189,6 +201,16 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
       shareButton: rect(finishedStartX + finishedButtonW + finishedGap, finishedButtonY, finishedButtonW, finishedButtonH),
       leaderboardButton: rect(finishedStartX + (finishedButtonW + finishedGap) * 2, finishedButtonY, finishedButtonW, finishedButtonH),
       noteY: finishedPanel.y + (small ? 284 : 314)
+    },
+    help: {
+      panel: helpPanel,
+      titleY: helpPanel.y + (small ? 24 : 32),
+      line1Y: helpPanel.y + (small ? 82 : 100),
+      line2Y: helpPanel.y + (small ? 118 : 140),
+      line3Y: helpPanel.y + (small ? 154 : 180),
+      line4Y: helpPanel.y + (small ? 190 : 220),
+      startButton: centeredButton(width, helpButtonY, small ? 226 : 246, buttonH),
+      backButton: centeredButton(width, helpButtonY + buttonH + spacing, small ? 226 : 246, buttonH)
     },
     fonts: { title, body, note, button, hud }
   };
