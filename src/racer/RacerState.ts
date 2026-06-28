@@ -3,7 +3,7 @@ import { BILLBOARDS, CARS, PLANTS, SPRITE_SCALE, type AtlasFrame } from './Sprit
 import { RACER_TUNING_PRESETS, type RacerTuning } from './RacerTuning';
 
 export interface RacerInputState {
-  steer: -1 | 0 | 1;
+  steer: number;
   accelerate: boolean;
   brake: boolean;
 }
@@ -105,7 +105,8 @@ export class RacerState {
     const playerWidth = SPRITE_SCALE * 80;
     const speedPercent = this.speed / RACER_CONFIG.maxSpeed;
     const startPosition = this.position;
-    const steerDelta = dt * 2 * speedPercent;
+    const steerDelta = dt * 2.35 * speedPercent;
+    const steerInput = clamp(this.input.steer, -1.35, 1.35);
 
     this.totalRaceTime += dt;
     this.collisionCooldown = Math.max(0, this.collisionCooldown - dt);
@@ -113,8 +114,7 @@ export class RacerState {
 
     this.position = increase(this.position, dt * this.speed, this.trackLength);
 
-    if (this.input.steer < 0) this.playerX -= steerDelta;
-    if (this.input.steer > 0) this.playerX += steerDelta;
+    if (steerInput !== 0) this.playerX += steerDelta * steerInput;
 
     this.playerX -= steerDelta * speedPercent * playerSegment.curve * RACER_CONFIG.centrifugal;
 
@@ -320,11 +320,11 @@ export class RacerState {
     for (const car of playerSegment.cars) {
       const carWidth = car.frame.w * SPRITE_SCALE;
       if (this.speed > car.speed && overlap(this.playerX, playerWidth, car.offset, carWidth, 0.8)) {
-        this.speed = Math.max(car.speed * (car.speed / Math.max(this.speed, 1)), RACER_CONFIG.maxSpeed / 8);
+        this.speed = car.speed * 0.5;
         this.position = increase(car.z, -this.playerZ, this.trackLength);
-        this.collisionCooldown = 0.8;
+        this.collisionCooldown = 0.7;
         this.collisionCount += 1;
-        break;
+        return;
       }
     }
   }
@@ -334,30 +334,29 @@ export class RacerState {
 
     for (const sprite of playerSegment.sprites) {
       const spriteWidth = sprite.frame.w * SPRITE_SCALE;
-      const spriteX = sprite.offset + (spriteWidth / 2) * (sprite.offset > 0 ? 1 : -1);
-      if (overlap(this.playerX, playerWidth, spriteX, spriteWidth)) {
+      if (overlap(this.playerX, playerWidth, sprite.offset + spriteWidth / 2 * (sprite.offset > 0 ? 1 : -1), spriteWidth, 0.8)) {
         this.speed = RACER_CONFIG.maxSpeed / 5;
         this.position = increase(playerSegment.z1, -this.playerZ, this.trackLength);
-        this.collisionCooldown = 0.8;
+        this.collisionCooldown = 0.7;
         this.collisionCount += 1;
-        break;
+        return;
       }
     }
   }
 }
 
 const SPRITES_SAFE = {
-  BILLBOARD01: BILLBOARDS[0],
-  BILLBOARD02: BILLBOARDS[1],
-  BILLBOARD03: BILLBOARDS[2],
-  BILLBOARD04: BILLBOARDS[3],
-  BILLBOARD05: BILLBOARDS[4],
-  BILLBOARD06: BILLBOARDS[5],
-  BILLBOARD07: BILLBOARDS[6],
-  BILLBOARD08: BILLBOARDS[7],
-  BILLBOARD09: BILLBOARDS[8],
-  PALM_TREE: PLANTS[4],
-  TREE1: PLANTS[0],
-  TREE2: PLANTS[1],
-  COLUMN: { x: 995, y: 5, w: 200, h: 315 } satisfies AtlasFrame
+  PALM_TREE: { x: 5, y: 5, w: 215, h: 540 } satisfies AtlasFrame,
+  BILLBOARD01: { x: 230, y: 5, w: 385, h: 265 } satisfies AtlasFrame,
+  BILLBOARD02: { x: 625, y: 5, w: 360, h: 360 } satisfies AtlasFrame,
+  BILLBOARD03: { x: 5, y: 555, w: 300, h: 170 } satisfies AtlasFrame,
+  BILLBOARD04: { x: 315, y: 555, w: 328, h: 282 } satisfies AtlasFrame,
+  BILLBOARD05: { x: 653, y: 555, w: 200, h: 332 } satisfies AtlasFrame,
+  BILLBOARD06: { x: 5, y: 897, w: 298, h: 190 } satisfies AtlasFrame,
+  BILLBOARD07: { x: 313, y: 897, w: 298, h: 190 } satisfies AtlasFrame,
+  BILLBOARD08: { x: 230, y: 280, w: 390, h: 170 } satisfies AtlasFrame,
+  BILLBOARD09: { x: 990, y: 5, w: 280, h: 200 } satisfies AtlasFrame,
+  COLUMN: { x: 995, y: 5, w: 200, h: 315 } satisfies AtlasFrame,
+  TREE1: { x: 625, y: 375, w: 360, h: 360 } satisfies AtlasFrame,
+  TREE2: { x: 1205, y: 5, w: 282, h: 295 } satisfies AtlasFrame
 };
