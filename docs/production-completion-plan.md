@@ -48,11 +48,12 @@ Required:
 - Provide commercial-safe `assets/packs/default/images/background.png`.
 - Provide commercial-safe `assets/packs/default/images/sprites.png`.
 - Provide commercial-safe `assets/packs/default/audio/music/racer.mp3`.
+- Provide commercial-safe UI logo/icons before final release.
 - Optional but recommended: engine loop, crash, and menu confirm sounds.
 - Update `SpriteAtlas.ts` if new atlas coordinates differ.
 - Switch `ACTIVE_RACER_ASSET_PACK` to `COMMERCIAL_TEMPLATE_ASSET_PACK` when assets exist.
 
-Owner lane: Asset Taxonomy Agent + Art Replacement Agent + Audio Replacement Agent.
+Owner lane: Asset Taxonomy Agent + Art Replacement Agent + UI Visual Designer + Audio Replacement Agent.
 
 ### Gate 4: Platform services
 
@@ -65,16 +66,26 @@ Required:
 - Implement ads adapter behind `RacerServices.ads`.
 - Keep AppID, ad unit IDs, and sensitive platform IDs outside public source where possible.
 - Avoid direct `wx` usage inside gameplay state or renderer.
+- Ads must never appear during active driving.
 
-Owner lane: Monetization and Social Agent.
+Owner lane: Monetization UX Designer + Monetization and Social Agent.
 
-### Gate 5: UX polish
+### Gate 5: Commercial UI / UX polish
 
-Status: publish controls + emergency rendering pass implemented.
+Status: planning spec added; implementation partially complete.
+
+Source of truth:
+
+- `docs/commercial-ui-ux-plan.md`
+- `docs/agent-tasks/ui-ux-director.md`
+- `docs/agent-tasks/control-feel-designer.md`
+- `docs/agent-tasks/ui-visual-designer.md`
+- `docs/agent-tasks/gameplay-readability-qa.md`
+- `docs/agent-tasks/monetization-ux.md`
 
 Implemented:
 
-- Asset loading / ready / fallback status is visible in HUD and menu.
+- Asset loading / ready / fallback status is visible in HUD and menu for testing.
 - Audio mute state is persisted through platform storage.
 - Menu and pause overlays include a music toggle.
 - Optional sound effects are wired for engine loop, crash, and menu confirmation audio.
@@ -93,14 +104,18 @@ Implemented:
 - Menu, pause, and result overlays use a more polished dark panel, accent stripe, shadow, and primary-button styling.
 - Pause overlay now includes continue, restart, and music controls.
 
-Still required:
+Still required before commercial release:
 
+- Hide debug-only asset/performance/commercial-safe text in release mode.
+- Finalize release copy in one consistent language.
+- Replace placeholder title/logo with commercial-safe branding.
+- Replace Canvas programmer-art icons with final UI icons.
 - Tune exact joystick/brake sizes on real low-end and high-DPI devices.
-- Add result screen share copy and ranking entry polish.
+- Add result screen share copy, ranking entry polish, and optional medal/rating feedback.
 - Replace legacy low-resolution art with a commercial-safe higher-quality asset pack before launch.
 - Switch `src/engine/index.ts` to the real SDK after the SDK package is built/published correctly.
 
-Owner lane: Runtime Integration Agent + QA and Performance Agent.
+Owner lane: UX Director + Control Feel Designer + UI Visual Designer + Gameplay Readability QA + Runtime Integration Agent.
 
 ### Gate 6: Quality and validation
 
@@ -119,15 +134,17 @@ Required manual checks:
 
 - Open project root in WeChat DevTools.
 - Confirm `project.config.json` points to `dist/wechat/`.
-- Start game from menu.
+- Start game from menu without external instructions.
 - Toggle music in menu and pause overlays.
 - Confirm left-bottom joystick steers the car quickly enough and returns to center on release.
-- Confirm player car remains visible through hills, curves, traffic, collisions, and lap wraparound.
-- Confirm player car remains visible even when steering left/right continuously.
+- Confirm player car remains visible through hills, curves, traffic, collisions, lap wraparound, and continuous steering.
 - Confirm pixel-art elements look sharper after smoothing is disabled.
 - Confirm right-bottom brake button slows the car while held.
 - Confirm pause button is not blocked by the WeChat capsule.
 - Confirm displayed buttons and click hitboxes match on small and large screens.
+- Confirm no debug-only UI appears in release mode.
+- Confirm share, leaderboard, and ad entries do not block replay.
+- Confirm ads never appear while driving.
 - Confirm crash SFX plays when an audio pack provides `crash.mp3`.
 - Simulate app hide/show lifecycle pause/resume.
 - Finish 3 laps and restart.
@@ -136,11 +153,23 @@ Required manual checks:
 - Check FPS on low-end and mid-range devices.
 - Check package size.
 
-Owner lane: QA and Performance Agent.
+Owner lane: QA and Performance Agent + Gameplay Readability QA.
 
 ## Agent task board
 
-### Agent A: Control Feel
+### Agent A: UX Director
+
+Task file: `docs/agent-tasks/ui-ux-director.md`
+
+Next tasks:
+
+1. Finalize player-facing copy for menu, pause, result, and control hints.
+2. Define release/debug UI split.
+3. Remove debug-only copy from player HUD in release mode.
+
+### Agent B: Control Feel Designer
+
+Task file: `docs/agent-tasks/control-feel-designer.md`
 
 Next tasks:
 
@@ -148,15 +177,19 @@ Next tasks:
 2. Test one-hand control comfort on target devices.
 3. Tune `RacerJoystick.ts`, `RacerUiLayout.ts`, and `RacerState.ts` from device feedback.
 
-### Agent B: UI Polish
+### Agent C: UI Visual Designer
+
+Task file: `docs/agent-tasks/ui-visual-designer.md`
 
 Next tasks:
 
-1. Review modal readability against the active art pack.
-2. Polish result screen copy and ranking entry.
-3. Replace Canvas placeholder styling with final art assets if available.
+1. Produce final color palette and UI component states.
+2. Produce pause/music/share/leaderboard icons.
+3. Replace placeholder title/logo when commercial branding is ready.
 
-### Agent C: Critical Bug QA
+### Agent D: Gameplay Readability QA
+
+Task file: `docs/agent-tasks/gameplay-readability-qa.md`
 
 Next tasks:
 
@@ -164,7 +197,7 @@ Next tasks:
 2. Confirm the player car never disappears after the renderer stabilization fix.
 3. Capture screenshots or recordings for any remaining visibility issue.
 
-### Agent D: Rendering Quality
+### Agent E: Rendering Quality
 
 Next tasks:
 
@@ -172,7 +205,17 @@ Next tasks:
 2. Confirm local compatibility engine high-DPI canvas mode does not break input hit testing.
 3. Replace legacy low-resolution art with commercial-safe high-quality atlases.
 
-### Agent E: Runtime Integration
+### Agent F: Monetization UX Designer
+
+Task file: `docs/agent-tasks/monetization-ux.md`
+
+Next tasks:
+
+1. Define share and leaderboard placement.
+2. Define non-intrusive ad timing.
+3. Confirm monetization entries never interrupt active driving.
+
+### Agent G: Runtime Integration
 
 Next tasks:
 
@@ -180,7 +223,7 @@ Next tasks:
 2. Switch `src/engine/index.ts` to the real SDK once `lite-game-engine` publishes usable dist files.
 3. Refine loading, fallback, and control copy after real-device validation.
 
-### Agent F: Asset Taxonomy
+### Agent H: Asset Taxonomy
 
 Next tasks:
 
@@ -189,7 +232,7 @@ Next tasks:
 3. Update `SpriteAtlas.ts` if the art pipeline exports new coordinates.
 4. Keep `asset-replacement-guide.md` in sync.
 
-### Agent G: Art Replacement
+### Agent I: Art Replacement
 
 Next tasks:
 
@@ -198,22 +241,13 @@ Next tasks:
 3. Verify visual scale and anchors for player, traffic, billboards, plants, and props.
 4. Provide proof of commercial usage rights.
 
-### Agent H: Audio Replacement
+### Agent J: Audio Replacement
 
 Next tasks:
 
 1. Produce commercial-safe `racer.mp3`.
 2. Produce optional `engine-loop.mp3`, `crash.mp3`, and `menu-confirm.mp3`.
 3. Validate playback and package size.
-
-### Agent I: Monetization and Social
-
-Next tasks:
-
-1. Implement a WeChat adapter for share.
-2. Implement a leaderboard adapter.
-3. Implement interstitial and rewarded video ad adapters.
-4. Add configuration docs for app id and ad placements.
 
 ## Final definition of done
 
@@ -223,11 +257,14 @@ The game is done when:
 - `npm run validate` passes.
 - `npm run build:wx` passes.
 - The active runtime pack is commercial-safe.
-- All required art and music are licensed for commercial use.
+- All visible UI art, game art, and music are licensed for commercial use.
 - WeChat DevTools opens the game without missing required assets.
 - Core gameplay is playable for a full 3-lap race.
 - Pause, restart, best-lap storage, audio preference, share entry, leaderboard entry, and ad entry work or are intentionally disabled by config.
 - Joystick, brake, and pause controls are validated on target devices.
 - Player car visibility is verified across long runs and edge cases.
+- Main menu, HUD, pause, and result screens match the commercial UI/UX plan.
+- Debug-only UI is hidden in release mode.
+- Monetization entries do not interrupt active driving.
 - Rendering quality is acceptable on target devices or the legacy art pack is replaced.
 - Real-device performance is acceptable on the target low-end device profile.
