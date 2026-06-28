@@ -70,7 +70,7 @@ Owner lane: Monetization and Social Agent.
 
 ### Gate 5: UX polish
 
-Status: publish controls + emergency bugfix pass implemented.
+Status: publish controls + emergency rendering pass implemented.
 
 Implemented:
 
@@ -87,6 +87,9 @@ Implemented:
 - Right-bottom brake button is implemented as a large circular touch target.
 - Pause button is a circular icon placed away from the WeChat capsule area.
 - Player car rendering is stabilized outside segment projection clipping and clamped to a visible vertical range.
+- Player car now has an always-visible fallback body and visibility marker underneath/over the sprite frame.
+- Canvas image smoothing is disabled for sharper pixel-art sprites and backgrounds.
+- Local compatibility engine now creates a high-DPI canvas using `pixelRatio` and scales the context back to logical coordinates.
 - Menu, pause, and result overlays use a more polished dark panel, accent stripe, shadow, and primary-button styling.
 - Pause overlay now includes continue, restart, and music controls.
 
@@ -94,6 +97,7 @@ Still required:
 
 - Tune exact joystick/brake sizes on real low-end and high-DPI devices.
 - Add result screen share copy and ranking entry polish.
+- Replace legacy low-resolution art with a commercial-safe higher-quality asset pack before launch.
 - Switch `src/engine/index.ts` to the real SDK after the SDK package is built/published correctly.
 
 Owner lane: Runtime Integration Agent + QA and Performance Agent.
@@ -119,6 +123,8 @@ Required manual checks:
 - Toggle music in menu and pause overlays.
 - Confirm left-bottom joystick steers the car quickly enough and returns to center on release.
 - Confirm player car remains visible through hills, curves, traffic, collisions, and lap wraparound.
+- Confirm player car remains visible even when steering left/right continuously.
+- Confirm pixel-art elements look sharper after smoothing is disabled.
 - Confirm right-bottom brake button slows the car while held.
 - Confirm pause button is not blocked by the WeChat capsule.
 - Confirm displayed buttons and click hitboxes match on small and large screens.
@@ -158,7 +164,15 @@ Next tasks:
 2. Confirm the player car never disappears after the renderer stabilization fix.
 3. Capture screenshots or recordings for any remaining visibility issue.
 
-### Agent D: Runtime Integration
+### Agent D: Rendering Quality
+
+Next tasks:
+
+1. Validate smoothing-off rendering in WeChat DevTools and on device.
+2. Confirm local compatibility engine high-DPI canvas mode does not break input hit testing.
+3. Replace legacy low-resolution art with commercial-safe high-quality atlases.
+
+### Agent E: Runtime Integration
 
 Next tasks:
 
@@ -166,7 +180,7 @@ Next tasks:
 2. Switch `src/engine/index.ts` to the real SDK once `lite-game-engine` publishes usable dist files.
 3. Refine loading, fallback, and control copy after real-device validation.
 
-### Agent E: Asset Taxonomy
+### Agent F: Asset Taxonomy
 
 Next tasks:
 
@@ -175,7 +189,7 @@ Next tasks:
 3. Update `SpriteAtlas.ts` if the art pipeline exports new coordinates.
 4. Keep `asset-replacement-guide.md` in sync.
 
-### Agent F: Art Replacement
+### Agent G: Art Replacement
 
 Next tasks:
 
@@ -184,7 +198,7 @@ Next tasks:
 3. Verify visual scale and anchors for player, traffic, billboards, plants, and props.
 4. Provide proof of commercial usage rights.
 
-### Agent G: Audio Replacement
+### Agent H: Audio Replacement
 
 Next tasks:
 
@@ -192,7 +206,7 @@ Next tasks:
 2. Produce optional `engine-loop.mp3`, `crash.mp3`, and `menu-confirm.mp3`.
 3. Validate playback and package size.
 
-### Agent H: Monetization and Social
+### Agent I: Monetization and Social
 
 Next tasks:
 
@@ -215,4 +229,5 @@ The game is done when:
 - Pause, restart, best-lap storage, audio preference, share entry, leaderboard entry, and ad entry work or are intentionally disabled by config.
 - Joystick, brake, and pause controls are validated on target devices.
 - Player car visibility is verified across long runs and edge cases.
+- Rendering quality is acceptable on target devices or the legacy art pack is replaced.
 - Real-device performance is acceptable on the target low-end device profile.
