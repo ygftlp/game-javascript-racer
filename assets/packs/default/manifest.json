@@ -1,0 +1,31 @@
+{
+  "id": "commercial-template",
+  "label": "Commercial-safe replacement template",
+  "version": "0.1.0",
+  "commercialSafe": true,
+  "images": {
+    "backgroundAtlas": "assets/packs/default/images/background.png",
+    "spriteAtlas": "assets/packs/default/images/sprites.png"
+  },
+  "audio": {
+    "music": "assets/packs/default/audio/music/racer.mp3",
+    "engineLoop": "assets/packs/default/audio/sfx/engine-loop.mp3",
+    "crash": "assets/packs/default/audio/sfx/crash.mp3",
+    "menuConfirm": "assets/packs/default/audio/sfx/menu-confirm.mp3"
+  },
+  "categories": [
+    "background.sky-hills-trees",
+    "sprites.player-car",
+    "sprites.traffic-cars",
+    "sprites.roadside-billboards",
+    "sprites.roadside-plants",
+    "sprites.roadside-props",
+    "audio.music",
+    "audio.sfx"
+  ],
+  "notes": [
+    "Replace placeholder files in this folder with commercial-safe assets.",
+    "Keep atlas frame names stable or update src/racer/SpriteAtlas.ts together with the new atlas export.",
+    "This manifest is documentation-facing today; runtime selection is controlled by src/racer/RacerAssetManifest.ts."
+  ]
+}
