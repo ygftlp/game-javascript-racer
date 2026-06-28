@@ -16,6 +16,13 @@ export const RACER_CONFIG = {
   offRoadLimit: 2600
 } as const;
 
+export interface RoadColor {
+  road: string;
+  grass: string;
+  rumble: string;
+  lane: string;
+}
+
 export const COLORS = {
   sky: '#72d7ee',
   farHill: '#6ab06e',
@@ -30,8 +37,6 @@ export const COLORS = {
   hud: '#ffffff',
   hudShadow: 'rgba(0, 0, 0, 0.55)'
 } as const;
-
-export type RoadColor = typeof COLORS.light;
 
 export interface TrackSection {
   length: number;
