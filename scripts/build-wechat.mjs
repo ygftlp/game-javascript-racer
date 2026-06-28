@@ -1,5 +1,5 @@
 import { build, context } from 'esbuild';
-import { mkdir, copyFile } from 'node:fs/promises';
+import { mkdir, copyFile, cp, access } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
 const watch = process.argv.includes('--watch');
@@ -8,9 +8,27 @@ const outfile = resolve(outdir, 'game.js');
 const gameJsonSource = resolve('src/platforms/wechat/game.json');
 const gameJsonTarget = resolve(outdir, 'game.json');
 
-async function copyWechatManifest() {
+async function exists(path) {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function copyDirIfExists(from, to) {
+  if (!(await exists(from))) return;
+  await mkdir(dirname(to), { recursive: true });
+  await cp(from, to, { recursive: true, force: true });
+}
+
+async function copyWechatFiles() {
   await mkdir(dirname(gameJsonTarget), { recursive: true });
   await copyFile(gameJsonSource, gameJsonTarget);
+  await copyDirIfExists(resolve('images'), resolve(outdir, 'images'));
+  await copyDirIfExists(resolve('music'), resolve(outdir, 'music'));
+  await copyDirIfExists(resolve('assets'), resolve(outdir, 'assets'));
 }
 
 const options = {
@@ -27,7 +45,7 @@ const options = {
   }
 };
 
-await copyWechatManifest();
+await copyWechatFiles();
 
 if (watch) {
   const ctx = await context(options);
