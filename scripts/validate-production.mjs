@@ -12,6 +12,7 @@ const requiredFiles = [
   'src/racer/RacerAssetManifest.ts',
   'src/racer/RacerAssets.ts',
   'src/racer/RacerJoystick.ts',
+  'src/racer/RacerMiniMap.ts',
   'src/racer/RacerServices.ts',
   'src/racer/RacerSettings.ts',
   'src/racer/RacerState.ts',
@@ -37,6 +38,7 @@ const sourceFilesToCheck = [
   'src/racer/RacerSettings.ts',
   'src/racer/RacerStorage.ts',
   'src/racer/RacerUiRenderer.ts',
+  'src/racer/RacerMiniMap.ts',
   'src/scenes/RacerScene.ts'
 ];
 
@@ -63,6 +65,7 @@ const services = await read('src/racer/RacerServices.ts');
 const scene = await read('src/scenes/RacerScene.ts');
 const renderer = await read('src/racer/Pseudo3DRenderer.ts');
 const uiRenderer = await read('src/racer/RacerUiRenderer.ts');
+const miniMap = await read('src/racer/RacerMiniMap.ts');
 const state = await read('src/racer/RacerState.ts');
 const startup = await read('src/platforms/wechat/startup.ts');
 const engineBoundary = await read('src/engine/index.ts');
@@ -98,6 +101,9 @@ if (!uiFlags.includes('releaseMode: true') || !uiFlags.includes('showAssetStatus
 if (!uiLayout.includes('joystickBase') || !uiLayout.includes('brakeButton') || !uiLayout.includes('pauseButton: RacerCircle')) {
   missing.push('publish UI layout must include joystick, brake, and circle pause controls');
 }
+if (!uiLayout.includes('RacerMiniMapLayout') || !uiLayout.includes('miniMapPreviewBar') || !uiLayout.includes('miniMapProgressBar')) {
+  missing.push('independent minimap layout region');
+}
 if (!uiLayout.includes('helpButton') || !uiLayout.includes('RacerHelpLayout') || !uiLayout.includes('menuButton')) {
   missing.push('commercial onboarding help screen and pause return-menu layout');
 }
@@ -112,6 +118,12 @@ if (!state.includes('steer: number') || !state.includes('steerDelta = dt * 2.35'
 }
 if (!renderer.includes('RacerUiRenderer') || !renderer.includes('this.ui.render(ctx, state, assets, layout, options)')) {
   missing.push('Pseudo3DRenderer must delegate commercial UI drawing to RacerUiRenderer');
+}
+if (!uiRenderer.includes('RacerMiniMap') || !uiRenderer.includes('this.miniMap.render(ctx, state, layout)')) {
+  missing.push('RacerUiRenderer must delegate track radar to independent RacerMiniMap component');
+}
+if (!miniMap.includes('class RacerMiniMap') || !miniMap.includes('drawCurvePreview') || !miniMap.includes('drawTrafficDots') || !miniMap.includes('赛道雷达')) {
+  missing.push('independent minimap component with curve preview and traffic dots');
 }
 if (!uiRenderer.includes('RACER_UI_FLAGS') || !uiRenderer.includes('showAssetStatus') || !uiRenderer.includes('极速公路')) {
   missing.push('RacerUiRenderer must use release UI flags and commercial menu copy');
