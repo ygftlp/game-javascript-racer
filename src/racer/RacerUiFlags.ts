@@ -4,6 +4,8 @@ export interface RacerUiFlags {
   showAssetStatus: boolean;
   showPerformanceStatus: boolean;
   showControlLabels: boolean;
+  showMiniMap: boolean;
+  showFirstRaceCoach: boolean;
   showPlayerVisibilityMarker: boolean;
 }
 
@@ -13,5 +15,7 @@ export const RACER_UI_FLAGS: RacerUiFlags = {
   showAssetStatus: false,
   showPerformanceStatus: false,
   showControlLabels: false,
+  showMiniMap: true,
+  showFirstRaceCoach: true,
   showPlayerVisibilityMarker: false
 };
