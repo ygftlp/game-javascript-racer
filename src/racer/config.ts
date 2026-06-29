@@ -44,16 +44,4 @@ export interface TrackSection {
   hill: number;
 }
 
-export const TRACK_SECTIONS: TrackSection[] = [
-  { length: 45, curve: 0, hill: 0 },
-  { length: 60, curve: 1.6, hill: 18 },
-  { length: 45, curve: -2.2, hill: -8 },
-  { length: 70, curve: 0.8, hill: 28 },
-  { length: 35, curve: 0, hill: -16 },
-  { length: 80, curve: -2.8, hill: 4 },
-  { length: 65, curve: 2.4, hill: -20 },
-  { length: 90, curve: 0, hill: 0 },
-  { length: 60, curve: -1.8, hill: 24 },
-  { length: 70, curve: 2.6, hill: -28 },
-  { length: 120, curve: 0, hill: 0 }
-];
+export { ACTIVE_RACER_TRACK, TRACK_SECTIONS, type RacerTrackDefinition, type RacerRoadsideTheme } from './RacerTrackDefinition';
