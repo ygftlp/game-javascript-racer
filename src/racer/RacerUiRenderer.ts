@@ -60,7 +60,7 @@ export class RacerUiRenderer {
     this.drawHud(ctx, state, assets, options.targetLaps, options.audioMuted, layout);
 
     if (options.phase === 'playing') {
-      this.miniMap.render(ctx, state, layout);
+      if (RACER_UI_FLAGS.showMiniMap) this.miniMap.render(ctx, state, layout);
       this.drawInRaceControls(ctx, layout, options.joystick, options.brakeActive);
       this.drawPauseButton(ctx, layout.pauseButton, options.pressedTarget === 'pause');
       if (options.controlCoachTimeLeft > 0) this.drawControlCoach(ctx, state, layout, options.controlCoachTimeLeft);
