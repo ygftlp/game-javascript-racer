@@ -123,6 +123,12 @@ if (!config.includes("from './RacerTrackDefinition'") || config.includes('const 
 if (!state.includes('ACTIVE_RACER_TRACK.sections') || !state.includes('ACTIVE_RACER_TRACK.roadTheme.start') || !state.includes('ACTIVE_RACER_TRACK.roadTheme.finish')) {
   missing.push('RacerState must apply active track sections and road theme to generated segments');
 }
+if (!scene.includes("import { ACTIVE_RACER_TRACK }") || !scene.includes('private readonly targetLaps = ACTIVE_RACER_TRACK.targetLaps') || scene.includes('const TARGET_LAPS')) {
+  missing.push('RacerScene must read target laps from ACTIVE_RACER_TRACK instead of hardcoding TARGET_LAPS');
+}
+if (!scene.includes('this.state.completedLaps >= this.targetLaps') || !scene.includes('targetLaps: this.targetLaps')) {
+  missing.push('RacerScene finish condition, renderer options, and race result must use active track target laps');
+}
 if (!renderer.includes('ACTIVE_RACER_ROAD_THEME.fog')) {
   missing.push('Pseudo3DRenderer must use active road theme fog color');
 }
@@ -162,6 +168,9 @@ if (!miniMap.includes('class RacerMiniMap') || !miniMap.includes('drawCurvePrevi
 if (!uiRenderer.includes('RACER_UI_FLAGS') || !uiRenderer.includes('showAssetStatus') || !uiRenderer.includes('极速公路')) {
   missing.push('RacerUiRenderer must use release UI flags and commercial menu copy');
 }
+if (!uiRenderer.includes('targetLaps: number') || !uiRenderer.includes('`目标：完成 ${targetLaps} 圈，刷新最佳圈速`')) {
+  missing.push('RacerUiRenderer help objective must render target laps dynamically');
+}
 if (!uiRenderer.includes('RacerUiPressedTarget') || !uiRenderer.includes('pressedTarget ===') || !scene.includes('executePressedTarget')) {
   missing.push('polished UI press-state confirmation flow');
 }
@@ -191,9 +200,6 @@ if (!renderer.includes('this.drawPlayer(ctx, state, assets?.sprites ?? null, pla
 }
 if (!roadGuide.includes('RacerTrackDefinition.ts') || !roadGuide.includes('ACTIVE_RACER_TRACK') || !roadGuide.includes('Level 5: Add textured road support')) {
   missing.push('road replacement guide with track definitions and replacement levels');
-}
-if (!scene.includes('TARGET_LAPS')) {
-  missing.push('RacerScene TARGET_LAPS race completion flow');
 }
 if (!scene.includes('toggleAudio')) {
   missing.push('RacerScene audio toggle flow');
