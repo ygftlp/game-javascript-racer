@@ -72,7 +72,7 @@ Owner lane: Monetization UX Designer + Monetization and Social Agent.
 
 ### Gate 5: Commercial UI / UX polish
 
-Status: release/debug UI split and polished interaction pass implemented; commercial art still needed.
+Status: release/debug UI split, polished interaction pass, and independent minimap component implemented; commercial art still needed.
 
 Source of truth:
 
@@ -99,11 +99,15 @@ Implemented:
 - Brake button has stronger active feedback.
 - Modal panels use vignette, shadow, accent stripe, and bottom divider for clearer hierarchy.
 - Result screen shows a race grade.
+- `RacerUiRenderer` owns HUD, controls, overlays, help, and onboarding UI.
+- `RacerMiniMap` is an independent component for the in-race track radar.
+- The minimap shows curve preview, lap progress, and nearby traffic dots.
+- `Pseudo3DRenderer` focuses on world rendering and delegates UI drawing.
 - Audio mute state is persisted through platform storage.
 - Menu and pause overlays include a music toggle.
 - Optional sound effects are wired for engine loop, crash, and menu confirmation audio.
 - Collision events now trigger crash SFX when an audio pack provides it.
-- `RacerUiLayout` centralizes overlay button rectangles and touch zones so renderer and hit tests cannot drift apart.
+- `RacerUiLayout` centralizes overlay button rectangles, touch zones, and minimap placement.
 - `RacerScene` exposes `handleAppHidden()` and `handleAppShown()` so a platform lifecycle adapter can pause/resume without direct `wx` usage in gameplay code.
 - In-race HUD is compact and includes speed, lap, time, best lap, and a race progress bar.
 - Left-bottom virtual joystick is enlarged and uses lower dead-zone / higher steering gain.
@@ -119,7 +123,7 @@ Still required before commercial release:
 
 - Replace placeholder title/logo with commercial-safe branding.
 - Replace Canvas programmer-art icons with final UI icons.
-- Tune exact joystick/brake sizes on real low-end and high-DPI devices.
+- Tune exact joystick/brake/minimap sizes and opacity on real low-end and high-DPI devices.
 - Add final result-screen share copy, ranking entry polish, and optional medal/rating art.
 - Replace legacy low-resolution art with a commercial-safe higher-quality asset pack before launch.
 - Switch `src/engine/index.ts` to the real SDK after the SDK package is built/published correctly.
@@ -151,6 +155,9 @@ Required manual checks:
 - Confirm left-bottom joystick steers the car quickly enough and returns to center on release.
 - Confirm player car remains visible through hills, curves, traffic, collisions, lap wraparound, and continuous steering.
 - Confirm pixel-art elements look sharper after smoothing is disabled.
+- Confirm minimap appears under the HUD only during active driving.
+- Confirm minimap curve preview gives readable left/right/straight information.
+- Confirm minimap traffic dots are useful and not distracting.
 - Confirm right-bottom brake button slows the car while held and shows active feedback.
 - Confirm pause button is not blocked by the WeChat capsule and shows pressed feedback.
 - Confirm displayed buttons and click hitboxes match on small and large screens.
@@ -175,7 +182,7 @@ Task file: `docs/agent-tasks/ui-ux-director.md`
 
 Next tasks:
 
-1. Validate player-facing Chinese copy in menu, pause, result, and HUD.
+1. Validate player-facing Chinese copy in menu, pause, result, HUD, and minimap.
 2. Review release/debug UI split in `RacerUiFlags.ts`.
 3. Decide final commercial game name and branding direction.
 
@@ -206,8 +213,9 @@ Task file: `docs/agent-tasks/ui-visual-designer.md`
 Next tasks:
 
 1. Produce final color palette and UI component states.
-2. Produce pause/music/share/leaderboard icons.
-3. Replace placeholder title/logo when commercial branding is ready.
+2. Produce pause/music/share/leaderboard/help icons.
+3. Tune minimap visual style with the final HUD skin.
+4. Replace placeholder title/logo when commercial branding is ready.
 
 ### Agent E: Gameplay Readability QA
 
@@ -217,7 +225,8 @@ Next tasks:
 
 1. Reproduce long runs across hills, heavy curves, collisions, and lap wraparound.
 2. Confirm the player car never disappears after the renderer stabilization fix.
-3. Capture screenshots or recordings for any remaining visibility issue.
+3. Validate minimap readability and obstruction on target screens.
+4. Capture screenshots or recordings for any remaining visibility issue.
 
 ### Agent F: Rendering Quality
 
@@ -283,10 +292,10 @@ The game is done when:
 - WeChat DevTools opens the game without missing required assets.
 - Core gameplay is playable for a full 3-lap race.
 - Pause, restart, best-lap storage, audio preference, share entry, leaderboard entry, and ad entry work or are intentionally disabled by config.
-- Joystick, brake, and pause controls are validated on target devices.
+- Joystick, brake, pause, and minimap are validated on target devices.
 - Buttons have clear press/release feedback and safe cancellation behavior.
 - Player car visibility is verified across long runs and edge cases.
-- Main menu, HUD, pause, and result screens match the commercial UI/UX plan.
+- Main menu, HUD, minimap, pause, and result screens match the commercial UI/UX plan.
 - Debug-only UI is hidden in release mode.
 - Monetization entries do not interrupt active driving.
 - Rendering quality is acceptable on target devices or the legacy art pack is replaced.
