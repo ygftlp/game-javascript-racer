@@ -1,6 +1,6 @@
 import { RACER_CONFIG, type RoadColor } from './config';
 import { roadColorForSegment } from './RacerRoadTheme';
-import { ACTIVE_RACER_TRACK } from './RacerTrackDefinition';
+import { ACTIVE_RACER_TRACK, type RacerTrackDefinition } from './RacerTrackDefinition';
 import { BILLBOARDS, CARS, PLANTS, SPRITE_SCALE, type AtlasFrame } from './SpriteAtlas';
 import { RACER_TUNING_PRESETS, type RacerTuning } from './RacerTuning';
 
@@ -89,13 +89,27 @@ export class RacerState {
   collisionCooldown = 0;
   collisionCount = 0;
 
-  constructor(width: number, height: number, readonly tuning: RacerTuning = RACER_TUNING_PRESETS.medium) {
+  constructor(
+    width: number,
+    height: number,
+    readonly tuning: RacerTuning = RACER_TUNING_PRESETS.medium,
+    private track: RacerTrackDefinition = ACTIVE_RACER_TRACK
+  ) {
     this.width = width;
     this.height = height;
     this.cameraDepth = 1 / Math.tan((RACER_CONFIG.fieldOfView / 2) * Math.PI / 180);
     this.playerZ = RACER_CONFIG.cameraHeight * this.cameraDepth;
     this.resolution = height / 480;
     this.resetRoad();
+  }
+
+  get activeTrack(): RacerTrackDefinition {
+    return this.track;
+  }
+
+  setTrack(track: RacerTrackDefinition, bestLapTime = this.bestLapTime): void {
+    this.track = track;
+    this.resetRace(bestLapTime);
   }
 
   update(dt: number): void {
@@ -174,7 +188,7 @@ export class RacerState {
     this.cars = [];
 
     let currentY = 0;
-    for (const section of ACTIVE_RACER_TRACK.sections) {
+    for (const section of this.track.sections) {
       const startY = currentY;
       const endY = startY + section.hill * RACER_CONFIG.segmentLength;
 
@@ -189,7 +203,7 @@ export class RacerState {
           y1: interpolate(startY, endY, p1),
           y2: interpolate(startY, endY, p2),
           curve: section.curve,
-          color: roadColorForSegment(index, ACTIVE_RACER_TRACK.roadTheme),
+          color: roadColorForSegment(index, this.track.roadTheme),
           sprites: [],
           cars: []
         };
@@ -204,11 +218,11 @@ export class RacerState {
     this.resetTraffic();
 
     const startIndex = this.findSegment(this.playerZ).index;
-    if (this.segments[startIndex + 2]) this.segments[startIndex + 2].color = ACTIVE_RACER_TRACK.roadTheme.start;
-    if (this.segments[startIndex + 3]) this.segments[startIndex + 3].color = ACTIVE_RACER_TRACK.roadTheme.start;
+    if (this.segments[startIndex + 2]) this.segments[startIndex + 2].color = this.track.roadTheme.start;
+    if (this.segments[startIndex + 3]) this.segments[startIndex + 3].color = this.track.roadTheme.start;
 
     for (let n = 0; n < RACER_CONFIG.rumbleLength; n += 1) {
-      this.segments[this.segments.length - 1 - n].color = ACTIVE_RACER_TRACK.roadTheme.finish;
+      this.segments[this.segments.length - 1 - n].color = this.track.roadTheme.finish;
     }
   }
 
