@@ -1,6 +1,7 @@
 import { RACER_CONFIG } from './config';
 import type { RacerAssets } from './RacerAssets';
 import type { RacerJoystickSnapshot } from './RacerJoystick';
+import { RacerMiniMap } from './RacerMiniMap';
 import type { RacerState } from './RacerState';
 import { RACER_UI_FLAGS } from './RacerUiFlags';
 import type { RacerCircle, RacerRect, RacerUiLayout } from './RacerUiLayout';
@@ -47,6 +48,8 @@ function formatSeconds(seconds: number): string {
 }
 
 export class RacerUiRenderer {
+  private readonly miniMap = new RacerMiniMap();
+
   render(
     ctx: CanvasRenderingContext2D,
     state: RacerState,
@@ -57,6 +60,7 @@ export class RacerUiRenderer {
     this.drawHud(ctx, state, assets, options.targetLaps, options.audioMuted, layout);
 
     if (options.phase === 'playing') {
+      this.miniMap.render(ctx, state, layout);
       this.drawInRaceControls(ctx, layout, options.joystick, options.brakeActive);
       this.drawPauseButton(ctx, layout.pauseButton, options.pressedTarget === 'pause');
       if (options.controlCoachTimeLeft > 0) this.drawControlCoach(ctx, state, layout, options.controlCoachTimeLeft);
