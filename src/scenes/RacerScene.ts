@@ -6,6 +6,7 @@ import { RacerSettings } from '../racer/RacerSettings';
 import { RacerState } from '../racer/RacerState';
 import { RacerStorage } from '../racer/RacerStorage';
 import { resolveRacerTuning } from '../racer/RacerTuning';
+import { RACER_UI_FLAGS } from '../racer/RacerUiFlags';
 import { buildRacerUiLayout, pointInCircle, pointInRect } from '../racer/RacerUiLayout';
 import { Pseudo3DRenderer, type RacerPhase, type RacerUiPressedTarget } from '../racer/Pseudo3DRenderer';
 
@@ -43,6 +44,7 @@ export class RacerScene extends Scene {
     this.state = new RacerState(gameEngine.width, gameEngine.height, tuning);
     this.savedBestLapTime = this.storage.getBestLapTime();
     this.audioMuted = this.settings.isAudioMuted();
+    this.hasShownControlCoach = !RACER_UI_FLAGS.showFirstRaceCoach || this.settings.hasShownFirstRaceCoach();
     this.assets.setMuted(this.audioMuted);
     this.state.bestLapTime = this.savedBestLapTime;
     this.bindTouchControls();
@@ -258,9 +260,10 @@ export class RacerScene extends Scene {
     this.pressedTarget = null;
     this.resetTouchControls();
     this.lastCollisionCount = this.state.collisionCount;
-    if (!this.hasShownControlCoach) {
+    if (RACER_UI_FLAGS.showFirstRaceCoach && !this.hasShownControlCoach) {
       this.controlCoachTimeLeft = CONTROL_COACH_SECONDS;
       this.hasShownControlCoach = true;
+      this.settings.setFirstRaceCoachShown(true);
     }
     this.assets.playMusic();
     this.services.analytics.track('race_start', { tuning: this.state.tuning.profile, audioMuted: this.audioMuted });
