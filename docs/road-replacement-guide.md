@@ -8,12 +8,13 @@ The current road is not a road texture image. It is a procedural pseudo-3D road 
 
 The road pipeline is:
 
-1. `src/racer/config.ts` defines global road constants and track sections.
-2. `src/racer/RacerRoadTheme.ts` defines the active road palette.
-3. `src/racer/RacerState.ts` expands `TRACK_SECTIONS` into many road segments and applies the active road theme.
-4. Each `Segment` stores `z1`, `z2`, `y1`, `y2`, `curve`, color, roadside sprites, and traffic cars.
-5. `src/racer/Pseudo3DRenderer.ts` projects each segment into screen space.
-6. `Pseudo3DRenderer.drawSegment()` draws grass, rumble strips, road surface, and lane markers as polygons.
+1. `src/racer/config.ts` defines global road constants and shared track types.
+2. `src/racer/RacerRoadTheme.ts` defines reusable road palettes.
+3. `src/racer/RacerTrackDefinition.ts` defines the active track, its sections, road theme, roadside theme, and target laps.
+4. `src/racer/RacerState.ts` expands `ACTIVE_RACER_TRACK.sections` into many road segments and applies `ACTIVE_RACER_TRACK.roadTheme`.
+5. Each `Segment` stores `z1`, `z2`, `y1`, `y2`, `curve`, color, roadside sprites, and traffic cars.
+6. `src/racer/Pseudo3DRenderer.ts` projects each segment into screen space.
+7. `Pseudo3DRenderer.drawSegment()` draws grass, rumble strips, road surface, and lane markers as polygons.
 
 ## Current road constants
 
@@ -44,11 +45,13 @@ Important values:
 
 ## Current road theme
 
-The active release road theme is now defined in `src/racer/RacerRoadTheme.ts`:
+The active release road theme is referenced through `src/racer/RacerTrackDefinition.ts`:
 
 ```ts
-export const ACTIVE_RACER_ROAD_THEME = COMMERCIAL_ASPHALT_ROAD_THEME;
+export const ACTIVE_RACER_TRACK = DEFAULT_OUTRUN_TRACK;
 ```
+
+The default track uses `COMMERCIAL_ASPHALT_ROAD_THEME`, defined in `src/racer/RacerRoadTheme.ts`.
 
 `COMMERCIAL_ASPHALT_ROAD_THEME` uses:
 
@@ -62,7 +65,7 @@ export const ACTIVE_RACER_ROAD_THEME = COMMERCIAL_ASPHALT_ROAD_THEME;
 
 ## Current track output
 
-The active track is defined by `TRACK_SECTIONS` in `src/racer/config.ts`:
+The active track is defined by `DEFAULT_OUTRUN_TRACK.sections` in `src/racer/RacerTrackDefinition.ts`:
 
 | Section | Length segments | Curve | Hill | Meaning |
 |---:|---:|---:|---:|---|
@@ -84,7 +87,7 @@ Total track length: `740 * RACER_CONFIG.segmentLength`, currently `148000` world
 
 ## How segments are generated
 
-`RacerState.resetRoad()` iterates each `TRACK_SECTIONS` item.
+`RacerState.resetRoad()` iterates each `ACTIVE_RACER_TRACK.sections` item.
 
 For each section:
 
@@ -93,9 +96,9 @@ For each section:
 - `hill` becomes a Y elevation delta over the section.
 - `z1` / `z2` are generated from the segment index and `segmentLength`.
 - `y1` / `y2` interpolate from section start height to section end height.
-- `color` alternates between active theme `light` and `dark` by segment index.
+- `color` alternates between active track road theme `light` and `dark` by segment index.
 
-Start and finish colors are applied from `ACTIVE_RACER_ROAD_THEME.start` and `ACTIVE_RACER_ROAD_THEME.finish` after all segments are built.
+Start and finish colors are applied from `ACTIVE_RACER_TRACK.roadTheme.start` and `ACTIVE_RACER_TRACK.roadTheme.finish` after all segments are built.
 
 ## How the road is drawn
 
@@ -120,7 +123,7 @@ if (segment.color.lane) {
 }
 ```
 
-Distant fog now uses `ACTIVE_RACER_ROAD_THEME.fog`.
+Distant fog currently uses `ACTIVE_RACER_ROAD_THEME.fog`, which should match the active track road theme.
 
 This means the road can be reskinned by changing a theme, but not by replacing one road image. Road shape is generated from segment projection.
 
@@ -153,15 +156,22 @@ Cons:
 
 Use this when you want a different course.
 
-Change only `TRACK_SECTIONS`:
+Change the `sections` array in `src/racer/RacerTrackDefinition.ts`:
 
 ```ts
-export const TRACK_SECTIONS: TrackSection[] = [
-  { length: 80, curve: 0, hill: 0 },
-  { length: 70, curve: 1.2, hill: 12 },
-  { length: 55, curve: -2.0, hill: -10 },
-  { length: 100, curve: 0, hill: 0 }
-];
+export const DEFAULT_OUTRUN_TRACK: RacerTrackDefinition = {
+  id: 'default-outrun-loop',
+  name: '极速公路',
+  roadTheme: COMMERCIAL_ASPHALT_ROAD_THEME,
+  roadsideTheme: 'legacy',
+  targetLaps: 3,
+  sections: [
+    { length: 80, curve: 0, hill: 0 },
+    { length: 70, curve: 1.2, hill: 12 },
+    { length: 55, curve: -2.0, hill: -10 },
+    { length: 100, curve: 0, hill: 0 }
+  ]
+};
 ```
 
 Rules:
@@ -174,7 +184,28 @@ Rules:
 - Keep at least one long straight at the start for onboarding.
 - Avoid too many strong curves before the player learns controls.
 
-### Level 3: Replace roadside art
+### Level 3: Add multiple tracks
+
+Use this when the game needs track selection or themed stages.
+
+Recommended pattern:
+
+```ts
+export const COAST_TRACK: RacerTrackDefinition = {
+  id: 'coast-sprint',
+  name: '海岸冲刺',
+  roadTheme: COMMERCIAL_ASPHALT_ROAD_THEME,
+  roadsideTheme: 'coast',
+  targetLaps: 3,
+  sections: [...]
+};
+
+export const ACTIVE_RACER_TRACK = COAST_TRACK;
+```
+
+Later, `ACTIVE_RACER_TRACK` can be selected from saved player progress or a menu choice instead of being a constant.
+
+### Level 4: Replace roadside art
 
 Use this when you want a commercial road environment.
 
@@ -187,7 +218,7 @@ Change:
 
 This changes trees, signs, buildings, mountains, sky, roadside props, and traffic visuals.
 
-### Level 4: Add textured road support
+### Level 5: Add textured road support
 
 Use this when you want asphalt texture, road cracks, lane arrows, neon strips, or theme-specific pavement.
 
@@ -206,40 +237,24 @@ Recommended implementation:
 
 Do not replace the road with one large bitmap. It will not curve or scale correctly in a pseudo-3D renderer.
 
-### Level 5: Data-driven tracks
-
-Use this when multiple tracks are needed.
-
-Recommended future structure:
-
-```ts
-export interface RacerTrackDefinition {
-  id: string;
-  name: string;
-  sections: TrackSection[];
-  roadTheme: RacerRoadTheme;
-  roadsideTheme: 'coast' | 'city' | 'desert' | 'night';
-}
-```
-
-Then replace the single `TRACK_SECTIONS` import with an active `RacerTrackDefinition`.
-
 ## Commercial replacement recommendation
 
 For the next commercial pass, do this order:
 
 1. Keep current procedural road math.
 2. Continue tuning `RacerRoadTheme.ts` for stronger road readability.
-3. Replace background and roadside atlas art.
-4. Tune `TRACK_SECTIONS` for smoother difficulty.
-5. Only after this, consider textured asphalt.
+3. Use `RacerTrackDefinition.ts` for new route layouts and target lap counts.
+4. Replace background and roadside atlas art.
+5. Tune `DEFAULT_OUTRUN_TRACK.sections` for smoother difficulty.
+6. Only after this, consider textured asphalt.
 
 ## Files to edit by task
 
 | Goal | File |
 |---|---|
 | Change road colors | `src/racer/RacerRoadTheme.ts` |
-| Change curve/hill layout | `src/racer/config.ts` / `TRACK_SECTIONS` |
+| Change curve/hill layout | `src/racer/RacerTrackDefinition.ts` / `DEFAULT_OUTRUN_TRACK.sections` |
+| Change active track | `src/racer/RacerTrackDefinition.ts` / `ACTIVE_RACER_TRACK` |
 | Change segment generation | `src/racer/RacerState.ts` |
 | Change road drawing | `src/racer/Pseudo3DRenderer.ts` |
 | Change background image atlas | `src/racer/SpriteAtlas.ts` |
