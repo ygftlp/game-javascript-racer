@@ -1,4 +1,5 @@
-import { COLORS, RACER_CONFIG, TRACK_SECTIONS, type RoadColor } from './config';
+import { RACER_CONFIG, TRACK_SECTIONS, type RoadColor } from './config';
+import { ACTIVE_RACER_ROAD_THEME } from './RacerRoadTheme';
 import { BILLBOARDS, CARS, PLANTS, SPRITE_SCALE, type AtlasFrame } from './SpriteAtlas';
 import { RACER_TUNING_PRESETS, type RacerTuning } from './RacerTuning';
 
@@ -66,7 +67,7 @@ function overlap(x1: number, w1: number, x2: number, w2: number, percent = 1): b
 }
 
 function roadColorFor(index: number): RoadColor {
-  return Math.floor(index / RACER_CONFIG.rumbleLength) % 2 ? COLORS.dark : COLORS.light;
+  return Math.floor(index / RACER_CONFIG.rumbleLength) % 2 ? ACTIVE_RACER_ROAD_THEME.dark : ACTIVE_RACER_ROAD_THEME.light;
 }
 
 export class RacerState {
@@ -206,11 +207,11 @@ export class RacerState {
     this.resetTraffic();
 
     const startIndex = this.findSegment(this.playerZ).index;
-    if (this.segments[startIndex + 2]) this.segments[startIndex + 2].color = COLORS.start;
-    if (this.segments[startIndex + 3]) this.segments[startIndex + 3].color = COLORS.start;
+    if (this.segments[startIndex + 2]) this.segments[startIndex + 2].color = ACTIVE_RACER_ROAD_THEME.start;
+    if (this.segments[startIndex + 3]) this.segments[startIndex + 3].color = ACTIVE_RACER_ROAD_THEME.start;
 
     for (let n = 0; n < RACER_CONFIG.rumbleLength; n += 1) {
-      this.segments[this.segments.length - 1 - n].color = COLORS.finish;
+      this.segments[this.segments.length - 1 - n].color = ACTIVE_RACER_ROAD_THEME.finish;
     }
   }
 
