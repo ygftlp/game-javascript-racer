@@ -43,6 +43,7 @@ export interface RacerPanelLayout {
 
 export interface RacerMenuLayout extends RacerPanelLayout {
   startButton: RacerRect;
+  trackButton: RacerRect;
   leaderboardButton: RacerRect;
   helpButton: RacerRect;
   audioButton: RacerRect;
@@ -116,15 +117,17 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   const small = width < 760 || height < 430;
   const buttonW = small ? Math.min(248, width * 0.46) : 268;
   const buttonH = small ? 46 : 54;
+  const menuButtonH = small ? 42 : 50;
   const spacing = small ? 10 : 12;
+  const menuSpacing = small ? 8 : 10;
   const title = small ? 34 : 44;
   const body = small ? 18 : 21;
   const note = small ? 16 : 18;
   const button = small ? 20 : 23;
   const hud = small ? 14 : 16;
 
-  const menuPanel = panel(width, height, 640, small ? 410 : 468);
-  const menuStartY = menuPanel.y + (small ? 154 : 188);
+  const menuPanel = panel(width, height, 640, small ? 430 : 520);
+  const menuStartY = menuPanel.y + (small ? 160 : 188);
 
   const pausedPanel = panel(width, height, 620, small ? 414 : 466);
   const pausedStartY = pausedPanel.y + (small ? 132 : 158);
@@ -186,14 +189,15 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
     },
     menu: {
       panel: menuPanel,
-      titleY: menuPanel.y + (small ? 22 : 28),
-      line1Y: menuPanel.y + (small ? 78 : 94),
-      line2Y: menuPanel.y + (small ? 108 : 126),
-      line3Y: menuPanel.y + (small ? 136 : 158),
-      startButton: centeredButton(width, menuStartY, buttonW, buttonH),
-      leaderboardButton: centeredButton(width, menuStartY + buttonH + spacing, buttonW, buttonH),
-      helpButton: centeredButton(width, menuStartY + (buttonH + spacing) * 2, buttonW, buttonH),
-      audioButton: centeredButton(width, menuStartY + (buttonH + spacing) * 3, buttonW, buttonH)
+      titleY: menuPanel.y + (small ? 18 : 28),
+      line1Y: menuPanel.y + (small ? 68 : 94),
+      line2Y: menuPanel.y + (small ? 98 : 126),
+      line3Y: menuPanel.y + (small ? 126 : 158),
+      startButton: centeredButton(width, menuStartY, buttonW, menuButtonH),
+      trackButton: centeredButton(width, menuStartY + (menuButtonH + menuSpacing), buttonW, menuButtonH),
+      leaderboardButton: centeredButton(width, menuStartY + (menuButtonH + menuSpacing) * 2, buttonW, menuButtonH),
+      helpButton: centeredButton(width, menuStartY + (menuButtonH + menuSpacing) * 3, buttonW, menuButtonH),
+      audioButton: centeredButton(width, menuStartY + (menuButtonH + menuSpacing) * 4, buttonW, menuButtonH)
     },
     paused: {
       panel: pausedPanel,
