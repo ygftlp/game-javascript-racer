@@ -1,4 +1,5 @@
 import type { RacerState } from './RacerState';
+import { RACER_UI_THEME } from './RacerUiTheme';
 import type { RacerMiniMapLayout, RacerRect, RacerUiLayout } from './RacerUiLayout';
 
 interface PreviewSlice {
@@ -31,7 +32,7 @@ export class RacerMiniMap {
   }
 
   private drawPanel(ctx: CanvasRenderingContext2D, target: RacerRect): void {
-    this.roundedPanel(ctx, target.x, target.y, target.w, target.h, 'rgba(12, 18, 24, 0.48)', 'rgba(255,255,255,0.2)');
+    this.roundedPanel(ctx, target.x, target.y, target.w, target.h, RACER_UI_THEME.panel.minimap, RACER_UI_THEME.panel.border);
   }
 
   private drawTitle(ctx: CanvasRenderingContext2D, miniMap: RacerMiniMapLayout): void {
@@ -39,7 +40,7 @@ export class RacerMiniMap {
     ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillStyle = RACER_UI_THEME.text.bodyStrong;
     ctx.fillText('赛道雷达', miniMap.panel.x + 12, miniMap.panel.y + 8);
     ctx.restore();
   }
@@ -48,21 +49,21 @@ export class RacerMiniMap {
     const preview = miniMap.previewBar;
     const slices = this.buildPreviewSlices(state, preview);
 
-    this.roundedPanel(ctx, preview.x, preview.y, preview.w, preview.h, 'rgba(0, 0, 0, 0.32)');
+    this.roundedPanel(ctx, preview.x, preview.y, preview.w, preview.h, RACER_UI_THEME.panel.minimapBarBg);
 
     for (const slice of slices) {
       const absCurve = Math.abs(slice.curve);
       const fill = absCurve < 0.15
-        ? 'rgba(255,255,255,0.22)'
+        ? RACER_UI_THEME.minimap.straight
         : slice.curve > 0
-          ? 'rgba(255, 207, 74, 0.72)'
-          : 'rgba(92, 178, 255, 0.72)';
+          ? RACER_UI_THEME.minimap.rightCurve
+          : RACER_UI_THEME.minimap.leftCurve;
       this.roundedPanel(ctx, slice.x, preview.y + 2, Math.max(2, slice.w - 1), preview.h - 4, fill);
     }
 
     const midX = preview.x + preview.w * 0.18;
     ctx.save();
-    ctx.strokeStyle = 'rgba(255,255,255,0.82)';
+    ctx.strokeStyle = RACER_UI_THEME.minimap.cursor;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(midX, preview.y - 2);
@@ -106,7 +107,7 @@ export class RacerMiniMap {
 
       const x = preview.x + clamp(distance / horizon, 0, 1) * preview.w;
       const y = preview.y + preview.h / 2 + clamp(car.offset, -1, 1) * preview.h * 0.32;
-      this.circle(ctx, x, y, 2.4, 'rgba(255, 96, 80, 0.9)');
+      this.circle(ctx, x, y, 2.4, RACER_UI_THEME.accent.traffic);
       drawn += 1;
       if (drawn >= 8) break;
     }
@@ -117,14 +118,14 @@ export class RacerMiniMap {
     const bar = miniMap.progressBar;
     const clamped = clamp(progress, 0, 1);
 
-    this.roundedPanel(ctx, bar.x, bar.y, bar.w, bar.h, 'rgba(0, 0, 0, 0.36)');
-    this.roundedPanel(ctx, bar.x, bar.y, Math.max(5, bar.w * clamped), bar.h, 'rgba(255, 207, 74, 0.9)');
+    this.roundedPanel(ctx, bar.x, bar.y, bar.w, bar.h, RACER_UI_THEME.panel.minimapProgressBg);
+    this.roundedPanel(ctx, bar.x, bar.y, Math.max(5, bar.w * clamped), bar.h, RACER_UI_THEME.minimap.progress);
 
     ctx.save();
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(255,255,255,0.82)';
+    ctx.fillStyle = RACER_UI_THEME.text.muted;
     ctx.fillText(`${Math.round(clamped * 100)}%`, bar.x + bar.w, bar.y - 7);
     ctx.restore();
   }
