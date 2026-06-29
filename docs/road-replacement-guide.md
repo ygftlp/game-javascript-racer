@@ -12,9 +12,10 @@ The road pipeline is:
 2. `src/racer/RacerRoadTheme.ts` defines reusable road palettes.
 3. `src/racer/RacerTrackDefinition.ts` defines the active track, its sections, road theme, roadside theme, and target laps.
 4. `src/racer/RacerState.ts` expands `ACTIVE_RACER_TRACK.sections` into many road segments and applies `ACTIVE_RACER_TRACK.roadTheme`.
-5. Each `Segment` stores `z1`, `z2`, `y1`, `y2`, `curve`, color, roadside sprites, and traffic cars.
-6. `src/racer/Pseudo3DRenderer.ts` projects each segment into screen space.
-7. `Pseudo3DRenderer.drawSegment()` draws grass, rumble strips, road surface, and lane markers as polygons.
+5. `src/scenes/RacerScene.ts` reads `ACTIVE_RACER_TRACK.targetLaps` for race completion, HUD, help text, and result submission.
+6. Each `Segment` stores `z1`, `z2`, `y1`, `y2`, `curve`, color, roadside sprites, and traffic cars.
+7. `src/racer/Pseudo3DRenderer.ts` projects each segment into screen space.
+8. `Pseudo3DRenderer.drawSegment()` draws grass, rumble strips, road surface, and lane markers as polygons.
 
 ## Current road constants
 
@@ -85,6 +86,8 @@ Total segment count: `45 + 60 + 45 + 70 + 35 + 80 + 65 + 90 + 60 + 70 + 120 = 74
 
 Total track length: `740 * RACER_CONFIG.segmentLength`, currently `148000` world units.
 
+The default target lap count is `DEFAULT_OUTRUN_TRACK.targetLaps`, currently `3`.
+
 ## How segments are generated
 
 `RacerState.resetRoad()` iterates each `ACTIVE_RACER_TRACK.sections` item.
@@ -99,6 +102,20 @@ For each section:
 - `color` alternates between active track road theme `light` and `dark` by segment index.
 
 Start and finish colors are applied from `ACTIVE_RACER_TRACK.roadTheme.start` and `ACTIVE_RACER_TRACK.roadTheme.finish` after all segments are built.
+
+## How target laps are used
+
+`RacerScene` reads `ACTIVE_RACER_TRACK.targetLaps` once as its `targetLaps` source of truth.
+
+This value controls:
+
+- race finish condition,
+- HUD lap counter,
+- help screen objective text,
+- result screen completed-laps display,
+- leaderboard / share result payload.
+
+Do not add a new hardcoded `TARGET_LAPS` constant in `RacerScene`. Change the track definition instead.
 
 ## How the road is drawn
 
@@ -152,11 +169,11 @@ Cons:
 
 - Still uses polygon road rendering, not textured asphalt.
 
-### Level 2: Replace track layout
+### Level 2: Replace track layout and race length
 
-Use this when you want a different course.
+Use this when you want a different course or different race duration.
 
-Change the `sections` array in `src/racer/RacerTrackDefinition.ts`:
+Change the `sections` and `targetLaps` fields in `src/racer/RacerTrackDefinition.ts`:
 
 ```ts
 export const DEFAULT_OUTRUN_TRACK: RacerTrackDefinition = {
@@ -183,6 +200,7 @@ Rules:
 - Negative `hill` means downhill.
 - Keep at least one long straight at the start for onboarding.
 - Avoid too many strong curves before the player learns controls.
+- Use lower `targetLaps` for long tracks and higher `targetLaps` for short tracks.
 
 ### Level 3: Add multiple tracks
 
@@ -254,6 +272,7 @@ For the next commercial pass, do this order:
 |---|---|
 | Change road colors | `src/racer/RacerRoadTheme.ts` |
 | Change curve/hill layout | `src/racer/RacerTrackDefinition.ts` / `DEFAULT_OUTRUN_TRACK.sections` |
+| Change target lap count | `src/racer/RacerTrackDefinition.ts` / `targetLaps` |
 | Change active track | `src/racer/RacerTrackDefinition.ts` / `ACTIVE_RACER_TRACK` |
 | Change segment generation | `src/racer/RacerState.ts` |
 | Change road drawing | `src/racer/Pseudo3DRenderer.ts` |
@@ -272,3 +291,5 @@ For the next commercial pass, do this order:
 - Rumble strip contrast is visible on low-brightness screens.
 - Lane lines do not flicker on small screens.
 - The new palette works with HUD and minimap contrast.
+- Race ends at the configured `targetLaps` count.
+- Help screen, HUD, result screen, share payload, and leaderboard payload all show the same target lap count.
