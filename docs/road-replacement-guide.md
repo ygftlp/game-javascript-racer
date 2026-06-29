@@ -9,10 +9,11 @@ The current road is not a road texture image. It is a procedural pseudo-3D road 
 The road pipeline is:
 
 1. `src/racer/config.ts` defines global road constants and track sections.
-2. `src/racer/RacerState.ts` expands `TRACK_SECTIONS` into many road segments.
-3. Each `Segment` stores `z1`, `z2`, `y1`, `y2`, `curve`, color, roadside sprites, and traffic cars.
-4. `src/racer/Pseudo3DRenderer.ts` projects each segment into screen space.
-5. `Pseudo3DRenderer.drawSegment()` draws grass, rumble strips, road surface, and lane markers as polygons.
+2. `src/racer/RacerRoadTheme.ts` defines the active road palette.
+3. `src/racer/RacerState.ts` expands `TRACK_SECTIONS` into many road segments and applies the active road theme.
+4. Each `Segment` stores `z1`, `z2`, `y1`, `y2`, `curve`, color, roadside sprites, and traffic cars.
+5. `src/racer/Pseudo3DRenderer.ts` projects each segment into screen space.
+6. `Pseudo3DRenderer.drawSegment()` draws grass, rumble strips, road surface, and lane markers as polygons.
 
 ## Current road constants
 
@@ -41,18 +42,23 @@ Important values:
 - `drawDistance`: how many segments are projected and drawn.
 - `centrifugal`: how strongly curves push the player outward.
 
-## Current road colors
+## Current road theme
 
-Defined in `src/racer/config.ts`:
+The active release road theme is now defined in `src/racer/RacerRoadTheme.ts`:
 
 ```ts
-light: { road: '#6b6b6b', grass: '#10aa10', rumble: '#555555', lane: '#cccccc' }
-dark:  { road: '#696969', grass: '#009a00', rumble: '#bbbbbb', lane: '' }
-start: { road: '#ffffff', grass: '#ffffff', rumble: '#ffffff', lane: '' }
-finish:{ road: '#111111', grass: '#111111', rumble: '#eeeeee', lane: '' }
+export const ACTIVE_RACER_ROAD_THEME = COMMERCIAL_ASPHALT_ROAD_THEME;
 ```
 
-The current road uses alternating `light` / `dark` colors from `roadColorFor(index)`.
+`COMMERCIAL_ASPHALT_ROAD_THEME` uses:
+
+- dark asphalt road colors,
+- cleaner lane markers,
+- red-white rumble strip alternation,
+- darker start/finish treatment,
+- matching fog color for distant segments.
+
+`LEGACY_GREEN_ROAD_THEME` is kept for reference and regression comparison.
 
 ## Current track output
 
@@ -87,9 +93,9 @@ For each section:
 - `hill` becomes a Y elevation delta over the section.
 - `z1` / `z2` are generated from the segment index and `segmentLength`.
 - `y1` / `y2` interpolate from section start height to section end height.
-- `color` alternates between light and dark by segment index.
+- `color` alternates between active theme `light` and `dark` by segment index.
 
-Start and finish colors are applied after all segments are built.
+Start and finish colors are applied from `ACTIVE_RACER_ROAD_THEME.start` and `ACTIVE_RACER_ROAD_THEME.finish` after all segments are built.
 
 ## How the road is drawn
 
@@ -114,7 +120,9 @@ if (segment.color.lane) {
 }
 ```
 
-This means the road can be reskinned by changing colors, but not by replacing one road image. Road shape is generated from segment projection.
+Distant fog now uses `ACTIVE_RACER_ROAD_THEME.fog`.
+
+This means the road can be reskinned by changing a theme, but not by replacing one road image. Road shape is generated from segment projection.
 
 ## Replacement levels
 
@@ -124,13 +132,12 @@ Use this when you only need the road to look less prototype-like.
 
 Change:
 
-- `COLORS.light.road`
-- `COLORS.dark.road`
-- `COLORS.light.grass`
-- `COLORS.dark.grass`
-- `COLORS.light.rumble`
-- `COLORS.dark.rumble`
-- `COLORS.light.lane`
+- `src/racer/RacerRoadTheme.ts`
+- `COMMERCIAL_ASPHALT_ROAD_THEME.light`
+- `COMMERCIAL_ASPHALT_ROAD_THEME.dark`
+- `COMMERCIAL_ASPHALT_ROAD_THEME.start`
+- `COMMERCIAL_ASPHALT_ROAD_THEME.finish`
+- `COMMERCIAL_ASPHALT_ROAD_THEME.fog`
 
 Pros:
 
@@ -140,7 +147,7 @@ Pros:
 
 Cons:
 
-- Still looks like a flat color pseudo-3D road.
+- Still uses polygon road rendering, not textured asphalt.
 
 ### Level 2: Replace track layout
 
@@ -210,12 +217,7 @@ export interface RacerTrackDefinition {
   id: string;
   name: string;
   sections: TrackSection[];
-  roadPalette: {
-    light: RoadColor;
-    dark: RoadColor;
-    start: RoadColor;
-    finish: RoadColor;
-  };
+  roadTheme: RacerRoadTheme;
   roadsideTheme: 'coast' | 'city' | 'desert' | 'night';
 }
 ```
@@ -227,17 +229,16 @@ Then replace the single `TRACK_SECTIONS` import with an active `RacerTrackDefini
 For the next commercial pass, do this order:
 
 1. Keep current procedural road math.
-2. Add `RacerRoadTheme.ts` to separate road colors from global config.
-3. Add one commercial palette: dark asphalt, clean lane lines, high-contrast rumble strips.
-4. Replace background and roadside atlas art.
-5. Tune `TRACK_SECTIONS` for smoother difficulty.
-6. Only after this, consider textured asphalt.
+2. Continue tuning `RacerRoadTheme.ts` for stronger road readability.
+3. Replace background and roadside atlas art.
+4. Tune `TRACK_SECTIONS` for smoother difficulty.
+5. Only after this, consider textured asphalt.
 
 ## Files to edit by task
 
 | Goal | File |
 |---|---|
-| Change road colors | `src/racer/config.ts` now, later `RacerRoadTheme.ts` |
+| Change road colors | `src/racer/RacerRoadTheme.ts` |
 | Change curve/hill layout | `src/racer/config.ts` / `TRACK_SECTIONS` |
 | Change segment generation | `src/racer/RacerState.ts` |
 | Change road drawing | `src/racer/Pseudo3DRenderer.ts` |
