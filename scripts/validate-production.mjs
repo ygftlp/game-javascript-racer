@@ -114,20 +114,32 @@ if (!uiFlags.includes('showMiniMap: true') || !uiFlags.includes('showFirstRaceCo
 if (!roadTheme.includes('COMMERCIAL_ASPHALT_ROAD_THEME') || !roadTheme.includes('LEGACY_GREEN_ROAD_THEME') || !roadTheme.includes('roadColorForSegment')) {
   missing.push('commercial road theme with legacy fallback and segment color helper');
 }
-if (!trackDefinition.includes('RacerTrackDefinition') || !trackDefinition.includes('DEFAULT_OUTRUN_TRACK') || !trackDefinition.includes('ACTIVE_RACER_TRACK') || !trackDefinition.includes('targetLaps: 3')) {
-  missing.push('active track definition component with sections, road theme, roadside theme, and target laps');
+if (!trackDefinition.includes('RacerTrackDefinition') || !trackDefinition.includes('DEFAULT_OUTRUN_TRACK') || !trackDefinition.includes('COAST_SPRINT_TRACK') || !trackDefinition.includes('CITY_NIGHT_TRACK')) {
+  missing.push('track definition component must include default, coast, and city/night tracks');
+}
+if (!trackDefinition.includes('RACER_TRACKS') || !trackDefinition.includes('getNextRacerTrack') || !trackDefinition.includes('racerTrackIndex')) {
+  missing.push('multi-track registry helpers for selection and display');
 }
 if (!config.includes("from './RacerTrackDefinition'") || config.includes('const TRACK_SECTIONS: TrackSection[] = [')) {
   missing.push('config.ts must re-export track definitions without owning track section data');
 }
-if (!state.includes('ACTIVE_RACER_TRACK.sections') || !state.includes('ACTIVE_RACER_TRACK.roadTheme.start') || !state.includes('ACTIVE_RACER_TRACK.roadTheme.finish')) {
-  missing.push('RacerState must apply active track sections and road theme to generated segments');
+if (!state.includes('private track: RacerTrackDefinition') || !state.includes('setTrack(track: RacerTrackDefinition') || !state.includes('for (const section of this.track.sections)')) {
+  missing.push('RacerState must accept and switch active track definitions');
 }
-if (!scene.includes("import { ACTIVE_RACER_TRACK }") || !scene.includes('private readonly targetLaps = ACTIVE_RACER_TRACK.targetLaps') || scene.includes('const TARGET_LAPS')) {
-  missing.push('RacerScene must read target laps from ACTIVE_RACER_TRACK instead of hardcoding TARGET_LAPS');
+if (!state.includes('roadColorForSegment(index, this.track.roadTheme)') || !state.includes('this.track.roadTheme.start') || !state.includes('this.track.roadTheme.finish')) {
+  missing.push('RacerState must apply the selected track road theme to generated segments');
 }
-if (!scene.includes('this.state.completedLaps >= this.targetLaps') || !scene.includes('targetLaps: this.targetLaps')) {
-  missing.push('RacerScene finish condition, renderer options, and race result must use active track target laps');
+if (!scene.includes('getNextRacerTrack') || !scene.includes('RACER_TRACKS') || !scene.includes('racerTrackIndex')) {
+  missing.push('RacerScene must import multi-track registry helpers');
+}
+if (!scene.includes('private activeTrack: RacerTrackDefinition') || !scene.includes('private get targetLaps(): number') || scene.includes('const TARGET_LAPS')) {
+  missing.push('RacerScene must use activeTrack target laps instead of hardcoding TARGET_LAPS');
+}
+if (!scene.includes('cycleTrack()') || !scene.includes('this.state.setTrack(this.activeTrack') || !scene.includes("'menu-track'")) {
+  missing.push('RacerScene must wire menu track switching to state reset');
+}
+if (!scene.includes('this.state.completedLaps >= this.targetLaps') || !scene.includes('targetLaps: this.targetLaps') || !scene.includes('trackName: this.activeTrack.name')) {
+  missing.push('RacerScene finish condition, renderer options, and race result must use selected track metadata');
 }
 if (!renderer.includes('ACTIVE_RACER_ROAD_THEME.fog')) {
   missing.push('Pseudo3DRenderer must use active road theme fog color');
@@ -141,8 +153,8 @@ if (!uiLayout.includes('joystickBase') || !uiLayout.includes('brakeButton') || !
 if (!uiLayout.includes('RacerMiniMapLayout') || !uiLayout.includes('miniMapPreviewBar') || !uiLayout.includes('miniMapProgressBar')) {
   missing.push('independent minimap layout region');
 }
-if (!uiLayout.includes('helpButton') || !uiLayout.includes('RacerHelpLayout') || !uiLayout.includes('menuButton')) {
-  missing.push('commercial onboarding help screen and pause return-menu layout');
+if (!uiLayout.includes('trackButton') || !uiLayout.includes('RacerHelpLayout') || !uiLayout.includes('menuButton')) {
+  missing.push('commercial onboarding help screen, track selector, and pause return-menu layout');
 }
 if (!uiLayout.includes('Math.max(76') || !uiLayout.includes('joystickTouchArea')) {
   missing.push('enlarged joystick layout and touch area');
@@ -165,8 +177,8 @@ if (!uiRenderer.includes('RACER_UI_THEME') || !miniMap.includes('RACER_UI_THEME'
 if (!miniMap.includes('class RacerMiniMap') || !miniMap.includes('drawCurvePreview') || !miniMap.includes('drawTrafficDots') || !miniMap.includes('赛道雷达')) {
   missing.push('independent minimap component with curve preview and traffic dots');
 }
-if (!uiRenderer.includes('RACER_UI_FLAGS') || !uiRenderer.includes('showAssetStatus') || !uiRenderer.includes('极速公路')) {
-  missing.push('RacerUiRenderer must use release UI flags and commercial menu copy');
+if (!uiRenderer.includes('menu-track') || !uiRenderer.includes('trackName: string') || !uiRenderer.includes('切换赛道')) {
+  missing.push('RacerUiRenderer must expose and render the menu track selector');
 }
 if (!uiRenderer.includes('targetLaps: number') || !uiRenderer.includes('`目标：完成 ${targetLaps} 圈，刷新最佳圈速`')) {
   missing.push('RacerUiRenderer help objective must render target laps dynamically');
