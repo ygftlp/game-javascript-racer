@@ -1,5 +1,5 @@
 import { RACER_CONFIG, TRACK_SECTIONS, type RoadColor } from './config';
-import { ACTIVE_RACER_ROAD_THEME } from './RacerRoadTheme';
+import { ACTIVE_RACER_ROAD_THEME, roadColorForSegment } from './RacerRoadTheme';
 import { BILLBOARDS, CARS, PLANTS, SPRITE_SCALE, type AtlasFrame } from './SpriteAtlas';
 import { RACER_TUNING_PRESETS, type RacerTuning } from './RacerTuning';
 
@@ -64,10 +64,6 @@ function overlap(x1: number, w1: number, x2: number, w2: number, percent = 1): b
   const min2 = x2 - w2 * half;
   const max2 = x2 + w2 * half;
   return !(max1 < min2 || min1 > max2);
-}
-
-function roadColorFor(index: number): RoadColor {
-  return Math.floor(index / RACER_CONFIG.rumbleLength) % 2 ? ACTIVE_RACER_ROAD_THEME.dark : ACTIVE_RACER_ROAD_THEME.light;
 }
 
 export class RacerState {
@@ -192,7 +188,7 @@ export class RacerState {
           y1: interpolate(startY, endY, p1),
           y2: interpolate(startY, endY, p2),
           curve: section.curve,
-          color: roadColorFor(index),
+          color: roadColorForSegment(index),
           sprites: [],
           cars: []
         };
