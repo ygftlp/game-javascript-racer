@@ -10,9 +10,9 @@ The road pipeline is:
 
 1. `src/racer/config.ts` defines global road constants and shared track types.
 2. `src/racer/RacerRoadTheme.ts` defines reusable road palettes.
-3. `src/racer/RacerTrackDefinition.ts` defines the active track, its sections, road theme, roadside theme, and target laps.
-4. `src/racer/RacerState.ts` expands `ACTIVE_RACER_TRACK.sections` into many road segments and applies `ACTIVE_RACER_TRACK.roadTheme`.
-5. `src/scenes/RacerScene.ts` reads `ACTIVE_RACER_TRACK.targetLaps` for race completion, HUD, help text, and result submission.
+3. `src/racer/RacerTrackDefinition.ts` defines the track registry, track sections, road theme, roadside theme, and target laps.
+4. `src/racer/RacerState.ts` expands the selected track sections into many road segments and applies the selected track road theme.
+5. `src/scenes/RacerScene.ts` owns the currently selected track and reads its `targetLaps` for race completion, HUD, help text, and result submission.
 6. Each `Segment` stores `z1`, `z2`, `y1`, `y2`, `curve`, color, roadside sprites, and traffic cars.
 7. `src/racer/Pseudo3DRenderer.ts` projects each segment into screen space.
 8. `Pseudo3DRenderer.drawSegment()` draws grass, rumble strips, road surface, and lane markers as polygons.
@@ -46,7 +46,7 @@ Important values:
 
 ## Current road theme
 
-The active release road theme is referenced through `src/racer/RacerTrackDefinition.ts`:
+The default release road theme is referenced through `src/racer/RacerTrackDefinition.ts`:
 
 ```ts
 export const ACTIVE_RACER_TRACK = DEFAULT_OUTRUN_TRACK;
@@ -64,9 +64,31 @@ The default track uses `COMMERCIAL_ASPHALT_ROAD_THEME`, defined in `src/racer/Ra
 
 `LEGACY_GREEN_ROAD_THEME` is kept for reference and regression comparison.
 
-## Current track output
+## Current track registry
 
-The active track is defined by `DEFAULT_OUTRUN_TRACK.sections` in `src/racer/RacerTrackDefinition.ts`:
+`src/racer/RacerTrackDefinition.ts` now exposes a multi-track registry:
+
+```ts
+export const RACER_TRACKS = [
+  DEFAULT_OUTRUN_TRACK,
+  COAST_SPRINT_TRACK,
+  CITY_NIGHT_TRACK
+];
+```
+
+Current selectable tracks:
+
+| Track | ID | Target laps | Roadside theme | Purpose |
+|---|---|---:|---|---|
+| 极速公路 | `default-outrun-loop` | 3 | `legacy` | Default balanced track |
+| 海岸冲刺 | `coast-sprint` | 2 | `coast` | Short, fast mobile sprint |
+| 城市夜跑 | `city-night-run` | 3 | `night` | Denser curve rhythm, future neon theme |
+
+The menu uses the `切换赛道` button to cycle through this registry with `getNextRacerTrack()`.
+
+## Current default track output
+
+The default track is defined by `DEFAULT_OUTRUN_TRACK.sections` in `src/racer/RacerTrackDefinition.ts`:
 
 | Section | Length segments | Curve | Hill | Meaning |
 |---:|---:|---:|---:|---|
@@ -90,7 +112,7 @@ The default target lap count is `DEFAULT_OUTRUN_TRACK.targetLaps`, currently `3`
 
 ## How segments are generated
 
-`RacerState.resetRoad()` iterates each `ACTIVE_RACER_TRACK.sections` item.
+`RacerState.resetRoad()` iterates the selected track sections.
 
 For each section:
 
@@ -99,13 +121,13 @@ For each section:
 - `hill` becomes a Y elevation delta over the section.
 - `z1` / `z2` are generated from the segment index and `segmentLength`.
 - `y1` / `y2` interpolate from section start height to section end height.
-- `color` alternates between active track road theme `light` and `dark` by segment index.
+- `color` alternates between selected track road theme `light` and `dark` by segment index.
 
-Start and finish colors are applied from `ACTIVE_RACER_TRACK.roadTheme.start` and `ACTIVE_RACER_TRACK.roadTheme.finish` after all segments are built.
+Start and finish colors are applied from the selected track `roadTheme.start` and `roadTheme.finish` after all segments are built.
 
 ## How target laps are used
 
-`RacerScene` reads `ACTIVE_RACER_TRACK.targetLaps` once as its `targetLaps` source of truth.
+`RacerScene` reads the selected track `targetLaps` as its source of truth.
 
 This value controls:
 
@@ -218,10 +240,10 @@ export const COAST_TRACK: RacerTrackDefinition = {
   sections: [...]
 };
 
-export const ACTIVE_RACER_TRACK = COAST_TRACK;
+export const RACER_TRACKS = [DEFAULT_OUTRUN_TRACK, COAST_TRACK];
 ```
 
-Later, `ACTIVE_RACER_TRACK` can be selected from saved player progress or a menu choice instead of being a constant.
+`RacerScene` currently cycles through `RACER_TRACKS` from the menu. Later this can become a dedicated track-select screen with locked/unlocked states.
 
 ### Level 4: Replace roadside art
 
@@ -263,7 +285,7 @@ For the next commercial pass, do this order:
 2. Continue tuning `RacerRoadTheme.ts` for stronger road readability.
 3. Use `RacerTrackDefinition.ts` for new route layouts and target lap counts.
 4. Replace background and roadside atlas art.
-5. Tune `DEFAULT_OUTRUN_TRACK.sections` for smoother difficulty.
+5. Tune `RACER_TRACKS` for smoother difficulty and better session length.
 6. Only after this, consider textured asphalt.
 
 ## Files to edit by task
@@ -271,9 +293,10 @@ For the next commercial pass, do this order:
 | Goal | File |
 |---|---|
 | Change road colors | `src/racer/RacerRoadTheme.ts` |
-| Change curve/hill layout | `src/racer/RacerTrackDefinition.ts` / `DEFAULT_OUTRUN_TRACK.sections` |
+| Change curve/hill layout | `src/racer/RacerTrackDefinition.ts` / track `sections` |
 | Change target lap count | `src/racer/RacerTrackDefinition.ts` / `targetLaps` |
-| Change active track | `src/racer/RacerTrackDefinition.ts` / `ACTIVE_RACER_TRACK` |
+| Add/remove selectable tracks | `src/racer/RacerTrackDefinition.ts` / `RACER_TRACKS` |
+| Change active default track | `src/racer/RacerTrackDefinition.ts` / `ACTIVE_RACER_TRACK` |
 | Change segment generation | `src/racer/RacerState.ts` |
 | Change road drawing | `src/racer/Pseudo3DRenderer.ts` |
 | Change background image atlas | `src/racer/SpriteAtlas.ts` |
@@ -291,5 +314,6 @@ For the next commercial pass, do this order:
 - Rumble strip contrast is visible on low-brightness screens.
 - Lane lines do not flicker on small screens.
 - The new palette works with HUD and minimap contrast.
-- Race ends at the configured `targetLaps` count.
-- Help screen, HUD, result screen, share payload, and leaderboard payload all show the same target lap count.
+- Menu `切换赛道` cycles through every entry in `RACER_TRACKS`.
+- Race ends at the selected track configured `targetLaps` count.
+- Help screen, HUD, result screen, share payload, and leaderboard payload all show the same selected track target lap count.
