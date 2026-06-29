@@ -1,6 +1,9 @@
-import type { RoadColor } from './config';
+import { RACER_CONFIG, type RoadColor } from './config';
 
 export interface RacerRoadTheme {
+  id: string;
+  name: string;
+  description: string;
   light: RoadColor;
   dark: RoadColor;
   start: RoadColor;
@@ -9,6 +12,9 @@ export interface RacerRoadTheme {
 }
 
 export const COMMERCIAL_ASPHALT_ROAD_THEME: RacerRoadTheme = {
+  id: 'commercial-asphalt-v1',
+  name: 'Commercial Asphalt V1',
+  description: 'Dark asphalt, clean lane markers, and high-contrast red-white rumble strips for a more publish-ready racer look.',
   light: {
     road: '#343941',
     grass: '#17643a',
@@ -37,6 +43,9 @@ export const COMMERCIAL_ASPHALT_ROAD_THEME: RacerRoadTheme = {
 };
 
 export const LEGACY_GREEN_ROAD_THEME: RacerRoadTheme = {
+  id: 'legacy-green',
+  name: 'Legacy Green',
+  description: 'Original prototype palette retained for reference and regression comparison.',
   light: {
     road: '#6b6b6b',
     grass: '#10aa10',
@@ -65,3 +74,7 @@ export const LEGACY_GREEN_ROAD_THEME: RacerRoadTheme = {
 };
 
 export const ACTIVE_RACER_ROAD_THEME = COMMERCIAL_ASPHALT_ROAD_THEME;
+
+export function roadColorForSegment(index: number, theme: RacerRoadTheme = ACTIVE_RACER_ROAD_THEME): RoadColor {
+  return Math.floor(index / RACER_CONFIG.rumbleLength) % 2 ? theme.dark : theme.light;
+}
