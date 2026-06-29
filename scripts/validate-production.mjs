@@ -141,8 +141,8 @@ if (!scene.includes('cycleTrack()') || !scene.includes('this.state.setTrack(this
 if (!scene.includes('this.state.completedLaps >= this.targetLaps') || !scene.includes('targetLaps: this.targetLaps') || !scene.includes('trackName: this.activeTrack.name')) {
   missing.push('RacerScene finish condition, renderer options, and race result must use selected track metadata');
 }
-if (!renderer.includes('ACTIVE_RACER_ROAD_THEME.fog')) {
-  missing.push('Pseudo3DRenderer must use active road theme fog color');
+if (!renderer.includes('state.activeTrack.roadTheme.fog')) {
+  missing.push('Pseudo3DRenderer must use selected track road theme fog color');
 }
 if (!uiTheme.includes('RACER_UI_THEME') || !uiTheme.includes('accent') || !uiTheme.includes('minimap') || !uiTheme.includes('controls')) {
   missing.push('centralized UI theme tokens for commercial skinning');
@@ -210,8 +210,8 @@ if (!renderer.includes('drawPlayerFallback') || !renderer.includes('drawPlayerVi
 if (!renderer.includes('this.drawPlayer(ctx, state, assets?.sprites ?? null, playerSegment, playerPercent)')) {
   missing.push('stable player car drawing outside segment projection clipping');
 }
-if (!roadGuide.includes('RacerTrackDefinition.ts') || !roadGuide.includes('ACTIVE_RACER_TRACK') || !roadGuide.includes('Level 5: Add textured road support')) {
-  missing.push('road replacement guide with track definitions and replacement levels');
+if (!roadGuide.includes('RACER_TRACKS') || !roadGuide.includes('切换赛道') || !roadGuide.includes('Level 5: Add textured road support')) {
+  missing.push('road replacement guide with track registry, menu selector, and replacement levels');
 }
 if (!scene.includes('toggleAudio')) {
   missing.push('RacerScene audio toggle flow');
