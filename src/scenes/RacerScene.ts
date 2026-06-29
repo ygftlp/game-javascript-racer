@@ -5,12 +5,12 @@ import { createRacerServices, type RaceResult } from '../racer/RacerServices';
 import { RacerSettings } from '../racer/RacerSettings';
 import { RacerState } from '../racer/RacerState';
 import { RacerStorage } from '../racer/RacerStorage';
+import { ACTIVE_RACER_TRACK } from '../racer/RacerTrackDefinition';
 import { resolveRacerTuning } from '../racer/RacerTuning';
 import { RACER_UI_FLAGS } from '../racer/RacerUiFlags';
 import { buildRacerUiLayout, pointInCircle, pointInRect } from '../racer/RacerUiLayout';
 import { Pseudo3DRenderer, type RacerPhase, type RacerUiPressedTarget } from '../racer/Pseudo3DRenderer';
 
-const TARGET_LAPS = 3;
 const CONTROL_COACH_SECONDS = 4.5;
 
 type FinishedAction = 'restart' | 'share' | 'leaderboard' | 'none';
@@ -23,6 +23,7 @@ export class RacerScene extends Scene {
   private readonly state: RacerState;
   private readonly storage: RacerStorage;
   private readonly pseudo3d = new Pseudo3DRenderer();
+  private readonly targetLaps = ACTIVE_RACER_TRACK.targetLaps;
   private savedBestLapTime = 0;
   private touchActive = false;
   private brakeActive = false;
@@ -49,7 +50,12 @@ export class RacerScene extends Scene {
     this.state.bestLapTime = this.savedBestLapTime;
     this.bindTouchControls();
     void this.assets.load(gameEngine);
-    this.services.analytics.track('scene_ready', { tuning: tuning.profile, audioMuted: this.audioMuted });
+    this.services.analytics.track('scene_ready', {
+      tuning: tuning.profile,
+      audioMuted: this.audioMuted,
+      trackId: ACTIVE_RACER_TRACK.id,
+      targetLaps: this.targetLaps
+    });
   }
 
   update(dt: number): void {
@@ -70,7 +76,7 @@ export class RacerScene extends Scene {
     this.playCollisionSfxIfNeeded();
     this.persistBestLapIfNeeded();
 
-    if (this.state.completedLaps >= TARGET_LAPS) {
+    if (this.state.completedLaps >= this.targetLaps) {
       this.finishRace();
     }
   }
@@ -79,7 +85,7 @@ export class RacerScene extends Scene {
     const layout = this.getUiLayout();
     this.pseudo3d.render(renderer, this.state, this.assets, {
       phase: this.phase,
-      targetLaps: TARGET_LAPS,
+      targetLaps: this.targetLaps,
       audioMuted: this.audioMuted,
       brakeActive: this.brakeActive,
       pressedTarget: this.pressedTarget,
@@ -266,7 +272,12 @@ export class RacerScene extends Scene {
       this.settings.setFirstRaceCoachShown(true);
     }
     this.assets.playMusic();
-    this.services.analytics.track('race_start', { tuning: this.state.tuning.profile, audioMuted: this.audioMuted });
+    this.services.analytics.track('race_start', {
+      tuning: this.state.tuning.profile,
+      audioMuted: this.audioMuted,
+      trackId: ACTIVE_RACER_TRACK.id,
+      targetLaps: this.targetLaps
+    });
   }
 
   private restartRace(): void {
@@ -417,7 +428,7 @@ export class RacerScene extends Scene {
   private buildRaceResult(): RaceResult {
     return {
       completedLaps: this.state.completedLaps,
-      targetLaps: TARGET_LAPS,
+      targetLaps: this.targetLaps,
       totalRaceTime: this.state.totalRaceTime,
       bestLapTime: this.state.bestLapTime
     };
