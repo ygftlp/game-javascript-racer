@@ -27,6 +27,12 @@ export interface RacerControlLayout {
   brakeTouchArea: RacerRect;
 }
 
+export interface RacerMiniMapLayout {
+  panel: RacerRect;
+  previewBar: RacerRect;
+  progressBar: RacerRect;
+}
+
 export interface RacerPanelLayout {
   panel: RacerRect;
   titleY: number;
@@ -72,6 +78,7 @@ export interface RacerUiLayout {
   small: boolean;
   pauseButton: RacerCircle;
   hud: RacerHudLayout;
+  miniMap: RacerMiniMapLayout;
   controls: RacerControlLayout;
   touchZones: RacerTouchZones;
   menu: RacerMenuLayout;
@@ -135,6 +142,9 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
 
   const hudPanel = rect(14, 14, small ? 184 : 216, small ? 88 : 98);
   const progressBar = rect(hudPanel.x, hudPanel.y + hudPanel.h + 8, hudPanel.w, 8);
+  const miniMapPanel = rect(hudPanel.x, progressBar.y + progressBar.h + 8, hudPanel.w, small ? 72 : 82);
+  const miniMapPreviewBar = rect(miniMapPanel.x + 12, miniMapPanel.y + (small ? 31 : 34), miniMapPanel.w - 24, small ? 16 : 18);
+  const miniMapProgressBar = rect(miniMapPanel.x + 12, miniMapPanel.y + miniMapPanel.h - 15, miniMapPanel.w - 24, 5);
 
   const pauseButtonR = small ? 24 : 28;
   const pauseSafeY = Math.max(96, height * 0.17);
@@ -156,6 +166,11 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
       panel: hudPanel,
       progressBar,
       rowHeight: small ? 16 : 18
+    },
+    miniMap: {
+      panel: miniMapPanel,
+      previewBar: miniMapPreviewBar,
+      progressBar: miniMapProgressBar
     },
     controls: {
       joystickBase,
