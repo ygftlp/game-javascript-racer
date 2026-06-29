@@ -177,7 +177,7 @@ export class RacerUiRenderer {
     if (phase === 'menu') {
       this.drawMenu(ctx, state, assets, audioMuted, layout, pressedTarget);
     } else if (phase === 'help') {
-      this.drawHelp(ctx, state, layout, pressedTarget);
+      this.drawHelp(ctx, state, targetLaps, layout, pressedTarget);
     } else if (phase === 'paused') {
       this.drawPaused(ctx, state, audioMuted, layout, pressedTarget);
     } else {
@@ -203,7 +203,7 @@ export class RacerUiRenderer {
     this.drawButton(ctx, layout.menu.audioButton, audioMuted ? '开启音乐' : '关闭音乐', layout, false, pressedTarget === 'menu-audio');
   }
 
-  private drawHelp(ctx: CanvasRenderingContext2D, state: RacerState, layout: RacerUiLayout, pressedTarget: RacerUiPressedTarget): void {
+  private drawHelp(ctx: CanvasRenderingContext2D, state: RacerState, targetLaps: number, layout: RacerUiLayout, pressedTarget: RacerUiPressedTarget): void {
     ctx.font = `bold ${layout.fonts.title}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.primary;
     ctx.fillText('操作说明', state.width / 2, layout.help.titleY);
@@ -212,7 +212,7 @@ export class RacerUiRenderer {
     ctx.fillText('左下摇杆：控制赛车方向', state.width / 2, layout.help.line1Y);
     ctx.fillText('右下刹车：过弯和避让时减速', state.width / 2, layout.help.line2Y);
     ctx.fillText('右侧暂停：暂停、重开或返回菜单', state.width / 2, layout.help.line3Y);
-    ctx.fillText('目标：完成 3 圈，刷新最佳圈速', state.width / 2, layout.help.line4Y);
+    ctx.fillText(`目标：完成 ${targetLaps} 圈，刷新最佳圈速`, state.width / 2, layout.help.line4Y);
     this.drawButton(ctx, layout.help.startButton, '开始比赛', layout, true, pressedTarget === 'help-start');
     this.drawButton(ctx, layout.help.backButton, '返回菜单', layout, false, pressedTarget === 'help-back');
   }
