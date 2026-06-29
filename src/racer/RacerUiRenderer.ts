@@ -11,6 +11,7 @@ export type RacerUiPhase = 'menu' | 'playing' | 'paused' | 'finished' | 'help';
 
 export type RacerUiPressedTarget =
   | 'menu-start'
+  | 'menu-track'
   | 'menu-leaderboard'
   | 'menu-help'
   | 'menu-audio'
@@ -34,6 +35,9 @@ export interface RacerUiRenderOptions {
   pressedTarget: RacerUiPressedTarget;
   controlCoachTimeLeft: number;
   joystick: RacerJoystickSnapshot;
+  trackName: string;
+  trackIndex: number;
+  trackCount: number;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -67,7 +71,7 @@ export class RacerUiRenderer {
       if (options.controlCoachTimeLeft > 0) this.drawControlCoach(ctx, state, layout, options.controlCoachTimeLeft);
     }
 
-    this.drawOverlay(ctx, state, assets, options.phase, options.targetLaps, options.audioMuted, layout, options.pressedTarget);
+    this.drawOverlay(ctx, state, assets, options, layout);
   }
 
   private drawHud(ctx: CanvasRenderingContext2D, state: RacerState, assets: RacerAssets | undefined, targetLaps: number, audioMuted: boolean, layout: RacerUiLayout): void {
@@ -163,44 +167,45 @@ export class RacerUiRenderer {
     ctx.restore();
   }
 
-  private drawOverlay(ctx: CanvasRenderingContext2D, state: RacerState, assets: RacerAssets | undefined, phase: RacerUiPhase, targetLaps: number, audioMuted: boolean, layout: RacerUiLayout, pressedTarget: RacerUiPressedTarget): void {
-    if (phase === 'playing') return;
+  private drawOverlay(ctx: CanvasRenderingContext2D, state: RacerState, assets: RacerAssets | undefined, options: RacerUiRenderOptions, layout: RacerUiLayout): void {
+    if (options.phase === 'playing') return;
 
     this.drawVignette(ctx, state.width, state.height);
-    const active = phase === 'menu' ? layout.menu : phase === 'paused' ? layout.paused : phase === 'help' ? layout.help : layout.finished;
+    const active = options.phase === 'menu' ? layout.menu : options.phase === 'paused' ? layout.paused : options.phase === 'help' ? layout.help : layout.finished;
     this.drawModalPanel(ctx, active.panel);
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.fillStyle = RACER_UI_THEME.text.primary;
 
-    if (phase === 'menu') {
-      this.drawMenu(ctx, state, assets, audioMuted, layout, pressedTarget);
-    } else if (phase === 'help') {
-      this.drawHelp(ctx, state, targetLaps, layout, pressedTarget);
-    } else if (phase === 'paused') {
-      this.drawPaused(ctx, state, audioMuted, layout, pressedTarget);
+    if (options.phase === 'menu') {
+      this.drawMenu(ctx, state, assets, options, layout);
+    } else if (options.phase === 'help') {
+      this.drawHelp(ctx, state, options.targetLaps, layout, options.pressedTarget);
+    } else if (options.phase === 'paused') {
+      this.drawPaused(ctx, state, options.audioMuted, layout, options.pressedTarget);
     } else {
-      this.drawFinished(ctx, state, targetLaps, layout, pressedTarget);
+      this.drawFinished(ctx, state, options.targetLaps, layout, options.pressedTarget);
     }
 
     ctx.textAlign = 'left';
   }
 
-  private drawMenu(ctx: CanvasRenderingContext2D, state: RacerState, assets: RacerAssets | undefined, audioMuted: boolean, layout: RacerUiLayout, pressedTarget: RacerUiPressedTarget): void {
+  private drawMenu(ctx: CanvasRenderingContext2D, state: RacerState, assets: RacerAssets | undefined, options: RacerUiRenderOptions, layout: RacerUiLayout): void {
     ctx.font = `bold ${layout.fonts.title}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.primary;
     ctx.fillText('极速公路', state.width / 2, layout.menu.titleY);
     ctx.font = `${layout.fonts.body}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.body;
     ctx.fillText('复古街机赛车', state.width / 2, layout.menu.line1Y);
-    ctx.fillText('左下摇杆控制方向，右下按钮刹车', state.width / 2, layout.menu.line2Y);
-    ctx.fillText(audioMuted ? '音乐已关闭' : '音乐已开启', state.width / 2, layout.menu.line3Y);
+    ctx.fillText(`赛道 ${options.trackIndex + 1}/${options.trackCount} · ${options.trackName}`, state.width / 2, layout.menu.line2Y);
+    ctx.fillText(`目标 ${options.targetLaps} 圈 · ${options.audioMuted ? '音乐关闭' : '音乐开启'}`, state.width / 2, layout.menu.line3Y);
     if (RACER_UI_FLAGS.showAssetStatus) ctx.fillText(`${assets?.statusLabel ?? 'Assets idle'}`, state.width / 2, layout.menu.line3Y);
-    this.drawButton(ctx, layout.menu.startButton, '开始比赛', layout, true, pressedTarget === 'menu-start');
-    this.drawButton(ctx, layout.menu.leaderboardButton, '排行榜', layout, false, pressedTarget === 'menu-leaderboard');
-    this.drawButton(ctx, layout.menu.helpButton, '操作说明', layout, false, pressedTarget === 'menu-help');
-    this.drawButton(ctx, layout.menu.audioButton, audioMuted ? '开启音乐' : '关闭音乐', layout, false, pressedTarget === 'menu-audio');
+    this.drawButton(ctx, layout.menu.startButton, '开始比赛', layout, true, options.pressedTarget === 'menu-start');
+    this.drawButton(ctx, layout.menu.trackButton, '切换赛道', layout, false, options.pressedTarget === 'menu-track');
+    this.drawButton(ctx, layout.menu.leaderboardButton, '排行榜', layout, false, options.pressedTarget === 'menu-leaderboard');
+    this.drawButton(ctx, layout.menu.helpButton, '操作说明', layout, false, options.pressedTarget === 'menu-help');
+    this.drawButton(ctx, layout.menu.audioButton, options.audioMuted ? '开启音乐' : '关闭音乐', layout, false, options.pressedTarget === 'menu-audio');
   }
 
   private drawHelp(ctx: CanvasRenderingContext2D, state: RacerState, targetLaps: number, layout: RacerUiLayout, pressedTarget: RacerUiPressedTarget): void {
