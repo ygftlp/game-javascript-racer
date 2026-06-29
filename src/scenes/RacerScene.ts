@@ -5,7 +5,7 @@ import { createRacerServices, type RaceResult } from '../racer/RacerServices';
 import { RacerSettings } from '../racer/RacerSettings';
 import { RacerState } from '../racer/RacerState';
 import { RacerStorage } from '../racer/RacerStorage';
-import { ACTIVE_RACER_TRACK } from '../racer/RacerTrackDefinition';
+import { ACTIVE_RACER_TRACK, getNextRacerTrack, RACER_TRACKS, racerTrackIndex, type RacerTrackDefinition } from '../racer/RacerTrackDefinition';
 import { resolveRacerTuning } from '../racer/RacerTuning';
 import { RACER_UI_FLAGS } from '../racer/RacerUiFlags';
 import { buildRacerUiLayout, pointInCircle, pointInRect } from '../racer/RacerUiLayout';
@@ -23,7 +23,7 @@ export class RacerScene extends Scene {
   private readonly state: RacerState;
   private readonly storage: RacerStorage;
   private readonly pseudo3d = new Pseudo3DRenderer();
-  private readonly targetLaps = ACTIVE_RACER_TRACK.targetLaps;
+  private activeTrack: RacerTrackDefinition = ACTIVE_RACER_TRACK;
   private savedBestLapTime = 0;
   private touchActive = false;
   private brakeActive = false;
@@ -42,7 +42,7 @@ export class RacerScene extends Scene {
 
     this.settings = new RacerSettings(gameEngine);
     this.storage = new RacerStorage(gameEngine);
-    this.state = new RacerState(gameEngine.width, gameEngine.height, tuning);
+    this.state = new RacerState(gameEngine.width, gameEngine.height, tuning, this.activeTrack);
     this.savedBestLapTime = this.storage.getBestLapTime();
     this.audioMuted = this.settings.isAudioMuted();
     this.hasShownControlCoach = !RACER_UI_FLAGS.showFirstRaceCoach || this.settings.hasShownFirstRaceCoach();
@@ -53,9 +53,13 @@ export class RacerScene extends Scene {
     this.services.analytics.track('scene_ready', {
       tuning: tuning.profile,
       audioMuted: this.audioMuted,
-      trackId: ACTIVE_RACER_TRACK.id,
+      trackId: this.activeTrack.id,
       targetLaps: this.targetLaps
     });
+  }
+
+  private get targetLaps(): number {
+    return this.activeTrack.targetLaps;
   }
 
   update(dt: number): void {
@@ -90,7 +94,10 @@ export class RacerScene extends Scene {
       brakeActive: this.brakeActive,
       pressedTarget: this.pressedTarget,
       controlCoachTimeLeft: this.controlCoachTimeLeft,
-      joystick: this.joystick.snapshot(layout.controls.joystickBase, layout.controls.joystickKnobRadius)
+      joystick: this.joystick.snapshot(layout.controls.joystickBase, layout.controls.joystickKnobRadius),
+      trackName: this.activeTrack.name,
+      trackIndex: racerTrackIndex(this.activeTrack.id),
+      trackCount: RACER_TRACKS.length
     });
   }
 
@@ -160,6 +167,7 @@ export class RacerScene extends Scene {
   private resolvePressedTarget(point: TouchPoint): RacerUiPressedTarget {
     if (this.phase === 'menu') {
       if (this.isMenuStartButton(point)) return 'menu-start';
+      if (this.isMenuTrackButton(point)) return 'menu-track';
       if (this.isMenuLeaderboardButton(point)) return 'menu-leaderboard';
       if (this.isMenuHelpButton(point)) return 'menu-help';
       if (this.isMenuAudioButton(point)) return 'menu-audio';
@@ -200,6 +208,10 @@ export class RacerScene extends Scene {
 
     if (target === 'menu-start' || target === 'help-start') {
       this.startRace();
+      return;
+    }
+    if (target === 'menu-track') {
+      this.cycleTrack();
       return;
     }
     if (target === 'menu-help') {
@@ -260,6 +272,20 @@ export class RacerScene extends Scene {
     this.services.analytics.track('return_menu', { source });
   }
 
+  private cycleTrack(): void {
+    if (this.phase !== 'menu') return;
+
+    this.activeTrack = getNextRacerTrack(this.activeTrack.id);
+    this.state.setTrack(this.activeTrack, this.savedBestLapTime);
+    this.lastCollisionCount = this.state.collisionCount;
+    this.services.analytics.track('track_select', {
+      trackId: this.activeTrack.id,
+      trackName: this.activeTrack.name,
+      trackIndex: racerTrackIndex(this.activeTrack.id),
+      targetLaps: this.targetLaps
+    });
+  }
+
   private startRace(): void {
     this.phase = 'playing';
     this.wasPlayingBeforeHidden = false;
@@ -275,7 +301,8 @@ export class RacerScene extends Scene {
     this.services.analytics.track('race_start', {
       tuning: this.state.tuning.profile,
       audioMuted: this.audioMuted,
-      trackId: ACTIVE_RACER_TRACK.id,
+      trackId: this.activeTrack.id,
+      trackName: this.activeTrack.name,
       targetLaps: this.targetLaps
     });
   }
@@ -374,6 +401,10 @@ export class RacerScene extends Scene {
 
   private isMenuStartButton(point: TouchPoint): boolean {
     return pointInRect(point, this.getUiLayout().menu.startButton);
+  }
+
+  private isMenuTrackButton(point: TouchPoint): boolean {
+    return pointInRect(point, this.getUiLayout().menu.trackButton);
   }
 
   private isMenuLeaderboardButton(point: TouchPoint): boolean {
