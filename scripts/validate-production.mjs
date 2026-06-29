@@ -66,6 +66,7 @@ const scene = await read('src/scenes/RacerScene.ts');
 const renderer = await read('src/racer/Pseudo3DRenderer.ts');
 const uiRenderer = await read('src/racer/RacerUiRenderer.ts');
 const miniMap = await read('src/racer/RacerMiniMap.ts');
+const settings = await read('src/racer/RacerSettings.ts');
 const state = await read('src/racer/RacerState.ts');
 const startup = await read('src/platforms/wechat/startup.ts');
 const engineBoundary = await read('src/engine/index.ts');
@@ -98,6 +99,9 @@ if (!localEngine.includes('this.screen.width * pixelRatio') || !localEngine.incl
 if (!uiFlags.includes('releaseMode: true') || !uiFlags.includes('showAssetStatus: false') || !uiFlags.includes('showControlLabels: false')) {
   missing.push('commercial release UI flags must hide debug and control labels by default');
 }
+if (!uiFlags.includes('showMiniMap: true') || !uiFlags.includes('showFirstRaceCoach: true')) {
+  missing.push('commercial release UI flags must expose minimap and first-race coach toggles');
+}
 if (!uiLayout.includes('joystickBase') || !uiLayout.includes('brakeButton') || !uiLayout.includes('pauseButton: RacerCircle')) {
   missing.push('publish UI layout must include joystick, brake, and circle pause controls');
 }
@@ -119,8 +123,8 @@ if (!state.includes('steer: number') || !state.includes('steerDelta = dt * 2.35'
 if (!renderer.includes('RacerUiRenderer') || !renderer.includes('this.ui.render(ctx, state, assets, layout, options)')) {
   missing.push('Pseudo3DRenderer must delegate commercial UI drawing to RacerUiRenderer');
 }
-if (!uiRenderer.includes('RacerMiniMap') || !uiRenderer.includes('this.miniMap.render(ctx, state, layout)')) {
-  missing.push('RacerUiRenderer must delegate track radar to independent RacerMiniMap component');
+if (!uiRenderer.includes('RacerMiniMap') || !uiRenderer.includes('RACER_UI_FLAGS.showMiniMap') || !uiRenderer.includes('this.miniMap.render(ctx, state, layout)')) {
+  missing.push('RacerUiRenderer must delegate track radar to independent RacerMiniMap component behind a release flag');
 }
 if (!miniMap.includes('class RacerMiniMap') || !miniMap.includes('drawCurvePreview') || !miniMap.includes('drawTrafficDots') || !miniMap.includes('赛道雷达')) {
   missing.push('independent minimap component with curve preview and traffic dots');
@@ -133,6 +137,9 @@ if (!uiRenderer.includes('RacerUiPressedTarget') || !uiRenderer.includes('presse
 }
 if (!uiRenderer.includes('drawControlCoach') || !uiRenderer.includes('操作说明') || !scene.includes('CONTROL_COACH_SECONDS')) {
   missing.push('first-race control coach and help overlay flow');
+}
+if (!settings.includes('hasShownFirstRaceCoach') || !settings.includes('FIRST_RACE_COACH_SHOWN_KEY') || !scene.includes('setFirstRaceCoachShown(true)')) {
+  missing.push('persistent first-race control coach state');
 }
 if (!scene.includes('returnToMenu') || !scene.includes('paused-menu') || !uiRenderer.includes('返回菜单')) {
   missing.push('pause return-to-menu interaction');
