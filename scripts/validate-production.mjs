@@ -20,6 +20,7 @@ const requiredFiles = [
   'src/racer/RacerUiFlags.ts',
   'src/racer/RacerUiLayout.ts',
   'src/racer/RacerUiRenderer.ts',
+  'src/racer/RacerUiTheme.ts',
   'src/platforms/wechat/startup.ts',
   'src/platforms/wechat/game.json',
   'scripts/build-wechat.mjs',
@@ -28,7 +29,8 @@ const requiredFiles = [
   'docs/asset-replacement-guide.md',
   'docs/agent-workstreams.md',
   'docs/commercial-ui-ux-plan.md',
-  'docs/production-completion-plan.md'
+  'docs/production-completion-plan.md',
+  'docs/road-replacement-guide.md'
 ];
 
 const sourceFilesToCheck = [
@@ -65,6 +67,7 @@ const services = await read('src/racer/RacerServices.ts');
 const scene = await read('src/scenes/RacerScene.ts');
 const renderer = await read('src/racer/Pseudo3DRenderer.ts');
 const uiRenderer = await read('src/racer/RacerUiRenderer.ts');
+const uiTheme = await read('src/racer/RacerUiTheme.ts');
 const miniMap = await read('src/racer/RacerMiniMap.ts');
 const settings = await read('src/racer/RacerSettings.ts');
 const state = await read('src/racer/RacerState.ts');
@@ -76,6 +79,7 @@ const liteEngineTypes = await read('src/types/lite-game-engine.d.ts');
 const uiFlags = await read('src/racer/RacerUiFlags.ts');
 const uiLayout = await read('src/racer/RacerUiLayout.ts');
 const joystick = await read('src/racer/RacerJoystick.ts');
+const roadGuide = await read('docs/road-replacement-guide.md');
 
 const warnings = [];
 if (manifest.includes('ACTIVE_RACER_ASSET_PACK = LEGACY_RACER_ASSET_PACK')) {
@@ -102,6 +106,9 @@ if (!uiFlags.includes('releaseMode: true') || !uiFlags.includes('showAssetStatus
 if (!uiFlags.includes('showMiniMap: true') || !uiFlags.includes('showFirstRaceCoach: true')) {
   missing.push('commercial release UI flags must expose minimap and first-race coach toggles');
 }
+if (!uiTheme.includes('RACER_UI_THEME') || !uiTheme.includes('accent') || !uiTheme.includes('minimap') || !uiTheme.includes('controls')) {
+  missing.push('centralized UI theme tokens for commercial skinning');
+}
 if (!uiLayout.includes('joystickBase') || !uiLayout.includes('brakeButton') || !uiLayout.includes('pauseButton: RacerCircle')) {
   missing.push('publish UI layout must include joystick, brake, and circle pause controls');
 }
@@ -126,6 +133,9 @@ if (!renderer.includes('RacerUiRenderer') || !renderer.includes('this.ui.render(
 if (!uiRenderer.includes('RacerMiniMap') || !uiRenderer.includes('RACER_UI_FLAGS.showMiniMap') || !uiRenderer.includes('this.miniMap.render(ctx, state, layout)')) {
   missing.push('RacerUiRenderer must delegate track radar to independent RacerMiniMap component behind a release flag');
 }
+if (!uiRenderer.includes('RACER_UI_THEME') || !miniMap.includes('RACER_UI_THEME')) {
+  missing.push('UI renderer and minimap must use centralized theme tokens');
+}
 if (!miniMap.includes('class RacerMiniMap') || !miniMap.includes('drawCurvePreview') || !miniMap.includes('drawTrafficDots') || !miniMap.includes('赛道雷达')) {
   missing.push('independent minimap component with curve preview and traffic dots');
 }
@@ -144,7 +154,7 @@ if (!settings.includes('hasShownFirstRaceCoach') || !settings.includes('FIRST_RA
 if (!scene.includes('returnToMenu') || !scene.includes('paused-menu') || !uiRenderer.includes('返回菜单')) {
   missing.push('pause return-to-menu interaction');
 }
-if (!uiRenderer.includes('drawVignette') || !uiRenderer.includes('raceGrade') || !uiRenderer.includes('rgba(255, 207, 74, 0.12)')) {
+if (!uiRenderer.includes('drawVignette') || !uiRenderer.includes('raceGrade') || !uiRenderer.includes('RACER_UI_THEME.accent.goldSoft')) {
   missing.push('polished modal hierarchy, primary button glow, and result rating');
 }
 if (!renderer.includes('ctx.imageSmoothingEnabled = false') || !renderer.includes('drawImage(image')) {
@@ -158,6 +168,9 @@ if (!renderer.includes('drawPlayerFallback') || !renderer.includes('drawPlayerVi
 }
 if (!renderer.includes('this.drawPlayer(ctx, state, assets?.sprites ?? null, playerSegment, playerPercent)')) {
   missing.push('stable player car drawing outside segment projection clipping');
+}
+if (!roadGuide.includes('Current track output') || !roadGuide.includes('TRACK_SECTIONS') || !roadGuide.includes('Level 4: Add textured road support')) {
+  missing.push('road replacement guide with current track output and replacement levels');
 }
 if (!scene.includes('TARGET_LAPS')) {
   missing.push('RacerScene TARGET_LAPS race completion flow');
