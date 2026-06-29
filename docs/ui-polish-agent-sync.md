@@ -17,7 +17,8 @@ The UI has moved from prototype interactions to a more commercial mobile-game in
 - Main menu now includes `操作说明`.
 - Help screen explains steering, braking, pause, and 3-lap objective.
 - Pause screen now includes `返回菜单`.
-- First race shows a short control coach hint during gameplay.
+- First race shows a short control coach hint during gameplay and persists that it has already been shown.
+- `RacerUiFlags` now exposes `showMiniMap` and `showFirstRaceCoach` release toggles.
 - `RacerUiRenderer` now owns HUD, controls, overlays, help, and onboarding UI.
 - `RacerMiniMap` now owns the independent track radar / curve preview component.
 - `Pseudo3DRenderer` now focuses on backdrop, road, world sprites, and player car rendering, then delegates UI drawing.
@@ -37,6 +38,7 @@ Checklist:
 - Pause screen primary action is `继续比赛`.
 - Result screen primary action is `再来一局`.
 - Minimap label `赛道雷达` is understandable and not distracting.
+- First-race coach should only appear once per player unless storage is cleared.
 - No debug or placeholder service copy appears in release mode.
 
 ## Agent B: UI Interaction Designer
@@ -113,7 +115,7 @@ Checklist:
 - HUD/minimap does not cover important traffic.
 - Minimap curve preview gives useful left/right/straight information.
 - Nearby traffic dots do not look like debug noise.
-- Control coach disappears automatically and can be dismissed by driving input.
+- Control coach disappears automatically, can be dismissed by driving input, and does not reappear after it is stored as shown.
 - Overlay transitions do not leave stale pressed states.
 - Result screen appears after 3 laps without input glitches.
 - Extracting `RacerUiRenderer` does not change visual order: world first, player car, then UI.
@@ -134,6 +136,7 @@ Implemented files:
 - `src/racer/Pseudo3DRenderer.ts`
 - `src/racer/RacerUiRenderer.ts`
 - `src/racer/RacerMiniMap.ts`
+- `src/racer/RacerSettings.ts`
 - `src/racer/RacerUiFlags.ts`
 - `src/racer/RacerUiLayout.ts`
 - `scripts/validate-production.mjs`
@@ -141,8 +144,7 @@ Implemented files:
 Next recommended implementation pass:
 
 1. Add final icon assets for pause/music/share/leaderboard/help.
-2. Add optional settings overlay for music and control help.
-3. Persist whether the first-race coach has already been shown.
-4. Add final UI logo when commercial art is ready.
-5. Move repeated visual constants into UI theme tokens before the final skin pass.
-6. Tune minimap size/opacity after real-device testing.
+2. Add optional settings overlay for music, minimap, and control help.
+3. Add final UI logo when commercial art is ready.
+4. Move repeated visual constants into UI theme tokens before the final skin pass.
+5. Tune minimap size/opacity after real-device testing.
