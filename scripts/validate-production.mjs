@@ -13,6 +13,7 @@ const requiredFiles = [
   'src/racer/RacerAssets.ts',
   'src/racer/RacerJoystick.ts',
   'src/racer/RacerMiniMap.ts',
+  'src/racer/RacerRoadTheme.ts',
   'src/racer/RacerServices.ts',
   'src/racer/RacerSettings.ts',
   'src/racer/RacerState.ts',
@@ -66,6 +67,7 @@ const manifest = await read('src/racer/RacerAssetManifest.ts');
 const services = await read('src/racer/RacerServices.ts');
 const scene = await read('src/scenes/RacerScene.ts');
 const renderer = await read('src/racer/Pseudo3DRenderer.ts');
+const roadTheme = await read('src/racer/RacerRoadTheme.ts');
 const uiRenderer = await read('src/racer/RacerUiRenderer.ts');
 const uiTheme = await read('src/racer/RacerUiTheme.ts');
 const miniMap = await read('src/racer/RacerMiniMap.ts');
@@ -105,6 +107,15 @@ if (!uiFlags.includes('releaseMode: true') || !uiFlags.includes('showAssetStatus
 }
 if (!uiFlags.includes('showMiniMap: true') || !uiFlags.includes('showFirstRaceCoach: true')) {
   missing.push('commercial release UI flags must expose minimap and first-race coach toggles');
+}
+if (!roadTheme.includes('COMMERCIAL_ASPHALT_ROAD_THEME') || !roadTheme.includes('LEGACY_GREEN_ROAD_THEME') || !roadTheme.includes('roadColorForSegment')) {
+  missing.push('commercial road theme with legacy fallback and segment color helper');
+}
+if (!state.includes('roadColorForSegment(index)') || !state.includes('ACTIVE_RACER_ROAD_THEME.start') || !state.includes('ACTIVE_RACER_ROAD_THEME.finish')) {
+  missing.push('RacerState must apply active commercial road theme to generated segments');
+}
+if (!renderer.includes('ACTIVE_RACER_ROAD_THEME.fog')) {
+  missing.push('Pseudo3DRenderer must use active road theme fog color');
 }
 if (!uiTheme.includes('RACER_UI_THEME') || !uiTheme.includes('accent') || !uiTheme.includes('minimap') || !uiTheme.includes('controls')) {
   missing.push('centralized UI theme tokens for commercial skinning');
@@ -169,8 +180,8 @@ if (!renderer.includes('drawPlayerFallback') || !renderer.includes('drawPlayerVi
 if (!renderer.includes('this.drawPlayer(ctx, state, assets?.sprites ?? null, playerSegment, playerPercent)')) {
   missing.push('stable player car drawing outside segment projection clipping');
 }
-if (!roadGuide.includes('Current track output') || !roadGuide.includes('TRACK_SECTIONS') || !roadGuide.includes('Level 4: Add textured road support')) {
-  missing.push('road replacement guide with current track output and replacement levels');
+if (!roadGuide.includes('Current track output') || !roadGuide.includes('ACTIVE_RACER_ROAD_THEME') || !roadGuide.includes('Level 4: Add textured road support')) {
+  missing.push('road replacement guide with active road theme and replacement levels');
 }
 if (!scene.includes('TARGET_LAPS')) {
   missing.push('RacerScene TARGET_LAPS race completion flow');
