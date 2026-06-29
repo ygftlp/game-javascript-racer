@@ -1,5 +1,6 @@
-import { RACER_CONFIG, TRACK_SECTIONS, type RoadColor } from './config';
-import { ACTIVE_RACER_ROAD_THEME, roadColorForSegment } from './RacerRoadTheme';
+import { RACER_CONFIG, type RoadColor } from './config';
+import { roadColorForSegment } from './RacerRoadTheme';
+import { ACTIVE_RACER_TRACK } from './RacerTrackDefinition';
 import { BILLBOARDS, CARS, PLANTS, SPRITE_SCALE, type AtlasFrame } from './SpriteAtlas';
 import { RACER_TUNING_PRESETS, type RacerTuning } from './RacerTuning';
 
@@ -173,7 +174,7 @@ export class RacerState {
     this.cars = [];
 
     let currentY = 0;
-    for (const section of TRACK_SECTIONS) {
+    for (const section of ACTIVE_RACER_TRACK.sections) {
       const startY = currentY;
       const endY = startY + section.hill * RACER_CONFIG.segmentLength;
 
@@ -188,7 +189,7 @@ export class RacerState {
           y1: interpolate(startY, endY, p1),
           y2: interpolate(startY, endY, p2),
           curve: section.curve,
-          color: roadColorForSegment(index),
+          color: roadColorForSegment(index, ACTIVE_RACER_TRACK.roadTheme),
           sprites: [],
           cars: []
         };
@@ -203,11 +204,11 @@ export class RacerState {
     this.resetTraffic();
 
     const startIndex = this.findSegment(this.playerZ).index;
-    if (this.segments[startIndex + 2]) this.segments[startIndex + 2].color = ACTIVE_RACER_ROAD_THEME.start;
-    if (this.segments[startIndex + 3]) this.segments[startIndex + 3].color = ACTIVE_RACER_ROAD_THEME.start;
+    if (this.segments[startIndex + 2]) this.segments[startIndex + 2].color = ACTIVE_RACER_TRACK.roadTheme.start;
+    if (this.segments[startIndex + 3]) this.segments[startIndex + 3].color = ACTIVE_RACER_TRACK.roadTheme.start;
 
     for (let n = 0; n < RACER_CONFIG.rumbleLength; n += 1) {
-      this.segments[this.segments.length - 1 - n].color = ACTIVE_RACER_ROAD_THEME.finish;
+      this.segments[this.segments.length - 1 - n].color = ACTIVE_RACER_TRACK.roadTheme.finish;
     }
   }
 
