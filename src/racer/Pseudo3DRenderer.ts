@@ -1,7 +1,6 @@
 import type { Renderer, Texture } from '../engine';
 import { COLORS, RACER_CONFIG } from './config';
 import type { RacerAssets } from './RacerAssets';
-import { ACTIVE_RACER_ROAD_THEME } from './RacerRoadTheme';
 import type { Segment } from './RacerState';
 import type { AtlasFrame } from './SpriteAtlas';
 import { BACKGROUND, SPRITES, SPRITE_SCALE } from './SpriteAtlas';
@@ -192,7 +191,7 @@ export class Pseudo3DRenderer {
 
     if (fog < 1) {
       ctx.globalAlpha = 1 - fog;
-      ctx.fillStyle = ACTIVE_RACER_ROAD_THEME.fog;
+      ctx.fillStyle = state.activeTrack.roadTheme.fog;
       ctx.fillRect(0, p2.y, state.width, p1.y - p2.y);
       ctx.globalAlpha = 1;
     }
