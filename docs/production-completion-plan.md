@@ -64,7 +64,7 @@ Required:
 
 ### Gate 5: Commercial UI / UX polish
 
-Status: release/debug UI split, polished interaction pass, independent minimap component, UI theme tokens, dedicated track-select screen, dedicated settings screen, persisted selected track, per-track best laps, and first commercial road theme implemented; commercial art still needed.
+Status: release/debug UI split, polished interaction pass, independent minimap component, UI theme tokens, dedicated track-select screen, dedicated settings screen, configurable control sensitivity, persisted selected track, per-track best laps, and first commercial road theme implemented; commercial art still needed.
 
 Source of truth:
 
@@ -83,16 +83,18 @@ Implemented:
 - `src/racer/RacerUiTheme.ts` centralizes UI skin tokens for HUD, controls, panels, buttons, overlays, and minimap.
 - `src/racer/RacerRoadTheme.ts` centralizes road palette tokens and active road theme selection.
 - `src/racer/RacerTrackDefinition.ts` defines a selectable track registry.
-- `RACER_TRACKS` currently includes `极速公路`, `海岸冲刺`, and `城市夜跑`.
+- `src/racer/RacerControlSensitivity.ts` defines `舒适`, `标准`, and `灵敏` control sensitivity profiles.
 - The main menu includes `选择赛道`, `操作说明`, `排行榜`, and `设置`.
 - `RacerUiLayout` defines a dedicated track-select screen with track cards and `返回菜单`.
 - `RacerUiRenderer` renders the dedicated track-select screen, card pressed states, and `已选择` status.
-- `RacerUiLayout` defines a dedicated settings screen with music, minimap, operation guide, reset-guide, and return controls.
+- `RacerUiLayout` defines a dedicated settings screen with music, minimap, operation guide, control sensitivity, reset-guide, and return controls.
 - `RacerUiRenderer` renders the dedicated settings screen and current setting states.
 - `RacerScene` opens the dedicated track-select screen from the menu and confirms a selected card on touch release.
-- `RacerScene` opens the dedicated settings screen from the menu and persists music, minimap, and control coach settings.
-- `RacerSettings` persists the selected track id, audio state, minimap state, control coach state, and whether the first-race coach has already been shown.
-- `RacerScene` restores the last selected track at startup.
+- `RacerScene` opens the dedicated settings screen from the menu and persists music, minimap, control coach, and control sensitivity settings.
+- `RacerSettings` persists the selected track id, audio state, minimap state, control coach state, control sensitivity id, and whether the first-race coach has already been shown.
+- `RacerJoystick` applies the selected control sensitivity profile to joystick steering output.
+- `RacerState` applies the selected control sensitivity profile to steering response and input clamp.
+- `RacerScene` restores the last selected track and control sensitivity at startup.
 - `RacerStorage` stores best lap records per track id.
 - `RaceResult` includes selected track metadata for share / leaderboard payloads.
 - `ACTIVE_RACER_ROAD_THEME` defaults to `COMMERCIAL_ASPHALT_ROAD_THEME`.
@@ -105,7 +107,7 @@ Implemented:
 - Touch start/move/end handlers tolerate empty platform touch arrays.
 - `RacerUiRenderer` owns HUD, controls, overlays, help, onboarding UI, track-select UI, and settings UI.
 - `RacerMiniMap` is an independent component for the in-race track radar.
-- Minimap rendering is now controlled by the persisted settings screen switch.
+- Minimap rendering is controlled by the persisted settings screen switch.
 - First-race operation coach can be disabled or reset from the settings screen.
 - `Pseudo3DRenderer` focuses on world rendering and delegates UI drawing.
 - `Pseudo3DRenderer` uses the selected track road theme fog color.
@@ -124,6 +126,7 @@ Still required before commercial release:
 - Tune exact joystick/brake/minimap sizes and opacity on real low-end and high-DPI devices.
 - Tune the dedicated track-select screen card spacing, copy length, and pressed-state intensity on small devices.
 - Tune the dedicated settings screen button spacing, labels, and touch comfort on small devices.
+- Tune the `舒适 / 标准 / 灵敏` sensitivity presets from real device feedback.
 - Tune the commercial asphalt palette on real devices for readability and contrast.
 - Tune all selectable track section layouts on real devices.
 - Add final result-screen share copy, ranking entry polish, and optional medal/rating art.
@@ -160,6 +163,8 @@ Required manual checks:
 - Confirm settings screen minimap toggle hides/shows the in-race minimap and persists after reload.
 - Confirm settings screen operation guide toggle prevents the first-race coach from appearing.
 - Confirm `重看操作引导` resets the coach so it appears on the next race start.
+- Confirm `控制手感` cycles through `舒适 -> 标准 -> 灵敏` and persists after reload.
+- Confirm `舒适` feels steadier, `标准` matches the default, and `灵敏` turns faster.
 - Confirm relaunch restores the last selected track.
 - Confirm each track shows its own best lap record per track id.
 - Confirm left-bottom joystick steers the car quickly enough and returns to center on release.
@@ -173,7 +178,7 @@ Required manual checks:
 - Confirm share / leaderboard payloads include selected track metadata.
 - Confirm ads never appear while driving.
 - Finish the configured target lap count on each selectable track and restart.
-- Confirm best lap, selected track, audio preference, minimap preference, and operation coach preference persist after reload.
+- Confirm best lap, selected track, audio preference, minimap preference, operation coach preference, and control sensitivity persist after reload.
 - Confirm no console errors for missing required assets.
 - Check FPS on low-end and mid-range devices.
 - Check package size.
@@ -196,7 +201,7 @@ Next tasks:
 2. Confirm drag-outside cancellation feels safe.
 3. Validate track selector persistence and relaunch behavior.
 4. Validate dedicated track-select card spacing and return flow.
-5. Validate dedicated settings screen toggles, reset-guide flow, and return flow.
+5. Validate dedicated settings screen toggles, sensitivity cycle, reset-guide flow, and return flow.
 
 ### Agent C: Control Feel Designer
 
@@ -204,8 +209,8 @@ Next tasks:
 
 1. Validate joystick radius, dead-zone, and steering gain in WeChat DevTools.
 2. Test one-hand control comfort on target devices.
-3. Tune `RacerJoystick.ts`, `RacerUiLayout.ts`, and `RacerState.ts` from device feedback.
-4. Validate each selectable track is controllable with the same joystick/brake setup.
+3. Tune `RacerControlSensitivity.ts`, `RacerJoystick.ts`, `RacerUiLayout.ts`, and `RacerState.ts` from device feedback.
+4. Validate each selectable track is controllable with all three sensitivity presets.
 5. Validate operation guide settings are useful for returning players.
 
 ### Agent D: UI Visual Designer
@@ -226,5 +231,5 @@ Next tasks:
 2. Confirm the player car never disappears after the renderer stabilization fix.
 3. Validate minimap readability and obstruction on target screens.
 4. Validate commercial asphalt road readability on target screens.
-5. Validate dedicated track-select screen, dedicated settings screen, relaunch restore, and per-track best lap records.
+5. Validate dedicated track-select screen, dedicated settings screen, relaunch restore, sensitivity persistence, and per-track best lap records.
 6. Capture screenshots or recordings for any remaining visibility issue.
