@@ -121,7 +121,7 @@ if (!config.includes("from './RacerTrackDefinition'") || config.includes('const 
   missing.push('config.ts must re-export track definitions without owning track section data');
 }
 requireTokens(state, ['private track: RacerTrackDefinition', 'setTrack(track: RacerTrackDefinition', 'for (const section of this.track.sections)', 'roadColorForSegment(index, this.track.roadTheme)', 'this.track.roadTheme.start', 'this.track.roadTheme.finish', 'steer: number', 'steerDelta = dt * 2.35'], 'RacerState track/runtime state', missing);
-requireTokens(settings, ['SELECTED_TRACK_ID_KEY', 'getSelectedTrackId', 'setSelectedTrackId', 'FIRST_RACE_COACH_SHOWN_KEY'], 'RacerSettings persisted settings', missing);
+requireTokens(settings, ['SELECTED_TRACK_ID_KEY', 'getSelectedTrackId', 'setSelectedTrackId', 'FIRST_RACE_COACH_SHOWN_KEY', 'MINI_MAP_ENABLED_KEY', 'CONTROL_COACH_ENABLED_KEY', 'isMiniMapEnabled', 'setMiniMapEnabled', 'isControlCoachEnabled', 'setControlCoachEnabled', 'resetFirstRaceCoach'], 'RacerSettings persisted settings', missing);
 requireTokens(storage, ['bestLapKey(trackId', 'getBestLapTime(trackId', 'setBestLapTime(seconds: number, trackId'], 'RacerStorage per-track best lap', missing);
 requireTokens(services, ['trackId: string', 'trackName: string'], 'RaceResult selected track metadata', missing);
 requireTokens(scene, [
@@ -132,13 +132,33 @@ requireTokens(scene, [
   'this.storage.setBestLapTime(this.savedBestLapTime, this.activeTrack.id)',
   'private activeTrack: RacerTrackDefinition',
   'private get targetLaps(): number',
+  'private miniMapEnabled = true',
+  'private controlCoachEnabled = true',
+  'this.settings.isMiniMapEnabled()',
+  'this.settings.isControlCoachEnabled()',
+  'miniMapEnabled: this.miniMapEnabled',
+  'controlCoachEnabled: this.controlCoachEnabled',
+  'controlCoachSeen: this.hasShownControlCoach',
   "this.phase = 'trackSelect'",
+  "this.phase = 'settings'",
   'openTrackSelect()',
+  'openSettings()',
   'selectTrack(trackIndex: number)',
+  'toggleMiniMap()',
+  'toggleControlCoach()',
+  'resetControlCoachSetting()',
   'trackSelectIndex(point: TouchPoint)',
   'trackPressedTarget(index: number)',
   'trackIndexFromPressedTarget',
+  'isMenuSettingsButton',
+  'isSettingsAudioButton',
+  'isSettingsMiniMapButton',
+  'isSettingsCoachButton',
+  'isSettingsResetCoachButton',
+  'isSettingsBackButton',
   "'track-back'",
+  "'menu-settings'",
+  "'settings-back'",
   'tracks: RACER_TRACKS',
   'selectedTrackId: this.activeTrack.id',
   'this.state.completedLaps >= this.targetLaps',
@@ -146,28 +166,38 @@ requireTokens(scene, [
   'trackName: this.activeTrack.name',
   '(touches: TouchPoint[] = [])',
   'private handleTouchEnd(touches: TouchPoint[] = [])'
-], 'RacerScene dedicated track selection and selected track flow', missing);
+], 'RacerScene dedicated track selection, settings, and selected track flow', missing);
 if (scene.includes('const TARGET_LAPS')) missing.push('RacerScene must not hardcode TARGET_LAPS');
 if (scene.includes('cycleTrack()')) missing.push('RacerScene should use dedicated track selection screen instead of cycleTrack');
 requireTokens(renderer, ['RacerUiRenderer', 'this.ui.render(ctx, state, assets, layout, options)', 'state.activeTrack.roadTheme.fog', 'ctx.imageSmoothingEnabled = false', 'drawImage(image', 'drawPlayerFallback', 'drawPlayerVisibilityMarker', 'state.height - carH - 24', 'this.drawPlayer(ctx, state, assets?.sprites ?? null, playerSegment, playerPercent)'], 'Pseudo3DRenderer world/UI integration', missing);
 requireTokens(uiTheme, ['RACER_UI_THEME', 'accent', 'minimap', 'controls'], 'centralized UI theme tokens', missing);
-requireTokens(uiLayout, ['RacerMiniMapLayout', 'miniMapPreviewBar', 'miniMapProgressBar', 'trackButton', 'RacerTrackSelectLayout', 'trackSelect', 'trackButtons', 'backButton', 'RacerHelpLayout', 'menuButton', 'Math.max(76', 'joystickTouchArea'], 'RacerUiLayout publish layout and track select layout', missing);
+requireTokens(uiLayout, ['RacerMiniMapLayout', 'miniMapPreviewBar', 'miniMapProgressBar', 'trackButton', 'RacerTrackSelectLayout', 'trackSelect', 'trackButtons', 'RacerSettingsLayout', 'settingsButton', 'settings:', 'miniMapButton', 'coachButton', 'resetCoachButton', 'backButton', 'RacerHelpLayout', 'menuButton', 'Math.max(76', 'joystickTouchArea'], 'RacerUiLayout publish layout, track select, and settings layout', missing);
 requireTokens(joystick, ['class RacerJoystick', 'deadZone = 0.06', '* 1.45'], 'sensitive virtual joystick model', missing);
 requireTokens(uiRenderer, [
   'RacerMiniMap',
-  'RACER_UI_FLAGS.showMiniMap',
+  'RACER_UI_FLAGS.showMiniMap && options.miniMapEnabled',
   'this.miniMap.render(ctx, state, layout)',
   'RACER_UI_THEME',
   'RacerUiPhase =',
   'trackSelect',
+  'settings',
   'RacerTrackSelectPressedTarget',
   'RacerUiTrackOption',
+  'miniMapEnabled: boolean',
+  'controlCoachEnabled: boolean',
+  'controlCoachSeen: boolean',
   'selectedTrackId: string',
   'tracks: readonly RacerUiTrackOption[]',
   'drawTrackSelect',
   'drawTrackCard',
+  'drawSettings',
   '选择赛道',
   '已选择',
+  '设置',
+  '音乐：',
+  '小地图：',
+  '操作引导：',
+  '重看操作引导',
   '返回菜单',
   'targetLaps: number',
   '`目标：完成 ${targetLaps} 圈，刷新最佳圈速`',
@@ -180,12 +210,12 @@ requireTokens(uiRenderer, [
   'drawJoystick',
   'drawBrakeButton',
   'drawPauseButton'
-], 'RacerUiRenderer commercial UI and dedicated track select screen', missing);
+], 'RacerUiRenderer commercial UI, dedicated track select screen, and settings screen', missing);
 requireTokens(miniMap, ['class RacerMiniMap', 'drawCurvePreview', 'drawTrafficDots', '赛道雷达', 'RACER_UI_THEME'], 'independent minimap component', missing);
 requireTokens(startup, ['startWeChatRacerGame', 'new WxPlatform', 'onHide', 'onShow'], 'WeChat startup module lifecycle binding', missing);
 requireTokens(roadGuide, ['RACER_TRACKS', '选择赛道', 'selected track id', 'per track id', 'Level 5: Add textured road support'], 'road replacement guide track registry and persistence docs', missing);
-requireTokens(productionPlan, ['dedicated track-select screen', 'selected track id', 'per track id', 'Finish the configured target lap count on each selectable track'], 'production completion plan track-select docs', missing);
-requireTokens(uiAgentSync, ['dedicated track-select screen', 'selected track id', 'per track id'], 'UI polish multi-agent sync track-select docs', missing);
+requireTokens(productionPlan, ['dedicated track-select screen', 'dedicated settings screen', 'selected track id', 'per track id', 'Finish the configured target lap count on each selectable track'], 'production completion plan track-select and settings docs', missing);
+requireTokens(uiAgentSync, ['dedicated track-select screen', 'dedicated settings screen', 'selected track id', 'per track id'], 'UI polish multi-agent sync track-select and settings docs', missing);
 
 for (const file of sourceFilesToCheck) {
   const content = files[file];
