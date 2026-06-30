@@ -1,4 +1,6 @@
 export interface RaceResult {
+  trackId: string;
+  trackName: string;
   completedLaps: number;
   targetLaps: number;
   totalRaceTime: number;
