@@ -28,6 +28,8 @@ export class RacerScene extends Scene {
   private touchActive = false;
   private brakeActive = false;
   private audioMuted = false;
+  private miniMapEnabled = true;
+  private controlCoachEnabled = true;
   private lastCollisionCount = 0;
   private wasPlayingBeforeHidden = false;
   private phase: RacerPhase = 'menu';
@@ -46,6 +48,8 @@ export class RacerScene extends Scene {
     this.state = new RacerState(gameEngine.width, gameEngine.height, tuning, this.activeTrack);
     this.savedBestLapTime = this.storage.getBestLapTime(this.activeTrack.id);
     this.audioMuted = this.settings.isAudioMuted();
+    this.miniMapEnabled = this.settings.isMiniMapEnabled();
+    this.controlCoachEnabled = this.settings.isControlCoachEnabled();
     this.hasShownControlCoach = !RACER_UI_FLAGS.showFirstRaceCoach || this.settings.hasShownFirstRaceCoach();
     this.assets.setMuted(this.audioMuted);
     this.state.bestLapTime = this.savedBestLapTime;
@@ -54,6 +58,8 @@ export class RacerScene extends Scene {
     this.services.analytics.track('scene_ready', {
       tuning: tuning.profile,
       audioMuted: this.audioMuted,
+      miniMapEnabled: this.miniMapEnabled,
+      controlCoachEnabled: this.controlCoachEnabled,
       trackId: this.activeTrack.id,
       trackName: this.activeTrack.name,
       targetLaps: this.targetLaps
@@ -93,6 +99,9 @@ export class RacerScene extends Scene {
       phase: this.phase,
       targetLaps: this.targetLaps,
       audioMuted: this.audioMuted,
+      miniMapEnabled: this.miniMapEnabled,
+      controlCoachEnabled: this.controlCoachEnabled,
+      controlCoachSeen: this.hasShownControlCoach,
       brakeActive: this.brakeActive,
       pressedTarget: this.pressedTarget,
       controlCoachTimeLeft: this.controlCoachTimeLeft,
@@ -174,7 +183,7 @@ export class RacerScene extends Scene {
       if (this.isMenuTrackButton(point)) return 'menu-track';
       if (this.isMenuLeaderboardButton(point)) return 'menu-leaderboard';
       if (this.isMenuHelpButton(point)) return 'menu-help';
-      if (this.isMenuAudioButton(point)) return 'menu-audio';
+      if (this.isMenuSettingsButton(point)) return 'menu-settings';
       return null;
     }
 
@@ -182,6 +191,15 @@ export class RacerScene extends Scene {
       const trackIndex = this.trackSelectIndex(point);
       if (trackIndex !== null) return this.trackPressedTarget(trackIndex);
       if (this.isTrackSelectBackButton(point)) return 'track-back';
+      return null;
+    }
+
+    if (this.phase === 'settings') {
+      if (this.isSettingsAudioButton(point)) return 'settings-audio';
+      if (this.isSettingsMiniMapButton(point)) return 'settings-minimap';
+      if (this.isSettingsCoachButton(point)) return 'settings-coach';
+      if (this.isSettingsResetCoachButton(point)) return 'settings-reset-coach';
+      if (this.isSettingsBackButton(point)) return 'settings-back';
       return null;
     }
 
@@ -225,13 +243,33 @@ export class RacerScene extends Scene {
       this.openTrackSelect();
       return;
     }
+    if (target === 'menu-settings') {
+      this.openSettings();
+      return;
+    }
     const selectedTrackIndex = this.trackIndexFromPressedTarget(target);
     if (selectedTrackIndex !== null) {
       this.selectTrack(selectedTrackIndex);
       return;
     }
-    if (target === 'track-back') {
-      this.returnToMenu('track_select_back');
+    if (target === 'track-back' || target === 'settings-back') {
+      this.returnToMenu(target);
+      return;
+    }
+    if (target === 'settings-audio') {
+      this.toggleAudio();
+      return;
+    }
+    if (target === 'settings-minimap') {
+      this.toggleMiniMap();
+      return;
+    }
+    if (target === 'settings-coach') {
+      this.toggleControlCoach();
+      return;
+    }
+    if (target === 'settings-reset-coach') {
+      this.resetControlCoachSetting();
       return;
     }
     if (target === 'menu-help') {
@@ -246,7 +284,7 @@ export class RacerScene extends Scene {
       void this.showLeaderboard('menu');
       return;
     }
-    if (target === 'menu-audio' || target === 'paused-audio') {
+    if (target === 'paused-audio') {
       this.toggleAudio();
       return;
     }
@@ -293,6 +331,18 @@ export class RacerScene extends Scene {
     });
   }
 
+  private openSettings(): void {
+    this.phase = 'settings';
+    this.pressedTarget = null;
+    this.resetTouchControls();
+    this.services.analytics.track('settings_open', {
+      audioMuted: this.audioMuted,
+      miniMapEnabled: this.miniMapEnabled,
+      controlCoachEnabled: this.controlCoachEnabled,
+      controlCoachSeen: this.hasShownControlCoach
+    });
+  }
+
   private returnToMenu(source: string): void {
     this.phase = 'menu';
     this.wasPlayingBeforeHidden = false;
@@ -332,7 +382,7 @@ export class RacerScene extends Scene {
     this.pressedTarget = null;
     this.resetTouchControls();
     this.lastCollisionCount = this.state.collisionCount;
-    if (RACER_UI_FLAGS.showFirstRaceCoach && !this.hasShownControlCoach) {
+    if (RACER_UI_FLAGS.showFirstRaceCoach && this.controlCoachEnabled && !this.hasShownControlCoach) {
       this.controlCoachTimeLeft = CONTROL_COACH_SECONDS;
       this.hasShownControlCoach = true;
       this.settings.setFirstRaceCoachShown(true);
@@ -341,6 +391,8 @@ export class RacerScene extends Scene {
     this.services.analytics.track('race_start', {
       tuning: this.state.tuning.profile,
       audioMuted: this.audioMuted,
+      miniMapEnabled: this.miniMapEnabled,
+      controlCoachEnabled: this.controlCoachEnabled,
       trackId: this.activeTrack.id,
       trackName: this.activeTrack.name,
       targetLaps: this.targetLaps
@@ -393,6 +445,28 @@ export class RacerScene extends Scene {
     this.assets.setMuted(this.audioMuted);
     if (!this.audioMuted && this.phase === 'playing') this.assets.playMusic();
     this.services.analytics.track('audio_toggle', { muted: this.audioMuted, phase: this.phase });
+  }
+
+  private toggleMiniMap(): void {
+    this.miniMapEnabled = !this.miniMapEnabled;
+    this.settings.setMiniMapEnabled(this.miniMapEnabled);
+    this.services.analytics.track('minimap_toggle', { enabled: this.miniMapEnabled });
+  }
+
+  private toggleControlCoach(): void {
+    this.controlCoachEnabled = !this.controlCoachEnabled;
+    this.settings.setControlCoachEnabled(this.controlCoachEnabled);
+    if (!this.controlCoachEnabled) this.controlCoachTimeLeft = 0;
+    this.services.analytics.track('control_coach_toggle', { enabled: this.controlCoachEnabled });
+  }
+
+  private resetControlCoachSetting(): void {
+    this.controlCoachEnabled = true;
+    this.hasShownControlCoach = false;
+    this.controlCoachTimeLeft = 0;
+    this.settings.setControlCoachEnabled(true);
+    this.settings.resetFirstRaceCoach();
+    this.services.analytics.track('control_coach_reset');
   }
 
   private playCollisionSfxIfNeeded(): void {
@@ -455,8 +529,8 @@ export class RacerScene extends Scene {
     return pointInRect(point, this.getUiLayout().menu.helpButton);
   }
 
-  private isMenuAudioButton(point: TouchPoint): boolean {
-    return pointInRect(point, this.getUiLayout().menu.audioButton);
+  private isMenuSettingsButton(point: TouchPoint): boolean {
+    return pointInRect(point, this.getUiLayout().menu.settingsButton);
   }
 
   private trackSelectIndex(point: TouchPoint): number | null {
@@ -479,6 +553,26 @@ export class RacerScene extends Scene {
 
   private isTrackSelectBackButton(point: TouchPoint): boolean {
     return pointInRect(point, this.getUiLayout().trackSelect.backButton);
+  }
+
+  private isSettingsAudioButton(point: TouchPoint): boolean {
+    return pointInRect(point, this.getUiLayout().settings.audioButton);
+  }
+
+  private isSettingsMiniMapButton(point: TouchPoint): boolean {
+    return pointInRect(point, this.getUiLayout().settings.miniMapButton);
+  }
+
+  private isSettingsCoachButton(point: TouchPoint): boolean {
+    return pointInRect(point, this.getUiLayout().settings.coachButton);
+  }
+
+  private isSettingsResetCoachButton(point: TouchPoint): boolean {
+    return pointInRect(point, this.getUiLayout().settings.resetCoachButton);
+  }
+
+  private isSettingsBackButton(point: TouchPoint): boolean {
+    return pointInRect(point, this.getUiLayout().settings.backButton);
   }
 
   private isHelpStartButton(point: TouchPoint): boolean {
