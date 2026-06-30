@@ -5,7 +5,7 @@ import { createRacerServices, type RaceResult } from '../racer/RacerServices';
 import { RacerSettings } from '../racer/RacerSettings';
 import { RacerState } from '../racer/RacerState';
 import { RacerStorage } from '../racer/RacerStorage';
-import { ACTIVE_RACER_TRACK, findRacerTrackById, getNextRacerTrack, RACER_TRACKS, racerTrackIndex, type RacerTrackDefinition } from '../racer/RacerTrackDefinition';
+import { ACTIVE_RACER_TRACK, findRacerTrackById, RACER_TRACKS, racerTrackIndex, type RacerTrackDefinition } from '../racer/RacerTrackDefinition';
 import { resolveRacerTuning } from '../racer/RacerTuning';
 import { RACER_UI_FLAGS } from '../racer/RacerUiFlags';
 import { buildRacerUiLayout, pointInCircle, pointInRect } from '../racer/RacerUiLayout';
@@ -99,7 +99,9 @@ export class RacerScene extends Scene {
       joystick: this.joystick.snapshot(layout.controls.joystickBase, layout.controls.joystickKnobRadius),
       trackName: this.activeTrack.name,
       trackIndex: racerTrackIndex(this.activeTrack.id),
-      trackCount: RACER_TRACKS.length
+      trackCount: RACER_TRACKS.length,
+      selectedTrackId: this.activeTrack.id,
+      tracks: RACER_TRACKS
     });
   }
 
@@ -176,6 +178,13 @@ export class RacerScene extends Scene {
       return null;
     }
 
+    if (this.phase === 'trackSelect') {
+      const trackIndex = this.trackSelectIndex(point);
+      if (trackIndex !== null) return this.trackPressedTarget(trackIndex);
+      if (this.isTrackSelectBackButton(point)) return 'track-back';
+      return null;
+    }
+
     if (this.phase === 'help') {
       if (this.isHelpStartButton(point)) return 'help-start';
       if (this.isHelpBackButton(point)) return 'help-back';
@@ -213,7 +222,16 @@ export class RacerScene extends Scene {
       return;
     }
     if (target === 'menu-track') {
-      this.cycleTrack();
+      this.openTrackSelect();
+      return;
+    }
+    const selectedTrackIndex = this.trackIndexFromPressedTarget(target);
+    if (selectedTrackIndex !== null) {
+      this.selectTrack(selectedTrackIndex);
+      return;
+    }
+    if (target === 'track-back') {
+      this.returnToMenu('track_select_back');
       return;
     }
     if (target === 'menu-help') {
@@ -264,6 +282,17 @@ export class RacerScene extends Scene {
     this.services.analytics.track('help_open');
   }
 
+  private openTrackSelect(): void {
+    this.phase = 'trackSelect';
+    this.pressedTarget = null;
+    this.resetTouchControls();
+    this.services.analytics.track('track_select_open', {
+      trackId: this.activeTrack.id,
+      trackName: this.activeTrack.name,
+      trackCount: RACER_TRACKS.length
+    });
+  }
+
   private returnToMenu(source: string): void {
     this.phase = 'menu';
     this.wasPlayingBeforeHidden = false;
@@ -274,15 +303,21 @@ export class RacerScene extends Scene {
     this.services.analytics.track('return_menu', { source });
   }
 
-  private cycleTrack(): void {
-    if (this.phase !== 'menu') return;
+  private selectTrack(trackIndex: number): void {
+    if (this.phase !== 'trackSelect') return;
 
-    this.activeTrack = getNextRacerTrack(this.activeTrack.id);
+    const nextTrack = RACER_TRACKS[trackIndex];
+    if (!nextTrack) return;
+
+    this.activeTrack = nextTrack;
     this.settings.setSelectedTrackId(this.activeTrack.id);
     this.savedBestLapTime = this.storage.getBestLapTime(this.activeTrack.id);
     this.state.setTrack(this.activeTrack, this.savedBestLapTime);
     this.lastCollisionCount = this.state.collisionCount;
-    this.services.analytics.track('track_select', {
+    this.phase = 'menu';
+    this.pressedTarget = null;
+    this.resetTouchControls();
+    this.services.analytics.track('track_select_confirm', {
       trackId: this.activeTrack.id,
       trackName: this.activeTrack.name,
       trackIndex: racerTrackIndex(this.activeTrack.id),
@@ -422,6 +457,28 @@ export class RacerScene extends Scene {
 
   private isMenuAudioButton(point: TouchPoint): boolean {
     return pointInRect(point, this.getUiLayout().menu.audioButton);
+  }
+
+  private trackSelectIndex(point: TouchPoint): number | null {
+    const buttons = this.getUiLayout().trackSelect.trackButtons;
+    for (let index = 0; index < Math.min(buttons.length, RACER_TRACKS.length); index += 1) {
+      if (pointInRect(point, buttons[index])) return index;
+    }
+    return null;
+  }
+
+  private trackPressedTarget(index: number): RacerUiPressedTarget {
+    return `track-select-${index}` as RacerUiPressedTarget;
+  }
+
+  private trackIndexFromPressedTarget(target: RacerUiPressedTarget): number | null {
+    if (!target || !target.startsWith('track-select-')) return null;
+    const index = Number(target.replace('track-select-', ''));
+    return Number.isInteger(index) && index >= 0 ? index : null;
+  }
+
+  private isTrackSelectBackButton(point: TouchPoint): boolean {
+    return pointInRect(point, this.getUiLayout().trackSelect.backButton);
   }
 
   private isHelpStartButton(point: TouchPoint): boolean {
