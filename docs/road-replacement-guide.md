@@ -13,9 +13,11 @@ The road pipeline is:
 3. `src/racer/RacerTrackDefinition.ts` defines the track registry, track sections, road theme, roadside theme, and target laps.
 4. `src/racer/RacerState.ts` expands the selected track sections into many road segments and applies the selected track road theme.
 5. `src/scenes/RacerScene.ts` owns the currently selected track and reads its `targetLaps` for race completion, HUD, help text, and result submission.
-6. Each `Segment` stores `z1`, `z2`, `y1`, `y2`, `curve`, color, roadside sprites, and traffic cars.
-7. `src/racer/Pseudo3DRenderer.ts` projects each segment into screen space.
-8. `Pseudo3DRenderer.drawSegment()` draws grass, rumble strips, road surface, and lane markers as polygons.
+6. `src/racer/RacerSettings.ts` persists the selected track id so the next launch restores the same track.
+7. `src/racer/RacerStorage.ts` stores best lap times per track id.
+8. Each `Segment` stores `z1`, `z2`, `y1`, `y2`, `curve`, color, roadside sprites, and traffic cars.
+9. `src/racer/Pseudo3DRenderer.ts` projects each segment into screen space.
+10. `Pseudo3DRenderer.drawSegment()` draws grass, rumble strips, road surface, and lane markers as polygons.
 
 ## Current road constants
 
@@ -85,6 +87,10 @@ Current selectable tracks:
 | 城市夜跑 | `city-night-run` | 3 | `night` | Denser curve rhythm, future neon theme |
 
 The menu uses the `切换赛道` button to cycle through this registry with `getNextRacerTrack()`.
+
+The selected track id is persisted through `RacerSettings` under `racer.v4.selected_track_id` and restored by `RacerScene` using `findRacerTrackById()`.
+
+Best lap records are stored per track id through `RacerStorage`, so a short sprint track does not overwrite the best lap display for a longer track.
 
 ## Current default track output
 
@@ -162,7 +168,7 @@ if (segment.color.lane) {
 }
 ```
 
-Distant fog currently uses `ACTIVE_RACER_ROAD_THEME.fog`, which should match the active track road theme.
+Distant fog uses `state.activeTrack.roadTheme.fog`, so selected tracks can eventually have different fog palettes.
 
 This means the road can be reskinned by changing a theme, but not by replacing one road image. Road shape is generated from segment projection.
 
@@ -243,7 +249,7 @@ export const COAST_TRACK: RacerTrackDefinition = {
 export const RACER_TRACKS = [DEFAULT_OUTRUN_TRACK, COAST_TRACK];
 ```
 
-`RacerScene` currently cycles through `RACER_TRACKS` from the menu. Later this can become a dedicated track-select screen with locked/unlocked states.
+`RacerScene` currently cycles through `RACER_TRACKS` from the menu and persists the selected track. Later this can become a dedicated track-select screen with locked/unlocked states.
 
 ### Level 4: Replace roadside art
 
@@ -297,6 +303,8 @@ For the next commercial pass, do this order:
 | Change target lap count | `src/racer/RacerTrackDefinition.ts` / `targetLaps` |
 | Add/remove selectable tracks | `src/racer/RacerTrackDefinition.ts` / `RACER_TRACKS` |
 | Change active default track | `src/racer/RacerTrackDefinition.ts` / `ACTIVE_RACER_TRACK` |
+| Change saved selected track | `src/racer/RacerSettings.ts` / `SELECTED_TRACK_ID_KEY` |
+| Change best-lap persistence | `src/racer/RacerStorage.ts` / `bestLapKey(trackId)` |
 | Change segment generation | `src/racer/RacerState.ts` |
 | Change road drawing | `src/racer/Pseudo3DRenderer.ts` |
 | Change background image atlas | `src/racer/SpriteAtlas.ts` |
@@ -315,5 +323,7 @@ For the next commercial pass, do this order:
 - Lane lines do not flicker on small screens.
 - The new palette works with HUD and minimap contrast.
 - Menu `切换赛道` cycles through every entry in `RACER_TRACKS`.
+- Relaunch restores the last selected track.
+- Each track shows its own best lap record.
 - Race ends at the selected track configured `targetLaps` count.
 - Help screen, HUD, result screen, share payload, and leaderboard payload all show the same selected track target lap count.
