@@ -1,4 +1,4 @@
-export type RacerOverlayPhase = 'menu' | 'paused' | 'finished' | 'help';
+export type RacerOverlayPhase = 'menu' | 'paused' | 'finished' | 'help' | 'trackSelect';
 
 export interface RacerRect {
   x: number;
@@ -49,6 +49,11 @@ export interface RacerMenuLayout extends RacerPanelLayout {
   audioButton: RacerRect;
 }
 
+export interface RacerTrackSelectLayout extends RacerPanelLayout {
+  trackButtons: RacerRect[];
+  backButton: RacerRect;
+}
+
 export interface RacerPausedLayout extends RacerPanelLayout {
   resumeButton: RacerRect;
   restartButton: RacerRect;
@@ -83,6 +88,7 @@ export interface RacerUiLayout {
   controls: RacerControlLayout;
   touchZones: RacerTouchZones;
   menu: RacerMenuLayout;
+  trackSelect: RacerTrackSelectLayout;
   paused: RacerPausedLayout;
   finished: RacerFinishedLayout;
   help: RacerHelpLayout;
@@ -113,6 +119,15 @@ function panel(width: number, height: number, desiredW: number, desiredH: number
   return rect((width - w) / 2, Math.max(14, (height - h) / 2), w, h);
 }
 
+function buildTrackButtons(width: number, trackPanel: RacerRect, small: boolean): RacerRect[] {
+  const buttonW = Math.min(small ? 430 : 500, trackPanel.w - 64);
+  const buttonH = small ? 58 : 68;
+  const gap = small ? 10 : 12;
+  const startY = trackPanel.y + (small ? 112 : 132);
+
+  return [0, 1, 2].map((index) => centeredButton(width, startY + index * (buttonH + gap), buttonW, buttonH));
+}
+
 export function buildRacerUiLayout(width: number, height: number): RacerUiLayout {
   const small = width < 760 || height < 430;
   const buttonW = small ? Math.min(248, width * 0.46) : 268;
@@ -128,6 +143,10 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
 
   const menuPanel = panel(width, height, 640, small ? 430 : 520);
   const menuStartY = menuPanel.y + (small ? 160 : 188);
+
+  const trackPanel = panel(width, height, 660, small ? 410 : 470);
+  const trackButtons = buildTrackButtons(width, trackPanel, small);
+  const trackBackY = trackButtons[trackButtons.length - 1].y + trackButtons[trackButtons.length - 1].h + (small ? 14 : 18);
 
   const pausedPanel = panel(width, height, 620, small ? 414 : 466);
   const pausedStartY = pausedPanel.y + (small ? 132 : 158);
@@ -198,6 +217,15 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
       leaderboardButton: centeredButton(width, menuStartY + (menuButtonH + menuSpacing) * 2, buttonW, menuButtonH),
       helpButton: centeredButton(width, menuStartY + (menuButtonH + menuSpacing) * 3, buttonW, menuButtonH),
       audioButton: centeredButton(width, menuStartY + (menuButtonH + menuSpacing) * 4, buttonW, menuButtonH)
+    },
+    trackSelect: {
+      panel: trackPanel,
+      titleY: trackPanel.y + (small ? 22 : 30),
+      line1Y: trackPanel.y + (small ? 74 : 90),
+      line2Y: trackPanel.y + (small ? 96 : 116),
+      line3Y: trackPanel.y + (small ? 0 : 0),
+      trackButtons,
+      backButton: centeredButton(width, trackBackY, small ? 210 : 236, buttonH)
     },
     paused: {
       panel: pausedPanel,
