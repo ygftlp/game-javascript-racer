@@ -17,9 +17,11 @@ The UI has moved from prototype interactions to a more commercial mobile-game in
 - Main menu now includes `操作说明`.
 - Help screen explains steering, braking, pause, and dynamic target-lap objective.
 - Pause screen now includes `返回菜单`.
-- Main menu now includes `切换赛道`.
+- Main menu now includes `选择赛道`.
+- The old simple cycle-track behavior has been replaced with a dedicated track-select screen.
+- The dedicated track-select screen shows track cards, target laps, current selected state, and `返回菜单`.
 - `RacerTrackDefinition` now owns a three-track registry: `极速公路`, `海岸冲刺`, and `城市夜跑`.
-- `RacerScene` now cycles selected tracks from the menu and rebuilds `RacerState` with the selected track.
+- `RacerScene` now opens the dedicated track-select screen from the menu and rebuilds `RacerState` with the selected track.
 - `RacerSettings` now persists the selected track id.
 - `RacerScene` now restores the last selected track at launch.
 - `RacerStorage` now stores best lap records per track id.
@@ -27,7 +29,7 @@ The UI has moved from prototype interactions to a more commercial mobile-game in
 - Touch start/move/end handlers now tolerate empty platform touch arrays.
 - First race shows a short control coach hint during gameplay and persists that it has already been shown.
 - `RacerUiFlags` now exposes `showMiniMap` and `showFirstRaceCoach` release toggles.
-- `RacerUiRenderer` now owns HUD, controls, overlays, help, onboarding UI, and menu track selector UI.
+- `RacerUiRenderer` now owns HUD, controls, overlays, help, onboarding UI, and track-select UI.
 - `RacerMiniMap` now owns the independent track radar / curve preview component.
 - `Pseudo3DRenderer` now focuses on backdrop, road, world sprites, and player car rendering, then delegates UI drawing.
 
@@ -36,13 +38,13 @@ The UI has moved from prototype interactions to a more commercial mobile-game in
 Focus:
 
 - Verify the press-to-confirm flow feels natural.
-- Confirm menu copy, pause copy, result copy, help copy, minimap labels, and track selector labels are player-facing and not technical.
+- Confirm menu copy, pause copy, result copy, help copy, minimap labels, and track-select copy are player-facing and not technical.
 - Decide whether `极速公路` is final or temporary branding.
 
 Checklist:
 
 - Start button is the clearest menu action.
-- Track switching is clear but does not compete with `开始比赛`.
+- Track selection is clear but does not compete with `开始比赛`.
 - Help is easy to find but does not compete with `开始比赛`.
 - Pause screen primary action is `继续比赛`.
 - Result screen primary action is `再来一局`.
@@ -57,14 +59,16 @@ Focus:
 - Button press feedback.
 - Touch cancel behavior.
 - Button spacing and hit target comfort.
-- Help, track selector, and return-menu safety flows.
+- Help, track-select, and return-menu safety flows.
 
 Checklist:
 
 - Press down visibly changes button state.
 - Releasing inside executes the action.
 - Moving outside cancels the action.
-- Track selector cycles exactly one track per confirmed tap.
+- `选择赛道` opens the dedicated track-select screen.
+- Track cards select exactly one track per confirmed tap.
+- Track-select `返回菜单` does not change the selected track.
 - Relaunching the game restores the last selected track.
 - Help screen start/back buttons are clear.
 - Pause return-menu action does not trigger accidentally.
@@ -78,7 +82,7 @@ Focus:
 - Track registry design.
 - Target-lap balance.
 - Route difficulty progression.
-- Future track unlock / selection screen.
+- Future track unlock / paginated selection screen.
 - Per-track progression and score separation.
 
 Checklist:
@@ -88,9 +92,10 @@ Checklist:
 - `海岸冲刺` is shorter and faster than the default track.
 - `城市夜跑` has a denser curve rhythm and remains playable on mobile controls.
 - Target laps fit session length.
-- Track switching resets road state before a race starts.
+- Track selection resets road state before a race starts.
 - Selected track id is saved through `RacerSettings`.
 - Best lap display is per track id through `RacerStorage`.
+- If more than three tracks are added, the dedicated track-select screen must add pagination or scrolling.
 
 ## Agent D: Visual Designer
 
@@ -100,7 +105,7 @@ Focus:
 - Modal hierarchy.
 - Button state system.
 - Help/onboarding readability.
-- Track selector readability.
+- Track-select card readability.
 - Minimap / track radar readability.
 - Future icon/logo integration through the UI renderer.
 
@@ -109,7 +114,8 @@ Checklist:
 - Modal panel has enough contrast over gameplay.
 - Primary CTA has stronger visual weight than secondary buttons.
 - The gold accent is used consistently.
-- Track selector text fits small screens.
+- Track-select card text fits small screens.
+- Selected track state is obvious without looking like debug text.
 - Help screen looks like part of the game, not documentation pasted into the canvas.
 - Minimap looks like part of the HUD, not a debug graph.
 - Result rating feels rewarding, not debug-like.
@@ -142,7 +148,7 @@ Focus:
 - UI overlap and readability.
 - Car visibility under UI and road effects.
 - Onboarding flow safety.
-- Track selector regression checks.
+- Track-select regression checks.
 - Minimap readability and obstruction checks.
 - Renderer separation regression checks.
 
@@ -154,6 +160,7 @@ Checklist:
 - Nearby traffic dots do not look like debug noise.
 - Control coach disappears automatically, can be dismissed by driving input, and does not reappear after it is stored as shown.
 - Overlay transitions do not leave stale pressed states.
+- Track-select screen opens from menu, selects a track, and returns safely.
 - Result screen appears at the selected track target-lap count.
 - Share / leaderboard payloads include selected track metadata.
 - Extracting `RacerUiRenderer` does not change visual order: world first, player car, then UI.
@@ -190,4 +197,4 @@ Next recommended implementation pass:
 3. Add final UI logo when commercial art is ready.
 4. Move repeated visual constants into UI theme tokens before the final skin pass.
 5. Tune minimap size/opacity after real-device testing on all selectable tracks.
-6. Replace the current simple track-cycle button with a dedicated track-select screen if more than 3 tracks are added.
+6. Add pagination or scrolling to the dedicated track-select screen if more than 3 tracks are added.
