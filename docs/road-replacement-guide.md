@@ -15,9 +15,9 @@ The road pipeline is:
 5. `src/scenes/RacerScene.ts` owns the currently selected track and reads its `targetLaps` for race completion, HUD, help text, and result submission.
 6. `src/racer/RacerSettings.ts` persists the selected track id so the next launch restores the same track.
 7. `src/racer/RacerStorage.ts` stores best lap times per track id.
-8. Each `Segment` stores `z1`, `z2`, `y1`, `y2`, `curve`, color, roadside sprites, and traffic cars.
-9. `src/racer/Pseudo3DRenderer.ts` projects each segment into screen space.
-10. `Pseudo3DRenderer.drawSegment()` draws grass, rumble strips, road surface, and lane markers as polygons.
+8. `src/racer/RacerUiLayout.ts` defines the dedicated track-select screen layout.
+9. `src/racer/RacerUiRenderer.ts` renders the dedicated track-select screen cards and selected state.
+10. `src/racer/Pseudo3DRenderer.ts` projects each segment into screen space and draws the road polygons.
 
 ## Current road constants
 
@@ -68,7 +68,7 @@ The default track uses `COMMERCIAL_ASPHALT_ROAD_THEME`, defined in `src/racer/Ra
 
 ## Current track registry
 
-`src/racer/RacerTrackDefinition.ts` now exposes a multi-track registry:
+`src/racer/RacerTrackDefinition.ts` exposes a multi-track registry:
 
 ```ts
 export const RACER_TRACKS = [
@@ -86,7 +86,7 @@ Current selectable tracks:
 | 海岸冲刺 | `coast-sprint` | 2 | `coast` | Short, fast mobile sprint |
 | 城市夜跑 | `city-night-run` | 3 | `night` | Denser curve rhythm, future neon theme |
 
-The menu uses the `切换赛道` button to cycle through this registry with `getNextRacerTrack()`.
+The main menu uses `选择赛道` to open a dedicated track-select screen. The track-select screen renders one card per current track, highlights the selected card as `已选择`, and provides `返回菜单`.
 
 The selected track id is persisted through `RacerSettings` under `racer.v4.selected_track_id` and restored by `RacerScene` using `findRacerTrackById()`.
 
@@ -187,16 +187,6 @@ Change:
 - `COMMERCIAL_ASPHALT_ROAD_THEME.finish`
 - `COMMERCIAL_ASPHALT_ROAD_THEME.fog`
 
-Pros:
-
-- Very low risk.
-- No gameplay changes.
-- No atlas work.
-
-Cons:
-
-- Still uses polygon road rendering, not textured asphalt.
-
 ### Level 2: Replace track layout and race length
 
 Use this when you want a different course or different race duration.
@@ -249,7 +239,7 @@ export const COAST_TRACK: RacerTrackDefinition = {
 export const RACER_TRACKS = [DEFAULT_OUTRUN_TRACK, COAST_TRACK];
 ```
 
-`RacerScene` currently cycles through `RACER_TRACKS` from the menu and persists the selected track. Later this can become a dedicated track-select screen with locked/unlocked states.
+`RacerScene` opens a dedicated track-select screen from the menu and persists the selected track. If more than three tracks are added, replace the current static card layout with pagination or scrolling.
 
 ### Level 4: Replace roadside art
 
@@ -302,6 +292,7 @@ For the next commercial pass, do this order:
 | Change curve/hill layout | `src/racer/RacerTrackDefinition.ts` / track `sections` |
 | Change target lap count | `src/racer/RacerTrackDefinition.ts` / `targetLaps` |
 | Add/remove selectable tracks | `src/racer/RacerTrackDefinition.ts` / `RACER_TRACKS` |
+| Change track-select screen | `src/racer/RacerUiLayout.ts` + `src/racer/RacerUiRenderer.ts` |
 | Change active default track | `src/racer/RacerTrackDefinition.ts` / `ACTIVE_RACER_TRACK` |
 | Change saved selected track | `src/racer/RacerSettings.ts` / `SELECTED_TRACK_ID_KEY` |
 | Change best-lap persistence | `src/racer/RacerStorage.ts` / `bestLapKey(trackId)` |
@@ -322,7 +313,9 @@ For the next commercial pass, do this order:
 - Rumble strip contrast is visible on low-brightness screens.
 - Lane lines do not flicker on small screens.
 - The new palette works with HUD and minimap contrast.
-- Menu `切换赛道` cycles through every entry in `RACER_TRACKS`.
+- Menu `选择赛道` opens the dedicated track-select screen.
+- Track cards select every entry in `RACER_TRACKS`.
+- `返回菜单` safely returns without changing the selected track.
 - Relaunch restores the last selected track.
 - Each track shows its own best lap record.
 - Race ends at the selected track configured `targetLaps` count.
