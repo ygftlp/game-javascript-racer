@@ -7,7 +7,8 @@ import { RACER_UI_FLAGS } from './RacerUiFlags';
 import { RACER_UI_THEME } from './RacerUiTheme';
 import type { RacerCircle, RacerRect, RacerUiLayout } from './RacerUiLayout';
 
-export type RacerUiPhase = 'menu' | 'playing' | 'paused' | 'finished' | 'help';
+export type RacerUiPhase = 'menu' | 'playing' | 'paused' | 'finished' | 'help' | 'trackSelect';
+export type RacerTrackSelectPressedTarget = `track-select-${number}`;
 
 export type RacerUiPressedTarget =
   | 'menu-start'
@@ -15,6 +16,8 @@ export type RacerUiPressedTarget =
   | 'menu-leaderboard'
   | 'menu-help'
   | 'menu-audio'
+  | RacerTrackSelectPressedTarget
+  | 'track-back'
   | 'help-start'
   | 'help-back'
   | 'paused-resume'
@@ -27,6 +30,13 @@ export type RacerUiPressedTarget =
   | 'pause'
   | null;
 
+export interface RacerUiTrackOption {
+  id: string;
+  name: string;
+  description: string;
+  targetLaps: number;
+}
+
 export interface RacerUiRenderOptions {
   phase: RacerUiPhase;
   targetLaps: number;
@@ -38,6 +48,8 @@ export interface RacerUiRenderOptions {
   trackName: string;
   trackIndex: number;
   trackCount: number;
+  selectedTrackId: string;
+  tracks: readonly RacerUiTrackOption[];
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -50,6 +62,10 @@ function formatSeconds(seconds: number): string {
   const wholeSeconds = Math.floor(seconds - minutes * 60);
   const tenths = Math.floor(10 * (seconds - Math.floor(seconds)));
   return minutes > 0 ? `${minutes}:${wholeSeconds.toString().padStart(2, '0')}.${tenths}` : `${wholeSeconds}.${tenths}`;
+}
+
+function trackPressedTarget(index: number): RacerTrackSelectPressedTarget {
+  return `track-select-${index}`;
 }
 
 export class RacerUiRenderer {
@@ -171,7 +187,15 @@ export class RacerUiRenderer {
     if (options.phase === 'playing') return;
 
     this.drawVignette(ctx, state.width, state.height);
-    const active = options.phase === 'menu' ? layout.menu : options.phase === 'paused' ? layout.paused : options.phase === 'help' ? layout.help : layout.finished;
+    const active = options.phase === 'menu'
+      ? layout.menu
+      : options.phase === 'paused'
+        ? layout.paused
+        : options.phase === 'help'
+          ? layout.help
+          : options.phase === 'trackSelect'
+            ? layout.trackSelect
+            : layout.finished;
     this.drawModalPanel(ctx, active.panel);
 
     ctx.textAlign = 'center';
@@ -180,6 +204,8 @@ export class RacerUiRenderer {
 
     if (options.phase === 'menu') {
       this.drawMenu(ctx, state, assets, options, layout);
+    } else if (options.phase === 'trackSelect') {
+      this.drawTrackSelect(ctx, state, options, layout);
     } else if (options.phase === 'help') {
       this.drawHelp(ctx, state, options.targetLaps, layout, options.pressedTarget);
     } else if (options.phase === 'paused') {
@@ -198,14 +224,63 @@ export class RacerUiRenderer {
     ctx.font = `${layout.fonts.body}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.body;
     ctx.fillText('复古街机赛车', state.width / 2, layout.menu.line1Y);
-    ctx.fillText(`赛道 ${options.trackIndex + 1}/${options.trackCount} · ${options.trackName}`, state.width / 2, layout.menu.line2Y);
+    ctx.fillText(`当前赛道 · ${options.trackName}`, state.width / 2, layout.menu.line2Y);
     ctx.fillText(`目标 ${options.targetLaps} 圈 · ${options.audioMuted ? '音乐关闭' : '音乐开启'}`, state.width / 2, layout.menu.line3Y);
     if (RACER_UI_FLAGS.showAssetStatus) ctx.fillText(`${assets?.statusLabel ?? 'Assets idle'}`, state.width / 2, layout.menu.line3Y);
     this.drawButton(ctx, layout.menu.startButton, '开始比赛', layout, true, options.pressedTarget === 'menu-start');
-    this.drawButton(ctx, layout.menu.trackButton, '切换赛道', layout, false, options.pressedTarget === 'menu-track');
+    this.drawButton(ctx, layout.menu.trackButton, '选择赛道', layout, false, options.pressedTarget === 'menu-track');
     this.drawButton(ctx, layout.menu.leaderboardButton, '排行榜', layout, false, options.pressedTarget === 'menu-leaderboard');
     this.drawButton(ctx, layout.menu.helpButton, '操作说明', layout, false, options.pressedTarget === 'menu-help');
     this.drawButton(ctx, layout.menu.audioButton, options.audioMuted ? '开启音乐' : '关闭音乐', layout, false, options.pressedTarget === 'menu-audio');
+  }
+
+  private drawTrackSelect(ctx: CanvasRenderingContext2D, state: RacerState, options: RacerUiRenderOptions, layout: RacerUiLayout): void {
+    const select = layout.trackSelect;
+    ctx.font = `bold ${layout.fonts.title}px sans-serif`;
+    ctx.fillStyle = RACER_UI_THEME.text.primary;
+    ctx.fillText('选择赛道', state.width / 2, select.titleY);
+    ctx.font = `${layout.fonts.note}px sans-serif`;
+    ctx.fillStyle = RACER_UI_THEME.text.note;
+    ctx.fillText('选择后会保存，下次进入自动恢复', state.width / 2, select.line1Y);
+    ctx.fillText(`当前 ${options.trackIndex + 1}/${options.trackCount} · ${options.trackName}`, state.width / 2, select.line2Y);
+
+    const visibleTracks = options.tracks.slice(0, select.trackButtons.length);
+    for (let index = 0; index < visibleTracks.length; index += 1) {
+      const track = visibleTracks[index];
+      const target = select.trackButtons[index];
+      const selected = track.id === options.selectedTrackId;
+      const pressed = options.pressedTarget === trackPressedTarget(index);
+      this.drawTrackCard(ctx, target, track, index, selected, pressed, layout);
+    }
+
+    this.drawButton(ctx, select.backButton, '返回菜单', layout, false, options.pressedTarget === 'track-back');
+  }
+
+  private drawTrackCard(ctx: CanvasRenderingContext2D, target: RacerRect, track: RacerUiTrackOption, index: number, selected: boolean, pressed: boolean, layout: RacerUiLayout): void {
+    const inset = pressed ? 3 : 0;
+    const yOffset = pressed ? 3 : 0;
+    const fill = selected
+      ? pressed ? RACER_UI_THEME.accent.goldPressed : RACER_UI_THEME.accent.goldSoft
+      : pressed ? RACER_UI_THEME.button.secondaryPressed : RACER_UI_THEME.button.secondary;
+    const stroke = selected ? RACER_UI_THEME.accent.gold : RACER_UI_THEME.button.secondaryStroke;
+    const x = target.x + inset;
+    const y = target.y + yOffset + inset;
+    const w = target.w - inset * 2;
+    const h = target.h - inset * 2;
+
+    this.roundedPanel(ctx, x, y, w, h, fill, stroke);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.font = `bold ${layout.small ? 18 : 21}px sans-serif`;
+    ctx.fillStyle = RACER_UI_THEME.text.primary;
+    ctx.fillText(`${index + 1}. ${track.name}`, x + 16, y + 10);
+    ctx.font = `${layout.small ? 14 : 16}px sans-serif`;
+    ctx.fillStyle = RACER_UI_THEME.text.body;
+    ctx.fillText(track.description, x + 16, y + (layout.small ? 34 : 40));
+    ctx.textAlign = 'right';
+    ctx.fillStyle = selected ? RACER_UI_THEME.accent.gold : RACER_UI_THEME.text.note;
+    ctx.fillText(selected ? '已选择' : `${track.targetLaps} 圈`, x + w - 16, y + 12);
+    ctx.textAlign = 'left';
   }
 
   private drawHelp(ctx: CanvasRenderingContext2D, state: RacerState, targetLaps: number, layout: RacerUiLayout, pressedTarget: RacerUiPressedTarget): void {
