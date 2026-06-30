@@ -17,6 +17,7 @@ const requiredFiles = [
   'src/racer/RacerServices.ts',
   'src/racer/RacerSettings.ts',
   'src/racer/RacerState.ts',
+  'src/racer/RacerStorage.ts',
   'src/racer/RacerTrackDefinition.ts',
   'src/racer/RacerTuning.ts',
   'src/racer/RacerUiFlags.ts',
@@ -76,6 +77,7 @@ const uiTheme = await read('src/racer/RacerUiTheme.ts');
 const miniMap = await read('src/racer/RacerMiniMap.ts');
 const settings = await read('src/racer/RacerSettings.ts');
 const state = await read('src/racer/RacerState.ts');
+const storage = await read('src/racer/RacerStorage.ts');
 const startup = await read('src/platforms/wechat/startup.ts');
 const engineBoundary = await read('src/engine/index.ts');
 const localEngine = await read('src/engine/local-lite-game-engine.ts');
@@ -117,8 +119,8 @@ if (!roadTheme.includes('COMMERCIAL_ASPHALT_ROAD_THEME') || !roadTheme.includes(
 if (!trackDefinition.includes('RacerTrackDefinition') || !trackDefinition.includes('DEFAULT_OUTRUN_TRACK') || !trackDefinition.includes('COAST_SPRINT_TRACK') || !trackDefinition.includes('CITY_NIGHT_TRACK')) {
   missing.push('track definition component must include default, coast, and city/night tracks');
 }
-if (!trackDefinition.includes('RACER_TRACKS') || !trackDefinition.includes('getNextRacerTrack') || !trackDefinition.includes('racerTrackIndex')) {
-  missing.push('multi-track registry helpers for selection and display');
+if (!trackDefinition.includes('RACER_TRACKS') || !trackDefinition.includes('findRacerTrackById') || !trackDefinition.includes('getNextRacerTrack') || !trackDefinition.includes('racerTrackIndex')) {
+  missing.push('multi-track registry helpers for lookup, selection, and display');
 }
 if (!config.includes("from './RacerTrackDefinition'") || config.includes('const TRACK_SECTIONS: TrackSection[] = [')) {
   missing.push('config.ts must re-export track definitions without owning track section data');
@@ -129,6 +131,21 @@ if (!state.includes('private track: RacerTrackDefinition') || !state.includes('s
 if (!state.includes('roadColorForSegment(index, this.track.roadTheme)') || !state.includes('this.track.roadTheme.start') || !state.includes('this.track.roadTheme.finish')) {
   missing.push('RacerState must apply the selected track road theme to generated segments');
 }
+if (!settings.includes('SELECTED_TRACK_ID_KEY') || !settings.includes('getSelectedTrackId') || !settings.includes('setSelectedTrackId')) {
+  missing.push('RacerSettings must persist the selected track id');
+}
+if (!storage.includes('bestLapKey(trackId') || !storage.includes('getBestLapTime(trackId') || !storage.includes('setBestLapTime(seconds: number, trackId')) {
+  missing.push('RacerStorage must store best lap times per track');
+}
+if (!services.includes('trackId: string') || !services.includes('trackName: string')) {
+  missing.push('RaceResult must include selected track metadata');
+}
+if (!scene.includes('findRacerTrackById') || !scene.includes('this.settings.getSelectedTrackId()') || !scene.includes('this.settings.setSelectedTrackId(this.activeTrack.id)')) {
+  missing.push('RacerScene must restore and persist the selected track id');
+}
+if (!scene.includes('this.storage.getBestLapTime(this.activeTrack.id)') || !scene.includes('this.storage.setBestLapTime(this.savedBestLapTime, this.activeTrack.id)')) {
+  missing.push('RacerScene must load and save best lap per selected track');
+}
 if (!scene.includes('getNextRacerTrack') || !scene.includes('RACER_TRACKS') || !scene.includes('racerTrackIndex')) {
   missing.push('RacerScene must import multi-track registry helpers');
 }
@@ -137,6 +154,9 @@ if (!scene.includes('private activeTrack: RacerTrackDefinition') || !scene.inclu
 }
 if (!scene.includes('cycleTrack()') || !scene.includes('this.state.setTrack(this.activeTrack') || !scene.includes("'menu-track'")) {
   missing.push('RacerScene must wire menu track switching to state reset');
+}
+if (!scene.includes('(touches: TouchPoint[] = [])') || !scene.includes('private handleTouchEnd(touches: TouchPoint[] = [])')) {
+  missing.push('RacerScene touch handlers must tolerate empty platform end events');
 }
 if (!scene.includes('this.state.completedLaps >= this.targetLaps') || !scene.includes('targetLaps: this.targetLaps') || !scene.includes('trackName: this.activeTrack.name')) {
   missing.push('RacerScene finish condition, renderer options, and race result must use selected track metadata');
