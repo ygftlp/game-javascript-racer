@@ -13,6 +13,7 @@ const requiredFiles = [
   'src/racer/Pseudo3DRenderer.ts',
   'src/racer/RacerAssetManifest.ts',
   'src/racer/RacerAssets.ts',
+  'src/racer/RacerControlSensitivity.ts',
   'src/racer/RacerJoystick.ts',
   'src/racer/RacerMiniMap.ts',
   'src/racer/RacerRoadTheme.ts',
@@ -81,6 +82,7 @@ const scene = files['src/scenes/RacerScene.ts'];
 const renderer = files['src/racer/Pseudo3DRenderer.ts'];
 const roadTheme = files['src/racer/RacerRoadTheme.ts'];
 const trackDefinition = files['src/racer/RacerTrackDefinition.ts'];
+const controlSensitivity = files['src/racer/RacerControlSensitivity.ts'];
 const config = files['src/racer/config.ts'];
 const uiRenderer = files['src/racer/RacerUiRenderer.ts'];
 const uiTheme = files['src/racer/RacerUiTheme.ts'];
@@ -117,15 +119,26 @@ requireTokens(localEngine, ['this.screen.width * pixelRatio', 'ctx.scale(pixelRa
 requireTokens(uiFlags, ['releaseMode: true', 'showAssetStatus: false', 'showControlLabels: false', 'showMiniMap: true', 'showFirstRaceCoach: true'], 'commercial release UI flags', missing);
 requireTokens(roadTheme, ['COMMERCIAL_ASPHALT_ROAD_THEME', 'LEGACY_GREEN_ROAD_THEME', 'roadColorForSegment'], 'commercial road theme', missing);
 requireTokens(trackDefinition, ['RacerTrackDefinition', 'DEFAULT_OUTRUN_TRACK', 'COAST_SPRINT_TRACK', 'CITY_NIGHT_TRACK', 'RACER_TRACKS', 'findRacerTrackById', 'getNextRacerTrack', 'racerTrackIndex'], 'multi-track registry', missing);
+requireTokens(controlSensitivity, ['RacerControlSensitivityId', 'RACER_CONTROL_SENSITIVITY_PROFILES', "id: 'comfort'", "id: 'standard'", "id: 'sensitive'", 'joystickGain', 'steerInputLimit', 'steerResponse', 'findRacerControlSensitivity', 'nextRacerControlSensitivity'], 'control sensitivity profiles', missing);
 if (!config.includes("from './RacerTrackDefinition'") || config.includes('const TRACK_SECTIONS: TrackSection[] = [')) {
   missing.push('config.ts must re-export track definitions without owning track section data');
 }
-requireTokens(state, ['private track: RacerTrackDefinition', 'setTrack(track: RacerTrackDefinition', 'for (const section of this.track.sections)', 'roadColorForSegment(index, this.track.roadTheme)', 'this.track.roadTheme.start', 'this.track.roadTheme.finish', 'steer: number', 'steerDelta = dt * 2.35'], 'RacerState track/runtime state', missing);
-requireTokens(settings, ['SELECTED_TRACK_ID_KEY', 'getSelectedTrackId', 'setSelectedTrackId', 'FIRST_RACE_COACH_SHOWN_KEY', 'MINI_MAP_ENABLED_KEY', 'CONTROL_COACH_ENABLED_KEY', 'isMiniMapEnabled', 'setMiniMapEnabled', 'isControlCoachEnabled', 'setControlCoachEnabled', 'resetFirstRaceCoach'], 'RacerSettings persisted settings', missing);
+requireTokens(state, ['private track: RacerTrackDefinition', 'setTrack(track: RacerTrackDefinition', 'for (const section of this.track.sections)', 'roadColorForSegment(index, this.track.roadTheme)', 'this.track.roadTheme.start', 'this.track.roadTheme.finish', 'steer: number', 'private controlSensitivity', 'setControlSensitivity(profile: RacerControlSensitivityProfile)', 'this.controlSensitivity.steerResponse', 'this.controlSensitivity.steerInputLimit'], 'RacerState track/runtime/control sensitivity state', missing);
+requireTokens(settings, ['SELECTED_TRACK_ID_KEY', 'getSelectedTrackId', 'setSelectedTrackId', 'FIRST_RACE_COACH_SHOWN_KEY', 'MINI_MAP_ENABLED_KEY', 'CONTROL_COACH_ENABLED_KEY', 'CONTROL_SENSITIVITY_KEY', 'getControlSensitivityId', 'setControlSensitivityId', 'resetControlSensitivity', 'isMiniMapEnabled', 'setMiniMapEnabled', 'isControlCoachEnabled', 'setControlCoachEnabled', 'resetFirstRaceCoach'], 'RacerSettings persisted settings', missing);
 requireTokens(storage, ['bestLapKey(trackId', 'getBestLapTime(trackId', 'setBestLapTime(seconds: number, trackId'], 'RacerStorage per-track best lap', missing);
 requireTokens(services, ['trackId: string', 'trackName: string'], 'RaceResult selected track metadata', missing);
 requireTokens(scene, [
   'findRacerTrackById',
+  'findRacerControlSensitivity',
+  'nextRacerControlSensitivity',
+  'private controlSensitivity: RacerControlSensitivityProfile',
+  'this.settings.getControlSensitivityId()',
+  'this.state.setControlSensitivity(this.controlSensitivity)',
+  'this.settings.setControlSensitivityId(this.controlSensitivity.id)',
+  'cycleControlSensitivity()',
+  'this.joystick.steer(this.controlSensitivity)',
+  'controlSensitivityLabel: this.controlSensitivity.label',
+  'controlSensitivityDescription: this.controlSensitivity.description',
   'this.settings.getSelectedTrackId()',
   'this.settings.setSelectedTrackId(this.activeTrack.id)',
   'this.storage.getBestLapTime(this.activeTrack.id)',
@@ -147,6 +160,8 @@ requireTokens(scene, [
   'toggleMiniMap()',
   'toggleControlCoach()',
   'resetControlCoachSetting()',
+  'isSettingsSensitivityButton',
+  "'settings-sensitivity'",
   'trackSelectIndex(point: TouchPoint)',
   'trackPressedTarget(index: number)',
   'trackIndexFromPressedTarget',
@@ -166,13 +181,13 @@ requireTokens(scene, [
   'trackName: this.activeTrack.name',
   '(touches: TouchPoint[] = [])',
   'private handleTouchEnd(touches: TouchPoint[] = [])'
-], 'RacerScene dedicated track selection, settings, and selected track flow', missing);
+], 'RacerScene dedicated track selection, settings, control sensitivity, and selected track flow', missing);
 if (scene.includes('const TARGET_LAPS')) missing.push('RacerScene must not hardcode TARGET_LAPS');
 if (scene.includes('cycleTrack()')) missing.push('RacerScene should use dedicated track selection screen instead of cycleTrack');
 requireTokens(renderer, ['RacerUiRenderer', 'this.ui.render(ctx, state, assets, layout, options)', 'state.activeTrack.roadTheme.fog', 'ctx.imageSmoothingEnabled = false', 'drawImage(image', 'drawPlayerFallback', 'drawPlayerVisibilityMarker', 'state.height - carH - 24', 'this.drawPlayer(ctx, state, assets?.sprites ?? null, playerSegment, playerPercent)'], 'Pseudo3DRenderer world/UI integration', missing);
 requireTokens(uiTheme, ['RACER_UI_THEME', 'accent', 'minimap', 'controls'], 'centralized UI theme tokens', missing);
-requireTokens(uiLayout, ['RacerMiniMapLayout', 'miniMapPreviewBar', 'miniMapProgressBar', 'trackButton', 'RacerTrackSelectLayout', 'trackSelect', 'trackButtons', 'RacerSettingsLayout', 'settingsButton', 'settings:', 'miniMapButton', 'coachButton', 'resetCoachButton', 'backButton', 'RacerHelpLayout', 'menuButton', 'Math.max(76', 'joystickTouchArea'], 'RacerUiLayout publish layout, track select, and settings layout', missing);
-requireTokens(joystick, ['class RacerJoystick', 'deadZone = 0.06', '* 1.45'], 'sensitive virtual joystick model', missing);
+requireTokens(uiLayout, ['RacerMiniMapLayout', 'miniMapPreviewBar', 'miniMapProgressBar', 'trackButton', 'RacerTrackSelectLayout', 'trackSelect', 'trackButtons', 'RacerSettingsLayout', 'settingsButton', 'settings:', 'miniMapButton', 'coachButton', 'sensitivityButton', 'resetCoachButton', 'backButton', 'RacerHelpLayout', 'menuButton', 'Math.max(76', 'joystickTouchArea'], 'RacerUiLayout publish layout, track select, and settings layout', missing);
+requireTokens(joystick, ['class RacerJoystick', 'deadZone = 0.06', 'profile.joystickGain', 'profile.steerInputLimit'], 'configurable virtual joystick model', missing);
 requireTokens(uiRenderer, [
   'RacerMiniMap',
   'RACER_UI_FLAGS.showMiniMap && options.miniMapEnabled',
@@ -186,6 +201,8 @@ requireTokens(uiRenderer, [
   'miniMapEnabled: boolean',
   'controlCoachEnabled: boolean',
   'controlCoachSeen: boolean',
+  'controlSensitivityLabel: string',
+  'controlSensitivityDescription: string',
   'selectedTrackId: string',
   'tracks: readonly RacerUiTrackOption[]',
   'drawTrackSelect',
@@ -197,6 +214,8 @@ requireTokens(uiRenderer, [
   '音乐：',
   '小地图：',
   '操作引导：',
+  '控制手感：',
+  '当前手感：',
   '重看操作引导',
   '返回菜单',
   'targetLaps: number',
@@ -210,12 +229,12 @@ requireTokens(uiRenderer, [
   'drawJoystick',
   'drawBrakeButton',
   'drawPauseButton'
-], 'RacerUiRenderer commercial UI, dedicated track select screen, and settings screen', missing);
+], 'RacerUiRenderer commercial UI, dedicated track select screen, settings screen, and sensitivity display', missing);
 requireTokens(miniMap, ['class RacerMiniMap', 'drawCurvePreview', 'drawTrafficDots', '赛道雷达', 'RACER_UI_THEME'], 'independent minimap component', missing);
 requireTokens(startup, ['startWeChatRacerGame', 'new WxPlatform', 'onHide', 'onShow'], 'WeChat startup module lifecycle binding', missing);
 requireTokens(roadGuide, ['RACER_TRACKS', '选择赛道', 'selected track id', 'per track id', 'Level 5: Add textured road support'], 'road replacement guide track registry and persistence docs', missing);
-requireTokens(productionPlan, ['dedicated track-select screen', 'dedicated settings screen', 'selected track id', 'per track id', 'Finish the configured target lap count on each selectable track'], 'production completion plan track-select and settings docs', missing);
-requireTokens(uiAgentSync, ['dedicated track-select screen', 'dedicated settings screen', 'selected track id', 'per track id'], 'UI polish multi-agent sync track-select and settings docs', missing);
+requireTokens(productionPlan, ['dedicated track-select screen', 'dedicated settings screen', 'control sensitivity', '舒适', '标准', '灵敏', 'selected track id', 'per track id', 'Finish the configured target lap count on each selectable track'], 'production completion plan track-select, settings, and sensitivity docs', missing);
+requireTokens(uiAgentSync, ['dedicated track-select screen', 'dedicated settings screen', 'control sensitivity', '舒适', '标准', '灵敏', 'selected track id', 'per track id'], 'UI polish multi-agent sync track-select, settings, and sensitivity docs', missing);
 
 for (const file of sourceFilesToCheck) {
   const content = files[file];
