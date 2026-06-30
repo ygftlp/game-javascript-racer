@@ -1,3 +1,5 @@
+import type { RacerControlSensitivityProfile } from './RacerControlSensitivity';
+import { DEFAULT_RACER_CONTROL_SENSITIVITY } from './RacerControlSensitivity';
 import type { RacerCircle } from './RacerUiLayout';
 
 export interface RacerJoystickSnapshot {
@@ -63,8 +65,8 @@ export class RacerJoystick {
     this.knobY = this.centerY;
   }
 
-  steer(): number {
-    return clamp(this.normalizedX * 1.45, -1.35, 1.35);
+  steer(profile: RacerControlSensitivityProfile = DEFAULT_RACER_CONTROL_SENSITIVITY): number {
+    return clamp(this.normalizedX * profile.joystickGain, -profile.steerInputLimit, profile.steerInputLimit);
   }
 
   snapshot(fallbackBase: RacerCircle, fallbackKnobRadius: number): RacerJoystickSnapshot {
