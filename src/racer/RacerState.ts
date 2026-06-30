@@ -1,4 +1,5 @@
 import { RACER_CONFIG, type RoadColor } from './config';
+import { DEFAULT_RACER_CONTROL_SENSITIVITY, type RacerControlSensitivityProfile } from './RacerControlSensitivity';
 import { roadColorForSegment } from './RacerRoadTheme';
 import { ACTIVE_RACER_TRACK, type RacerTrackDefinition } from './RacerTrackDefinition';
 import { BILLBOARDS, CARS, PLANTS, SPRITE_SCALE, type AtlasFrame } from './SpriteAtlas';
@@ -88,6 +89,7 @@ export class RacerState {
   totalRaceTime = 0;
   collisionCooldown = 0;
   collisionCount = 0;
+  private controlSensitivity: RacerControlSensitivityProfile = DEFAULT_RACER_CONTROL_SENSITIVITY;
 
   constructor(
     width: number,
@@ -112,13 +114,17 @@ export class RacerState {
     this.resetRace(bestLapTime);
   }
 
+  setControlSensitivity(profile: RacerControlSensitivityProfile): void {
+    this.controlSensitivity = profile;
+  }
+
   update(dt: number): void {
     const playerSegment = this.findSegment(this.position + this.playerZ);
     const playerWidth = SPRITE_SCALE * 80;
     const speedPercent = this.speed / RACER_CONFIG.maxSpeed;
     const startPosition = this.position;
-    const steerDelta = dt * 2.35 * speedPercent;
-    const steerInput = clamp(this.input.steer, -1.35, 1.35);
+    const steerDelta = dt * this.controlSensitivity.steerResponse * speedPercent;
+    const steerInput = clamp(this.input.steer, -this.controlSensitivity.steerInputLimit, this.controlSensitivity.steerInputLimit);
 
     this.totalRaceTime += dt;
     this.collisionCooldown = Math.max(0, this.collisionCooldown - dt);
@@ -183,58 +189,67 @@ export class RacerState {
     return this.segments[Math.floor(z / RACER_CONFIG.segmentLength) % this.segments.length];
   }
 
-  resetRoad(): void {
+  private resetRoad(): void {
     this.segments = [];
-    this.cars = [];
+    let height = 0;
+    let index = 0;
 
-    let currentY = 0;
     for (const section of this.track.sections) {
-      const startY = currentY;
-      const endY = startY + section.hill * RACER_CONFIG.segmentLength;
-
-      for (let n = 0; n < section.length; n += 1) {
-        const index = this.segments.length;
-        const p1 = n / section.length;
-        const p2 = (n + 1) / section.length;
-        const segment: Segment = {
+      const startHeight = height;
+      const endHeight = height + section.hill;
+      for (let i = 0; i < section.length; i += 1) {
+        const percent = i / Math.max(1, section.length - 1);
+        this.segments.push({
           index,
           z1: index * RACER_CONFIG.segmentLength,
           z2: (index + 1) * RACER_CONFIG.segmentLength,
-          y1: interpolate(startY, endY, p1),
-          y2: interpolate(startY, endY, p2),
+          y1: interpolate(startHeight, endHeight, percent),
+          y2: interpolate(startHeight, endHeight, Math.min(1, percent + 1 / section.length)),
           curve: section.curve,
           color: roadColorForSegment(index, this.track.roadTheme),
           sprites: [],
           cars: []
-        };
-        this.segments.push(segment);
+        });
+        index += 1;
       }
-
-      currentY = endY;
+      height = endHeight;
     }
 
     this.trackLength = this.segments.length * RACER_CONFIG.segmentLength;
+    this.decorateStartFinish();
     this.resetRoadsideSprites();
     this.resetTraffic();
+  }
 
-    const startIndex = this.findSegment(this.playerZ).index;
-    if (this.segments[startIndex + 2]) this.segments[startIndex + 2].color = this.track.roadTheme.start;
-    if (this.segments[startIndex + 3]) this.segments[startIndex + 3].color = this.track.roadTheme.start;
+  private decorateStartFinish(): void {
+    for (let i = 0; i < Math.min(12, this.segments.length); i += 1) {
+      this.segments[i].color = this.track.roadTheme.start;
+    }
+    for (let i = this.segments.length - 16; i < this.segments.length; i += 1) {
+      if (this.segments[i]) this.segments[i].color = this.track.roadTheme.finish;
+    }
+  }
 
-    for (let n = 0; n < RACER_CONFIG.rumbleLength; n += 1) {
-      this.segments[this.segments.length - 1 - n].color = this.track.roadTheme.finish;
+  private resetRoadsideSprites(): void {
+    const theme = this.track.roadsideTheme;
+    for (let i = 10; i < this.segments.length; i += 10) {
+      const leftFrame = theme === 'night' ? randomChoice(BILLBOARDS) : randomChoice(PLANTS);
+      const rightFrame = theme === 'coast' ? randomChoice(BILLBOARDS) : randomChoice([...PLANTS, ...BILLBOARDS]);
+      this.segments[i].sprites.push({ frame: leftFrame, offset: -1.35 - Math.random() * 1.3 });
+      this.segments[i].sprites.push({ frame: rightFrame, offset: 1.2 + Math.random() * 1.6 });
     }
   }
 
   private resetTraffic(): void {
-    for (let n = 0; n < this.tuning.totalCars; n += 1) {
-      const frame = randomChoice(CARS);
-      const z = Math.floor(Math.random() * this.segments.length) * RACER_CONFIG.segmentLength;
+    this.cars = [];
+    const count = Math.max(10, this.tuning.trafficCount);
+
+    for (let i = 0; i < count; i += 1) {
       const car: TrafficCar = {
-        frame,
-        z,
-        offset: Math.random() * randomChoice([-0.78, 0.78]),
-        speed: RACER_CONFIG.maxSpeed / 4 + Math.random() * RACER_CONFIG.maxSpeed / (frame === CARS[4] ? 4 : 2),
+        frame: randomChoice(CARS),
+        offset: randomChoice([-0.65, -0.35, 0.35, 0.65]),
+        z: Math.floor(Math.random() * this.segments.length) * RACER_CONFIG.segmentLength,
+        speed: randomInt(RACER_CONFIG.maxSpeed / 4, RACER_CONFIG.maxSpeed / 2),
         percent: 0
       };
       this.cars.push(car);
@@ -242,133 +257,41 @@ export class RacerState {
     }
   }
 
-  private resetRoadsideSprites(): void {
-    this.addSprite(20, SPRITES_SAFE.BILLBOARD07, -1);
-    this.addSprite(40, SPRITES_SAFE.BILLBOARD06, -1);
-    this.addSprite(60, SPRITES_SAFE.BILLBOARD08, -1);
-    this.addSprite(80, SPRITES_SAFE.BILLBOARD09, -1);
-    this.addSprite(100, SPRITES_SAFE.BILLBOARD01, -1);
-    this.addSprite(120, SPRITES_SAFE.BILLBOARD02, -1);
-    this.addSprite(140, SPRITES_SAFE.BILLBOARD03, -1);
-    this.addSprite(160, SPRITES_SAFE.BILLBOARD04, -1);
-    this.addSprite(180, SPRITES_SAFE.BILLBOARD05, -1);
-
-    for (let n = 14; n < Math.min(220, this.segments.length); n += 4 + Math.floor(n / 100)) {
-      this.addSprite(n, SPRITES_SAFE.PALM_TREE, 0.5 + Math.random() * 0.5);
-      this.addSprite(n, SPRITES_SAFE.PALM_TREE, 1 + Math.random() * 2);
-    }
-
-    for (let n = 230; n < this.segments.length; n += 5) {
-      this.addSprite(n, SPRITES_SAFE.COLUMN, 1.1);
-      this.addSprite(n + randomInt(0, 5), randomChoice([SPRITES_SAFE.TREE1, SPRITES_SAFE.TREE2]), -1 - Math.random() * 2);
-    }
-
-    for (let n = 200; n < this.segments.length; n += 3) {
-      this.addSprite(n, randomChoice(PLANTS), randomChoice([1, -1]) * (2 + Math.random() * 5));
-    }
-
-    for (let n = 260; n < this.segments.length - 50; n += 80) {
-      const side = randomChoice([1, -1]);
-      this.addSprite(n + randomInt(0, 30), randomChoice(BILLBOARDS), -side);
-      for (let i = 0; i < 8; i += 1) {
-        this.addSprite(n + randomInt(0, 45), randomChoice(PLANTS), side * (1.5 + Math.random()));
-      }
-    }
-  }
-
-  private addSprite(segmentIndex: number, frame: AtlasFrame, offset: number): void {
-    const segment = this.segments[segmentIndex];
-    if (!segment) return;
-    segment.sprites.push({ frame, offset });
-  }
-
   private updateTraffic(dt: number, playerSegment: Segment, playerWidth: number): void {
     for (const car of this.cars) {
       const oldSegment = this.findSegment(car.z);
-      car.offset += this.updateCarOffset(car, oldSegment, playerSegment, playerWidth);
-      car.offset = clamp(car.offset, -0.95, 0.95);
+      oldSegment.cars = oldSegment.cars.filter((item) => item !== car);
+
+      car.offset += this.avoidPlayer(car, playerSegment, playerWidth);
+      car.offset = clamp(car.offset, -0.85, 0.85);
       car.z = increase(car.z, dt * car.speed, this.trackLength);
       car.percent = (car.z % RACER_CONFIG.segmentLength) / RACER_CONFIG.segmentLength;
-      const newSegment = this.findSegment(car.z);
-      if (oldSegment !== newSegment) {
-        const index = oldSegment.cars.indexOf(car);
-        if (index >= 0) oldSegment.cars.splice(index, 1);
-        newSegment.cars.push(car);
-      }
+      this.findSegment(car.z).cars.push(car);
     }
   }
 
-  private updateCarOffset(car: TrafficCar, carSegment: Segment, playerSegment: Segment, playerWidth: number): number {
-    const lookahead = 20;
-    const carWidth = car.frame.w * SPRITE_SCALE;
+  private avoidPlayer(car: TrafficCar, playerSegment: Segment, playerWidth: number): number {
+    if (car.z <= this.position || car.z > this.position + RACER_CONFIG.segmentLength * 18) return 0;
+    if (!overlap(this.playerX, playerWidth, car.offset, SPRITE_SCALE * 80, 1.6)) return 0;
 
-    if (carSegment.index - playerSegment.index > this.tuning.drawDistance) return 0;
-
-    for (let i = 1; i < lookahead; i += 1) {
-      const segment = this.segments[(carSegment.index + i) % this.segments.length];
-
-      if (segment === playerSegment && car.speed > this.speed && overlap(this.playerX, playerWidth, car.offset, carWidth, 1.2)) {
-        const dir = this.playerX > 0.5 ? -1 : this.playerX < -0.5 ? 1 : car.offset > this.playerX ? 1 : -1;
-        return dir * (1 / i) * ((car.speed - this.speed) / RACER_CONFIG.maxSpeed);
-      }
-
-      for (const otherCar of segment.cars) {
-        const otherCarWidth = otherCar.frame.w * SPRITE_SCALE;
-        if (car !== otherCar && car.speed > otherCar.speed && overlap(car.offset, carWidth, otherCar.offset, otherCarWidth, 1.2)) {
-          const dir = otherCar.offset > 0.5 ? -1 : otherCar.offset < -0.5 ? 1 : car.offset > otherCar.offset ? 1 : -1;
-          return dir * (1 / i) * ((car.speed - otherCar.speed) / RACER_CONFIG.maxSpeed);
-        }
-      }
-    }
-
-    if (car.offset < -0.9) return 0.1;
-    if (car.offset > 0.9) return -0.1;
-    return 0;
+    return car.offset > this.playerX ? 0.04 : -0.04;
   }
 
   private checkTrafficCollision(playerSegment: Segment, playerWidth: number): void {
-    if (this.collisionCooldown > 0) return;
-
     for (const car of playerSegment.cars) {
-      const carWidth = car.frame.w * SPRITE_SCALE;
-      if (this.speed > car.speed && overlap(this.playerX, playerWidth, car.offset, carWidth, 0.8)) {
-        this.speed = car.speed * 0.5;
-        this.position = increase(car.z, -this.playerZ, this.trackLength);
-        this.collisionCooldown = 0.7;
-        this.collisionCount += 1;
-        return;
-      }
+      if (!overlap(this.playerX, playerWidth, car.offset, SPRITE_SCALE * 80, 0.78)) continue;
+      this.speed = Math.min(this.speed, car.speed * 0.65);
+      this.collisionCooldown = 0.45;
+      this.collisionCount += 1;
     }
   }
 
   private checkRoadsideCollision(playerSegment: Segment, playerWidth: number): void {
-    if (this.collisionCooldown > 0) return;
-
     for (const sprite of playerSegment.sprites) {
-      const spriteWidth = sprite.frame.w * SPRITE_SCALE;
-      if (overlap(this.playerX, playerWidth, sprite.offset + spriteWidth / 2 * (sprite.offset > 0 ? 1 : -1), spriteWidth, 0.8)) {
-        this.speed = RACER_CONFIG.maxSpeed / 5;
-        this.position = increase(playerSegment.z1, -this.playerZ, this.trackLength);
-        this.collisionCooldown = 0.7;
-        this.collisionCount += 1;
-        return;
-      }
+      if (!overlap(this.playerX, playerWidth, sprite.offset, SPRITE_SCALE * 120, 0.8)) continue;
+      this.speed = Math.min(this.speed, RACER_CONFIG.maxSpeed / 5);
+      this.collisionCooldown = 0.6;
+      this.collisionCount += 1;
     }
   }
 }
-
-const SPRITES_SAFE = {
-  PALM_TREE: { x: 5, y: 5, w: 215, h: 540 } satisfies AtlasFrame,
-  BILLBOARD01: { x: 230, y: 5, w: 385, h: 265 } satisfies AtlasFrame,
-  BILLBOARD02: { x: 625, y: 5, w: 360, h: 360 } satisfies AtlasFrame,
-  BILLBOARD03: { x: 5, y: 555, w: 300, h: 170 } satisfies AtlasFrame,
-  BILLBOARD04: { x: 315, y: 555, w: 328, h: 282 } satisfies AtlasFrame,
-  BILLBOARD05: { x: 653, y: 555, w: 200, h: 332 } satisfies AtlasFrame,
-  BILLBOARD06: { x: 5, y: 897, w: 298, h: 190 } satisfies AtlasFrame,
-  BILLBOARD07: { x: 313, y: 897, w: 298, h: 190 } satisfies AtlasFrame,
-  BILLBOARD08: { x: 230, y: 280, w: 390, h: 170 } satisfies AtlasFrame,
-  BILLBOARD09: { x: 990, y: 5, w: 280, h: 200 } satisfies AtlasFrame,
-  COLUMN: { x: 995, y: 5, w: 200, h: 315 } satisfies AtlasFrame,
-  TREE1: { x: 625, y: 375, w: 360, h: 360 } satisfies AtlasFrame,
-  TREE2: { x: 1205, y: 5, w: 282, h: 295 } satisfies AtlasFrame
-};
