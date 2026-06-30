@@ -1,5 +1,6 @@
 import { Engine, Scene, type Renderer, type TouchPoint } from '../engine';
 import { RacerAssets } from '../racer/RacerAssets';
+import { findRacerControlSensitivity, nextRacerControlSensitivity, type RacerControlSensitivityProfile } from '../racer/RacerControlSensitivity';
 import { RacerJoystick } from '../racer/RacerJoystick';
 import { createRacerServices, type RaceResult } from '../racer/RacerServices';
 import { RacerSettings } from '../racer/RacerSettings';
@@ -24,6 +25,7 @@ export class RacerScene extends Scene {
   private readonly storage: RacerStorage;
   private readonly pseudo3d = new Pseudo3DRenderer();
   private activeTrack: RacerTrackDefinition = ACTIVE_RACER_TRACK;
+  private controlSensitivity: RacerControlSensitivityProfile;
   private savedBestLapTime = 0;
   private touchActive = false;
   private brakeActive = false;
@@ -45,7 +47,9 @@ export class RacerScene extends Scene {
     this.settings = new RacerSettings(gameEngine);
     this.storage = new RacerStorage(gameEngine);
     this.activeTrack = findRacerTrackById(this.settings.getSelectedTrackId() ?? ACTIVE_RACER_TRACK.id);
+    this.controlSensitivity = findRacerControlSensitivity(this.settings.getControlSensitivityId());
     this.state = new RacerState(gameEngine.width, gameEngine.height, tuning, this.activeTrack);
+    this.state.setControlSensitivity(this.controlSensitivity);
     this.savedBestLapTime = this.storage.getBestLapTime(this.activeTrack.id);
     this.audioMuted = this.settings.isAudioMuted();
     this.miniMapEnabled = this.settings.isMiniMapEnabled();
@@ -60,6 +64,7 @@ export class RacerScene extends Scene {
       audioMuted: this.audioMuted,
       miniMapEnabled: this.miniMapEnabled,
       controlCoachEnabled: this.controlCoachEnabled,
+      controlSensitivity: this.controlSensitivity.id,
       trackId: this.activeTrack.id,
       trackName: this.activeTrack.name,
       targetLaps: this.targetLaps
@@ -102,6 +107,8 @@ export class RacerScene extends Scene {
       miniMapEnabled: this.miniMapEnabled,
       controlCoachEnabled: this.controlCoachEnabled,
       controlCoachSeen: this.hasShownControlCoach,
+      controlSensitivityLabel: this.controlSensitivity.label,
+      controlSensitivityDescription: this.controlSensitivity.description,
       brakeActive: this.brakeActive,
       pressedTarget: this.pressedTarget,
       controlCoachTimeLeft: this.controlCoachTimeLeft,
@@ -198,6 +205,7 @@ export class RacerScene extends Scene {
       if (this.isSettingsAudioButton(point)) return 'settings-audio';
       if (this.isSettingsMiniMapButton(point)) return 'settings-minimap';
       if (this.isSettingsCoachButton(point)) return 'settings-coach';
+      if (this.isSettingsSensitivityButton(point)) return 'settings-sensitivity';
       if (this.isSettingsResetCoachButton(point)) return 'settings-reset-coach';
       if (this.isSettingsBackButton(point)) return 'settings-back';
       return null;
@@ -266,6 +274,10 @@ export class RacerScene extends Scene {
     }
     if (target === 'settings-coach') {
       this.toggleControlCoach();
+      return;
+    }
+    if (target === 'settings-sensitivity') {
+      this.cycleControlSensitivity();
       return;
     }
     if (target === 'settings-reset-coach') {
@@ -339,7 +351,8 @@ export class RacerScene extends Scene {
       audioMuted: this.audioMuted,
       miniMapEnabled: this.miniMapEnabled,
       controlCoachEnabled: this.controlCoachEnabled,
-      controlCoachSeen: this.hasShownControlCoach
+      controlCoachSeen: this.hasShownControlCoach,
+      controlSensitivity: this.controlSensitivity.id
     });
   }
 
@@ -363,6 +376,7 @@ export class RacerScene extends Scene {
     this.settings.setSelectedTrackId(this.activeTrack.id);
     this.savedBestLapTime = this.storage.getBestLapTime(this.activeTrack.id);
     this.state.setTrack(this.activeTrack, this.savedBestLapTime);
+    this.state.setControlSensitivity(this.controlSensitivity);
     this.lastCollisionCount = this.state.collisionCount;
     this.phase = 'menu';
     this.pressedTarget = null;
@@ -393,6 +407,7 @@ export class RacerScene extends Scene {
       audioMuted: this.audioMuted,
       miniMapEnabled: this.miniMapEnabled,
       controlCoachEnabled: this.controlCoachEnabled,
+      controlSensitivity: this.controlSensitivity.id,
       trackId: this.activeTrack.id,
       trackName: this.activeTrack.name,
       targetLaps: this.targetLaps
@@ -460,6 +475,18 @@ export class RacerScene extends Scene {
     this.services.analytics.track('control_coach_toggle', { enabled: this.controlCoachEnabled });
   }
 
+  private cycleControlSensitivity(): void {
+    this.controlSensitivity = nextRacerControlSensitivity(this.controlSensitivity.id);
+    this.settings.setControlSensitivityId(this.controlSensitivity.id);
+    this.state.setControlSensitivity(this.controlSensitivity);
+    this.services.analytics.track('control_sensitivity_cycle', {
+      id: this.controlSensitivity.id,
+      label: this.controlSensitivity.label,
+      joystickGain: this.controlSensitivity.joystickGain,
+      steerResponse: this.controlSensitivity.steerResponse
+    });
+  }
+
   private resetControlCoachSetting(): void {
     this.controlCoachEnabled = true;
     this.hasShownControlCoach = false;
@@ -489,7 +516,7 @@ export class RacerScene extends Scene {
     if (joystickTouch) {
       this.joystick.begin(joystickTouch, layout.controls.joystickBase, layout.controls.joystickKnobRadius);
       this.joystick.update(joystickTouch);
-      this.state.input.steer = this.joystick.steer();
+      this.state.input.steer = this.joystick.steer(this.controlSensitivity);
     } else {
       this.joystick.end();
       this.state.input.steer = 0;
@@ -565,6 +592,10 @@ export class RacerScene extends Scene {
 
   private isSettingsCoachButton(point: TouchPoint): boolean {
     return pointInRect(point, this.getUiLayout().settings.coachButton);
+  }
+
+  private isSettingsSensitivityButton(point: TouchPoint): boolean {
+    return pointInRect(point, this.getUiLayout().settings.sensitivityButton);
   }
 
   private isSettingsResetCoachButton(point: TouchPoint): boolean {
