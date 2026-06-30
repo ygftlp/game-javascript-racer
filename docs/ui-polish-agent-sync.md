@@ -20,22 +20,26 @@ The UI has moved from prototype interactions to a more commercial mobile-game in
 - Main menu now includes `选择赛道` and `设置`.
 - The old simple cycle-track behavior has been replaced with a dedicated track-select screen.
 - The dedicated track-select screen shows track cards, target laps, current selected state, and `返回菜单`.
-- The new dedicated settings screen centralizes music, minimap, and first-race operation-guide controls.
-- `RacerTrackDefinition` now owns a three-track registry: `极速公路`, `海岸冲刺`, and `城市夜跑`.
-- `RacerScene` now opens the dedicated track-select screen from the menu and rebuilds `RacerState` with the selected track.
-- `RacerScene` now opens the dedicated settings screen from the menu and persists setting changes.
-- `RacerSettings` now persists the selected track id, audio state, minimap state, control coach state, and whether the first-race coach has already been shown.
-- `RacerScene` now restores the last selected track at launch.
-- `RacerStorage` now stores best lap records per track id.
-- `RaceResult` now includes `trackId` and `trackName` for share / leaderboard payloads.
-- Touch start/move/end handlers now tolerate empty platform touch arrays.
+- The dedicated settings screen centralizes music, minimap, first-race operation-guide controls, and control sensitivity.
+- `RacerControlSensitivity` now owns three control sensitivity profiles: `舒适`, `标准`, and `灵敏`.
+- The settings screen cycles control sensitivity and persists the selected profile.
+- `RacerJoystick` applies selected `joystickGain` and `steerInputLimit`.
+- `RacerState` applies selected `steerResponse` and input clamp.
+- `RacerTrackDefinition` owns a three-track registry: `极速公路`, `海岸冲刺`, and `城市夜跑`.
+- `RacerScene` opens the dedicated track-select screen from the menu and rebuilds `RacerState` with the selected track.
+- `RacerScene` opens the dedicated settings screen from the menu and persists setting changes.
+- `RacerSettings` persists the selected track id, audio state, minimap state, control coach state, control sensitivity id, and whether the first-race coach has already been shown.
+- `RacerScene` restores the last selected track and control sensitivity at launch.
+- `RacerStorage` stores best lap records per track id.
+- `RaceResult` includes `trackId` and `trackName` for share / leaderboard payloads.
+- Touch start/move/end handlers tolerate empty platform touch arrays.
 - First race shows a short control coach hint during gameplay and persists that it has already been shown.
 - The settings screen can disable or reset the first-race operation guide.
 - `RacerUiFlags` exposes `showMiniMap` and `showFirstRaceCoach` release toggles.
 - The persisted minimap setting controls whether the independent minimap renders during gameplay.
-- `RacerUiRenderer` now owns HUD, controls, overlays, help, onboarding UI, track-select UI, and settings UI.
-- `RacerMiniMap` now owns the independent track radar / curve preview component.
-- `Pseudo3DRenderer` now focuses on backdrop, road, world sprites, and player car rendering, then delegates UI drawing.
+- `RacerUiRenderer` owns HUD, controls, overlays, help, onboarding UI, track-select UI, and settings UI.
+- `RacerMiniMap` owns the independent track radar / curve preview component.
+- `Pseudo3DRenderer` focuses on backdrop, road, world sprites, and player car rendering, then delegates UI drawing.
 
 ## Agent A: UX Director
 
@@ -54,6 +58,7 @@ Checklist:
 - Pause screen primary action is `继续比赛`.
 - Result screen primary action is `再来一局`.
 - Minimap label `赛道雷达` is understandable and not distracting.
+- Control sensitivity labels `舒适 / 标准 / 灵敏` are understandable to casual players.
 - First-race coach should only appear once per player unless reset in settings.
 - No debug or placeholder service copy appears in release mode.
 
@@ -76,6 +81,7 @@ Checklist:
 - Track-select `返回菜单` does not change the selected track.
 - `设置` opens the dedicated settings screen.
 - Settings toggles update labels immediately after confirmed tap.
+- `控制手感` cycles one profile per confirmed tap.
 - Settings `返回菜单` returns without changing unrelated state.
 - Relaunching the game restores the last selected track and settings.
 - Help screen start/back buttons are clear.
@@ -125,6 +131,7 @@ Checklist:
 - The gold accent is used consistently.
 - Track-select card text fits small screens.
 - Settings labels fit small screens and clearly show on/off state.
+- Control sensitivity row is readable and does not make the settings panel feel crowded.
 - Selected track state is obvious without looking like debug text.
 - Help screen looks like part of the game, not documentation pasted into the canvas.
 - Minimap looks like part of the HUD, not a debug graph.
@@ -136,6 +143,7 @@ Checklist:
 Focus:
 
 - Joystick and brake feedback during driving.
+- Control sensitivity profile tuning.
 - Whether hiding `STEER` improves or hurts first-time understanding.
 - Whether the first-race control coach is enough.
 - Whether the minimap helps anticipate curves without distracting from controls.
@@ -143,6 +151,9 @@ Focus:
 
 Checklist:
 
+- `舒适` is stable enough for beginners and small screens.
+- `标准` preserves the current default street-racer feel.
+- `灵敏` responds quickly without making the car uncontrollable.
 - Joystick is easy to find without text.
 - Brake button active state is obvious.
 - First-race coach does not cover the car or road hazards.
@@ -152,7 +163,7 @@ Checklist:
 - Disabling minimap removes the HUD radar during active driving.
 - Controls do not block the player car or near-road hazards.
 - Left/right steering comfort is acceptable on small devices.
-- Track-specific curves remain controllable.
+- Track-specific curves remain controllable across all three sensitivity profiles.
 
 ## Agent F: Gameplay Readability QA
 
@@ -175,7 +186,7 @@ Checklist:
 - Control coach disappears automatically, can be dismissed by driving input, and does not reappear after it is stored as shown unless reset in settings.
 - Overlay transitions do not leave stale pressed states.
 - Track-select screen opens from menu, selects a track, and returns safely.
-- Settings screen opens from menu, toggles settings, and returns safely.
+- Settings screen opens from menu, toggles settings, cycles sensitivity, and returns safely.
 - Result screen appears at the selected track target-lap count.
 - Share / leaderboard payloads include selected track metadata.
 - Extracting `RacerUiRenderer` does not change visual order: world first, player car, then UI.
@@ -189,7 +200,7 @@ Focus:
 - Preserve shared layout/hitbox source of truth.
 - Keep world rendering and UI rendering separated.
 - Keep minimap as an independent component.
-- Keep track registry, selected track flow, and settings flow isolated from rendering internals.
+- Keep track registry, selected track flow, settings flow, and sensitivity tuning isolated from rendering internals.
 
 Implemented files:
 
@@ -197,7 +208,10 @@ Implemented files:
 - `src/racer/Pseudo3DRenderer.ts`
 - `src/racer/RacerUiRenderer.ts`
 - `src/racer/RacerMiniMap.ts`
+- `src/racer/RacerControlSensitivity.ts`
+- `src/racer/RacerJoystick.ts`
 - `src/racer/RacerSettings.ts`
+- `src/racer/RacerState.ts`
 - `src/racer/RacerStorage.ts`
 - `src/racer/RacerServices.ts`
 - `src/racer/RacerTrackDefinition.ts`
@@ -208,8 +222,8 @@ Implemented files:
 Next recommended implementation pass:
 
 1. Add final icon assets for pause/music/share/leaderboard/help/track/settings.
-2. Add a real control sensitivity setting instead of only code-level tuning.
-3. Add final UI logo when commercial art is ready.
-4. Move repeated visual constants into UI theme tokens before the final skin pass.
-5. Tune minimap size/opacity after real-device testing on all selectable tracks.
+2. Add final UI logo when commercial art is ready.
+3. Move repeated visual constants into UI theme tokens before the final skin pass.
+4. Tune minimap size/opacity after real-device testing on all selectable tracks.
+5. Tune sensitivity presets after device testing.
 6. Add pagination or scrolling to the dedicated track-select screen if more than 3 tracks are added.
