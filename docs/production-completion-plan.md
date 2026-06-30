@@ -72,7 +72,7 @@ Owner lane: Monetization UX Designer + Monetization and Social Agent.
 
 ### Gate 5: Commercial UI / UX polish
 
-Status: release/debug UI split, polished interaction pass, independent minimap component, UI theme tokens, multi-track selector, persisted selected track, and first commercial road theme implemented; commercial art still needed.
+Status: release/debug UI split, polished interaction pass, independent minimap component, UI theme tokens, dedicated track-select screen, persisted selected track, and first commercial road theme implemented; commercial art still needed.
 
 Source of truth:
 
@@ -92,7 +92,10 @@ Implemented:
 - `src/racer/RacerRoadTheme.ts` centralizes road palette tokens and active road theme selection.
 - `src/racer/RacerTrackDefinition.ts` defines a selectable track registry.
 - `RACER_TRACKS` currently includes `极速公路`, `海岸冲刺`, and `城市夜跑`.
-- The menu includes `切换赛道` and displays selected track name / target laps.
+- The main menu includes `选择赛道` and displays the currently selected track name / target laps.
+- `RacerUiLayout` now defines a dedicated track-select screen with track cards and `返回菜单`.
+- `RacerUiRenderer` now renders the dedicated track-select screen, card pressed states, and `已选择` status.
+- `RacerScene` opens the dedicated track-select screen from the menu and confirms a selected card on touch release.
 - `RacerSettings` persists the selected track id.
 - `RacerScene` restores the last selected track at startup.
 - `RacerStorage` stores best lap records per track id.
@@ -111,7 +114,7 @@ Implemented:
 - Brake button has stronger active feedback.
 - Modal panels use vignette, shadow, accent stripe, and bottom divider for clearer hierarchy.
 - Result screen shows a race grade.
-- `RacerUiRenderer` owns HUD, controls, overlays, help, and onboarding UI.
+- `RacerUiRenderer` owns HUD, controls, overlays, help, onboarding UI, and track-select UI.
 - `RacerMiniMap` is an independent component for the in-race track radar.
 - The minimap shows curve preview, lap progress, and nearby traffic dots.
 - `Pseudo3DRenderer` focuses on world rendering and delegates UI drawing.
@@ -121,7 +124,7 @@ Implemented:
 - Menu and pause overlays include a music toggle.
 - Optional sound effects are wired for engine loop, crash, and menu confirmation audio.
 - Collision events now trigger crash SFX when an audio pack provides it.
-- `RacerUiLayout` centralizes overlay button rectangles, touch zones, and minimap placement.
+- `RacerUiLayout` centralizes overlay button rectangles, touch zones, track-select cards, and minimap placement.
 - `RacerScene` exposes `handleAppHidden()` and `handleAppShown()` so a platform lifecycle adapter can pause/resume without direct `wx` usage in gameplay code.
 - In-race HUD is compact and includes speed, lap, time, best lap, and a race progress bar.
 - Left-bottom virtual joystick is enlarged and uses lower dead-zone / higher steering gain.
@@ -138,6 +141,7 @@ Still required before commercial release:
 - Replace placeholder title/logo with commercial-safe branding.
 - Replace Canvas programmer-art icons with final UI icons.
 - Tune exact joystick/brake/minimap sizes and opacity on real low-end and high-DPI devices.
+- Tune the dedicated track-select screen card spacing, copy length, and pressed-state intensity on small devices.
 - Tune the commercial asphalt palette on real devices for readability and contrast.
 - Tune all selectable track section layouts on real devices.
 - Add final result-screen share copy, ranking entry polish, and optional medal/rating art.
@@ -167,7 +171,9 @@ Required manual checks:
 - Confirm menu buttons show pressed state on touch down.
 - Confirm menu actions execute only on release inside the button.
 - Confirm moving outside a button cancels the pending action.
-- Confirm `切换赛道` cycles through every entry in `RACER_TRACKS`.
+- Confirm `选择赛道` opens the dedicated track-select screen.
+- Confirm every track card can be selected and returns to the menu.
+- Confirm `返回菜单` leaves the selected track unchanged.
 - Confirm relaunch restores the last selected track.
 - Confirm each track shows its own best lap record.
 - Toggle music in menu and pause overlays.
@@ -204,7 +210,7 @@ Task file: `docs/agent-tasks/ui-ux-director.md`
 
 Next tasks:
 
-1. Validate player-facing Chinese copy in menu, pause, result, HUD, and minimap.
+1. Validate player-facing Chinese copy in menu, pause, result, HUD, minimap, and track-select screen.
 2. Review release/debug UI split in `RacerUiFlags.ts`.
 3. Decide final commercial game name and branding direction.
 
@@ -218,6 +224,7 @@ Next tasks:
 2. Confirm drag-outside cancellation feels safe.
 3. Tune pressed state visual intensity if needed.
 4. Validate track selector persistence and relaunch behavior.
+5. Validate dedicated track-select card spacing and return flow.
 
 ### Agent C: Control Feel Designer
 
@@ -252,7 +259,7 @@ Next tasks:
 2. Confirm the player car never disappears after the renderer stabilization fix.
 3. Validate minimap readability and obstruction on target screens.
 4. Validate commercial asphalt road readability on target screens.
-5. Validate track switching, relaunch restore, and per-track best lap records.
+5. Validate dedicated track-select screen, relaunch restore, and per-track best lap records.
 6. Capture screenshots or recordings for any remaining visibility issue.
 
 ### Agent F: Rendering Quality
