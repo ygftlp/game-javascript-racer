@@ -17,19 +17,23 @@ The UI has moved from prototype interactions to a more commercial mobile-game in
 - Main menu now includes `操作说明`.
 - Help screen explains steering, braking, pause, and dynamic target-lap objective.
 - Pause screen now includes `返回菜单`.
-- Main menu now includes `选择赛道`.
+- Main menu now includes `选择赛道` and `设置`.
 - The old simple cycle-track behavior has been replaced with a dedicated track-select screen.
 - The dedicated track-select screen shows track cards, target laps, current selected state, and `返回菜单`.
+- The new dedicated settings screen centralizes music, minimap, and first-race operation-guide controls.
 - `RacerTrackDefinition` now owns a three-track registry: `极速公路`, `海岸冲刺`, and `城市夜跑`.
 - `RacerScene` now opens the dedicated track-select screen from the menu and rebuilds `RacerState` with the selected track.
-- `RacerSettings` now persists the selected track id.
+- `RacerScene` now opens the dedicated settings screen from the menu and persists setting changes.
+- `RacerSettings` now persists the selected track id, audio state, minimap state, control coach state, and whether the first-race coach has already been shown.
 - `RacerScene` now restores the last selected track at launch.
 - `RacerStorage` now stores best lap records per track id.
 - `RaceResult` now includes `trackId` and `trackName` for share / leaderboard payloads.
 - Touch start/move/end handlers now tolerate empty platform touch arrays.
 - First race shows a short control coach hint during gameplay and persists that it has already been shown.
-- `RacerUiFlags` now exposes `showMiniMap` and `showFirstRaceCoach` release toggles.
-- `RacerUiRenderer` now owns HUD, controls, overlays, help, onboarding UI, and track-select UI.
+- The settings screen can disable or reset the first-race operation guide.
+- `RacerUiFlags` exposes `showMiniMap` and `showFirstRaceCoach` release toggles.
+- The persisted minimap setting controls whether the independent minimap renders during gameplay.
+- `RacerUiRenderer` now owns HUD, controls, overlays, help, onboarding UI, track-select UI, and settings UI.
 - `RacerMiniMap` now owns the independent track radar / curve preview component.
 - `Pseudo3DRenderer` now focuses on backdrop, road, world sprites, and player car rendering, then delegates UI drawing.
 
@@ -38,18 +42,19 @@ The UI has moved from prototype interactions to a more commercial mobile-game in
 Focus:
 
 - Verify the press-to-confirm flow feels natural.
-- Confirm menu copy, pause copy, result copy, help copy, minimap labels, and track-select copy are player-facing and not technical.
+- Confirm menu copy, pause copy, result copy, help copy, minimap labels, track-select copy, and settings copy are player-facing and not technical.
 - Decide whether `极速公路` is final or temporary branding.
 
 Checklist:
 
 - Start button is the clearest menu action.
 - Track selection is clear but does not compete with `开始比赛`.
+- Settings is easy to find but does not compete with `开始比赛`.
 - Help is easy to find but does not compete with `开始比赛`.
 - Pause screen primary action is `继续比赛`.
 - Result screen primary action is `再来一局`.
 - Minimap label `赛道雷达` is understandable and not distracting.
-- First-race coach should only appear once per player unless storage is cleared.
+- First-race coach should only appear once per player unless reset in settings.
 - No debug or placeholder service copy appears in release mode.
 
 ## Agent B: UI Interaction Designer
@@ -59,7 +64,7 @@ Focus:
 - Button press feedback.
 - Touch cancel behavior.
 - Button spacing and hit target comfort.
-- Help, track-select, and return-menu safety flows.
+- Help, track-select, settings, and return-menu safety flows.
 
 Checklist:
 
@@ -69,7 +74,10 @@ Checklist:
 - `选择赛道` opens the dedicated track-select screen.
 - Track cards select exactly one track per confirmed tap.
 - Track-select `返回菜单` does not change the selected track.
-- Relaunching the game restores the last selected track.
+- `设置` opens the dedicated settings screen.
+- Settings toggles update labels immediately after confirmed tap.
+- Settings `返回菜单` returns without changing unrelated state.
+- Relaunching the game restores the last selected track and settings.
 - Help screen start/back buttons are clear.
 - Pause return-menu action does not trigger accidentally.
 - Buttons do not feel jumpy or delayed.
@@ -106,6 +114,7 @@ Focus:
 - Button state system.
 - Help/onboarding readability.
 - Track-select card readability.
+- Settings screen readability.
 - Minimap / track radar readability.
 - Future icon/logo integration through the UI renderer.
 
@@ -115,6 +124,7 @@ Checklist:
 - Primary CTA has stronger visual weight than secondary buttons.
 - The gold accent is used consistently.
 - Track-select card text fits small screens.
+- Settings labels fit small screens and clearly show on/off state.
 - Selected track state is obvious without looking like debug text.
 - Help screen looks like part of the game, not documentation pasted into the canvas.
 - Minimap looks like part of the HUD, not a debug graph.
@@ -136,7 +146,10 @@ Checklist:
 - Joystick is easy to find without text.
 - Brake button active state is obvious.
 - First-race coach does not cover the car or road hazards.
+- Settings reset can make the first-race coach appear again on the next race.
+- Disabling operation guide prevents the first-race coach from appearing.
 - Minimap does not compete with joystick or brake attention.
+- Disabling minimap removes the HUD radar during active driving.
 - Controls do not block the player car or near-road hazards.
 - Left/right steering comfort is acceptable on small devices.
 - Track-specific curves remain controllable.
@@ -149,6 +162,7 @@ Focus:
 - Car visibility under UI and road effects.
 - Onboarding flow safety.
 - Track-select regression checks.
+- Settings regression checks.
 - Minimap readability and obstruction checks.
 - Renderer separation regression checks.
 
@@ -156,11 +170,12 @@ Checklist:
 
 - Player car remains visible during curves, hills, collisions, and lap wraparound on every selectable track.
 - HUD/minimap does not cover important traffic.
-- Minimap curve preview gives useful left/right/straight information on every selected track.
+- Minimap curve preview gives useful left/right/straight information on every selected track when enabled.
 - Nearby traffic dots do not look like debug noise.
-- Control coach disappears automatically, can be dismissed by driving input, and does not reappear after it is stored as shown.
+- Control coach disappears automatically, can be dismissed by driving input, and does not reappear after it is stored as shown unless reset in settings.
 - Overlay transitions do not leave stale pressed states.
 - Track-select screen opens from menu, selects a track, and returns safely.
+- Settings screen opens from menu, toggles settings, and returns safely.
 - Result screen appears at the selected track target-lap count.
 - Share / leaderboard payloads include selected track metadata.
 - Extracting `RacerUiRenderer` does not change visual order: world first, player car, then UI.
@@ -174,7 +189,7 @@ Focus:
 - Preserve shared layout/hitbox source of truth.
 - Keep world rendering and UI rendering separated.
 - Keep minimap as an independent component.
-- Keep track registry and selected track flow isolated from rendering internals.
+- Keep track registry, selected track flow, and settings flow isolated from rendering internals.
 
 Implemented files:
 
@@ -192,8 +207,8 @@ Implemented files:
 
 Next recommended implementation pass:
 
-1. Add final icon assets for pause/music/share/leaderboard/help/track.
-2. Add optional settings overlay for music, minimap, and control help.
+1. Add final icon assets for pause/music/share/leaderboard/help/track/settings.
+2. Add a real control sensitivity setting instead of only code-level tuning.
 3. Add final UI logo when commercial art is ready.
 4. Move repeated visual constants into UI theme tokens before the final skin pass.
 5. Tune minimap size/opacity after real-device testing on all selectable tracks.
