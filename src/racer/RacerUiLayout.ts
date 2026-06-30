@@ -1,4 +1,4 @@
-export type RacerOverlayPhase = 'menu' | 'paused' | 'finished' | 'help' | 'trackSelect';
+export type RacerOverlayPhase = 'menu' | 'paused' | 'finished' | 'help' | 'trackSelect' | 'settings';
 
 export interface RacerRect {
   x: number;
@@ -46,11 +46,19 @@ export interface RacerMenuLayout extends RacerPanelLayout {
   trackButton: RacerRect;
   leaderboardButton: RacerRect;
   helpButton: RacerRect;
-  audioButton: RacerRect;
+  settingsButton: RacerRect;
 }
 
 export interface RacerTrackSelectLayout extends RacerPanelLayout {
   trackButtons: RacerRect[];
+  backButton: RacerRect;
+}
+
+export interface RacerSettingsLayout extends RacerPanelLayout {
+  audioButton: RacerRect;
+  miniMapButton: RacerRect;
+  coachButton: RacerRect;
+  resetCoachButton: RacerRect;
   backButton: RacerRect;
 }
 
@@ -89,6 +97,7 @@ export interface RacerUiLayout {
   touchZones: RacerTouchZones;
   menu: RacerMenuLayout;
   trackSelect: RacerTrackSelectLayout;
+  settings: RacerSettingsLayout;
   paused: RacerPausedLayout;
   finished: RacerFinishedLayout;
   help: RacerHelpLayout;
@@ -147,6 +156,10 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   const trackPanel = panel(width, height, 660, small ? 410 : 470);
   const trackButtons = buildTrackButtons(width, trackPanel, small);
   const trackBackY = trackButtons[trackButtons.length - 1].y + trackButtons[trackButtons.length - 1].h + (small ? 14 : 18);
+
+  const settingsPanel = panel(width, height, 640, small ? 430 : 486);
+  const settingsButtonW = small ? Math.min(310, settingsPanel.w - 80) : 336;
+  const settingsStartY = settingsPanel.y + (small ? 118 : 140);
 
   const pausedPanel = panel(width, height, 620, small ? 414 : 466);
   const pausedStartY = pausedPanel.y + (small ? 132 : 158);
@@ -216,7 +229,7 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
       trackButton: centeredButton(width, menuStartY + (menuButtonH + menuSpacing), buttonW, menuButtonH),
       leaderboardButton: centeredButton(width, menuStartY + (menuButtonH + menuSpacing) * 2, buttonW, menuButtonH),
       helpButton: centeredButton(width, menuStartY + (menuButtonH + menuSpacing) * 3, buttonW, menuButtonH),
-      audioButton: centeredButton(width, menuStartY + (menuButtonH + menuSpacing) * 4, buttonW, menuButtonH)
+      settingsButton: centeredButton(width, menuStartY + (menuButtonH + menuSpacing) * 4, buttonW, menuButtonH)
     },
     trackSelect: {
       panel: trackPanel,
@@ -226,6 +239,18 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
       line3Y: trackPanel.y + (small ? 0 : 0),
       trackButtons,
       backButton: centeredButton(width, trackBackY, small ? 210 : 236, buttonH)
+    },
+    settings: {
+      panel: settingsPanel,
+      titleY: settingsPanel.y + (small ? 24 : 32),
+      line1Y: settingsPanel.y + (small ? 78 : 96),
+      line2Y: settingsPanel.y + (small ? 0 : 0),
+      line3Y: settingsPanel.y + (small ? 0 : 0),
+      audioButton: centeredButton(width, settingsStartY, settingsButtonW, menuButtonH),
+      miniMapButton: centeredButton(width, settingsStartY + (menuButtonH + menuSpacing), settingsButtonW, menuButtonH),
+      coachButton: centeredButton(width, settingsStartY + (menuButtonH + menuSpacing) * 2, settingsButtonW, menuButtonH),
+      resetCoachButton: centeredButton(width, settingsStartY + (menuButtonH + menuSpacing) * 3, settingsButtonW, menuButtonH),
+      backButton: centeredButton(width, settingsStartY + (menuButtonH + menuSpacing) * 4, small ? 210 : 236, menuButtonH)
     },
     paused: {
       panel: pausedPanel,
