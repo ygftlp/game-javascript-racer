@@ -20,6 +20,11 @@ The UI has moved from prototype interactions to a more commercial mobile-game in
 - Main menu now includes `切换赛道`.
 - `RacerTrackDefinition` now owns a three-track registry: `极速公路`, `海岸冲刺`, and `城市夜跑`.
 - `RacerScene` now cycles selected tracks from the menu and rebuilds `RacerState` with the selected track.
+- `RacerSettings` now persists the selected track id.
+- `RacerScene` now restores the last selected track at launch.
+- `RacerStorage` now stores best lap records per track id.
+- `RaceResult` now includes `trackId` and `trackName` for share / leaderboard payloads.
+- Touch start/move/end handlers now tolerate empty platform touch arrays.
 - First race shows a short control coach hint during gameplay and persists that it has already been shown.
 - `RacerUiFlags` now exposes `showMiniMap` and `showFirstRaceCoach` release toggles.
 - `RacerUiRenderer` now owns HUD, controls, overlays, help, onboarding UI, and menu track selector UI.
@@ -60,6 +65,7 @@ Checklist:
 - Releasing inside executes the action.
 - Moving outside cancels the action.
 - Track selector cycles exactly one track per confirmed tap.
+- Relaunching the game restores the last selected track.
 - Help screen start/back buttons are clear.
 - Pause return-menu action does not trigger accidentally.
 - Buttons do not feel jumpy or delayed.
@@ -73,6 +79,7 @@ Focus:
 - Target-lap balance.
 - Route difficulty progression.
 - Future track unlock / selection screen.
+- Per-track progression and score separation.
 
 Checklist:
 
@@ -82,6 +89,8 @@ Checklist:
 - `城市夜跑` has a denser curve rhythm and remains playable on mobile controls.
 - Target laps fit session length.
 - Track switching resets road state before a race starts.
+- Selected track id is saved through `RacerSettings`.
+- Best lap display is per track id through `RacerStorage`.
 
 ## Agent D: Visual Designer
 
@@ -146,6 +155,7 @@ Checklist:
 - Control coach disappears automatically, can be dismissed by driving input, and does not reappear after it is stored as shown.
 - Overlay transitions do not leave stale pressed states.
 - Result screen appears at the selected track target-lap count.
+- Share / leaderboard payloads include selected track metadata.
 - Extracting `RacerUiRenderer` does not change visual order: world first, player car, then UI.
 
 ## Agent G: Implementation Engineer
@@ -166,6 +176,8 @@ Implemented files:
 - `src/racer/RacerUiRenderer.ts`
 - `src/racer/RacerMiniMap.ts`
 - `src/racer/RacerSettings.ts`
+- `src/racer/RacerStorage.ts`
+- `src/racer/RacerServices.ts`
 - `src/racer/RacerTrackDefinition.ts`
 - `src/racer/RacerUiFlags.ts`
 - `src/racer/RacerUiLayout.ts`
@@ -173,9 +185,9 @@ Implemented files:
 
 Next recommended implementation pass:
 
-1. Persist selected track id in `RacerSettings`.
-2. Add final icon assets for pause/music/share/leaderboard/help/track.
-3. Add optional settings overlay for music, minimap, and control help.
-4. Add final UI logo when commercial art is ready.
-5. Move repeated visual constants into UI theme tokens before the final skin pass.
-6. Tune minimap size/opacity after real-device testing on all selectable tracks.
+1. Add final icon assets for pause/music/share/leaderboard/help/track.
+2. Add optional settings overlay for music, minimap, and control help.
+3. Add final UI logo when commercial art is ready.
+4. Move repeated visual constants into UI theme tokens before the final skin pass.
+5. Tune minimap size/opacity after real-device testing on all selectable tracks.
+6. Replace the current simple track-cycle button with a dedicated track-select screen if more than 3 tracks are added.
