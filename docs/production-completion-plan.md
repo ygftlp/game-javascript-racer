@@ -20,8 +20,6 @@ Required:
 - Business code does not directly depend on DOM or `wx` globals.
 - Legacy HTML demo remains available for reference.
 
-Owner lane: Runtime Integration Agent.
-
 ### Gate 2: Core gameplay
 
 Status: implemented as first production pass.
@@ -35,8 +33,6 @@ Required:
 - Lap timer, best lap, total race time.
 - Start menu, pause, finish result, restart.
 - Tunable draw distance and traffic count.
-
-Owner lane: Runtime Integration Agent + QA and Performance Agent.
 
 ### Gate 3: Asset replacement
 
@@ -53,8 +49,6 @@ Required:
 - Update `SpriteAtlas.ts` if new atlas coordinates differ.
 - Switch `ACTIVE_RACER_ASSET_PACK` to `COMMERCIAL_TEMPLATE_ASSET_PACK` when assets exist.
 
-Owner lane: Asset Taxonomy Agent + Art Replacement Agent + UI Visual Designer + Audio Replacement Agent.
-
 ### Gate 4: Platform services
 
 Status: service boundary implemented; real WeChat adapter still needed.
@@ -68,11 +62,9 @@ Required:
 - Avoid direct `wx` usage inside gameplay state or renderer.
 - Ads must never appear during active driving.
 
-Owner lane: Monetization UX Designer + Monetization and Social Agent.
-
 ### Gate 5: Commercial UI / UX polish
 
-Status: release/debug UI split, polished interaction pass, independent minimap component, UI theme tokens, dedicated track-select screen, persisted selected track, and first commercial road theme implemented; commercial art still needed.
+Status: release/debug UI split, polished interaction pass, independent minimap component, UI theme tokens, dedicated track-select screen, dedicated settings screen, persisted selected track, per-track best laps, and first commercial road theme implemented; commercial art still needed.
 
 Source of truth:
 
@@ -92,49 +84,38 @@ Implemented:
 - `src/racer/RacerRoadTheme.ts` centralizes road palette tokens and active road theme selection.
 - `src/racer/RacerTrackDefinition.ts` defines a selectable track registry.
 - `RACER_TRACKS` currently includes `极速公路`, `海岸冲刺`, and `城市夜跑`.
-- The main menu includes `选择赛道` and displays the currently selected track name / target laps.
-- `RacerUiLayout` now defines a dedicated track-select screen with track cards and `返回菜单`.
-- `RacerUiRenderer` now renders the dedicated track-select screen, card pressed states, and `已选择` status.
+- The main menu includes `选择赛道`, `操作说明`, `排行榜`, and `设置`.
+- `RacerUiLayout` defines a dedicated track-select screen with track cards and `返回菜单`.
+- `RacerUiRenderer` renders the dedicated track-select screen, card pressed states, and `已选择` status.
+- `RacerUiLayout` defines a dedicated settings screen with music, minimap, operation guide, reset-guide, and return controls.
+- `RacerUiRenderer` renders the dedicated settings screen and current setting states.
 - `RacerScene` opens the dedicated track-select screen from the menu and confirms a selected card on touch release.
-- `RacerSettings` persists the selected track id.
+- `RacerScene` opens the dedicated settings screen from the menu and persists music, minimap, and control coach settings.
+- `RacerSettings` persists the selected track id, audio state, minimap state, control coach state, and whether the first-race coach has already been shown.
 - `RacerScene` restores the last selected track at startup.
 - `RacerStorage` stores best lap records per track id.
 - `RaceResult` includes selected track metadata for share / leaderboard payloads.
-- `ACTIVE_RACER_ROAD_THEME` now defaults to `COMMERCIAL_ASPHALT_ROAD_THEME`.
+- `ACTIVE_RACER_ROAD_THEME` defaults to `COMMERCIAL_ASPHALT_ROAD_THEME`.
 - Release mode is the default UI mode.
 - Debug-only asset/performance/commercial-safe text is hidden by default.
 - Control labels and player visibility marker are hidden by default.
-- Menu, pause, HUD, and result copy are now player-facing Chinese by default.
-- Buttons now have a pressed state.
-- Overlay actions execute on touch end, not immediately on touch start.
+- Menu, pause, HUD, result, track-select, and settings copy are player-facing Chinese by default.
+- Buttons have a pressed state and overlay actions execute on touch end.
 - Dragging outside a button cancels the pending action.
 - Touch start/move/end handlers tolerate empty platform touch arrays.
-- Primary buttons have a stronger gold glow treatment.
-- Pause button has a pressed visual state.
-- Brake button has stronger active feedback.
-- Modal panels use vignette, shadow, accent stripe, and bottom divider for clearer hierarchy.
-- Result screen shows a race grade.
-- `RacerUiRenderer` owns HUD, controls, overlays, help, onboarding UI, and track-select UI.
+- `RacerUiRenderer` owns HUD, controls, overlays, help, onboarding UI, track-select UI, and settings UI.
 - `RacerMiniMap` is an independent component for the in-race track radar.
-- The minimap shows curve preview, lap progress, and nearby traffic dots.
+- Minimap rendering is now controlled by the persisted settings screen switch.
+- First-race operation coach can be disabled or reset from the settings screen.
 - `Pseudo3DRenderer` focuses on world rendering and delegates UI drawing.
-- `Pseudo3DRenderer` now uses the selected track road theme fog color.
+- `Pseudo3DRenderer` uses the selected track road theme fog color.
 - `RacerState` generates segment road colors from the selected track road theme.
 - Audio mute state is persisted through platform storage.
-- Menu and pause overlays include a music toggle.
 - Optional sound effects are wired for engine loop, crash, and menu confirmation audio.
-- Collision events now trigger crash SFX when an audio pack provides it.
-- `RacerUiLayout` centralizes overlay button rectangles, touch zones, track-select cards, and minimap placement.
-- `RacerScene` exposes `handleAppHidden()` and `handleAppShown()` so a platform lifecycle adapter can pause/resume without direct `wx` usage in gameplay code.
-- In-race HUD is compact and includes speed, lap, time, best lap, and a race progress bar.
-- Left-bottom virtual joystick is enlarged and uses lower dead-zone / higher steering gain.
-- `RacerState` now supports analog steering sensitivity instead of only -1 / 0 / 1 input.
-- Right-bottom brake button is implemented as a large circular touch target.
-- Pause button is a circular icon placed away from the WeChat capsule area.
 - Player car rendering is stabilized outside segment projection clipping and clamped to a visible vertical range.
-- Player car now has an always-visible fallback body underneath the sprite frame.
+- Player car has an always-visible fallback body underneath the sprite frame.
 - Canvas image smoothing is disabled for sharper pixel-art sprites and backgrounds.
-- Local compatibility engine now creates a high-DPI canvas using `pixelRatio` and scales the context back to logical coordinates.
+- Local compatibility engine creates a high-DPI canvas using `pixelRatio` and scales the context back to logical coordinates.
 
 Still required before commercial release:
 
@@ -142,13 +123,12 @@ Still required before commercial release:
 - Replace Canvas programmer-art icons with final UI icons.
 - Tune exact joystick/brake/minimap sizes and opacity on real low-end and high-DPI devices.
 - Tune the dedicated track-select screen card spacing, copy length, and pressed-state intensity on small devices.
+- Tune the dedicated settings screen button spacing, labels, and touch comfort on small devices.
 - Tune the commercial asphalt palette on real devices for readability and contrast.
 - Tune all selectable track section layouts on real devices.
 - Add final result-screen share copy, ranking entry polish, and optional medal/rating art.
 - Replace legacy low-resolution art with a commercial-safe higher-quality asset pack before launch.
 - Switch `src/engine/index.ts` to the real SDK after the SDK package is built/published correctly.
-
-Owner lane: UX Director + UI Interaction Designer + Control Feel Designer + UI Visual Designer + Gameplay Readability QA + Runtime Integration Agent.
 
 ### Gate 6: Quality and validation
 
@@ -160,6 +140,7 @@ Required commands:
 npm install
 npm run typecheck
 npm run validate
+npm run validate:production
 npm run build:wx
 ```
 
@@ -173,62 +154,51 @@ Required manual checks:
 - Confirm moving outside a button cancels the pending action.
 - Confirm `选择赛道` opens the dedicated track-select screen.
 - Confirm every track card can be selected and returns to the menu.
-- Confirm `返回菜单` leaves the selected track unchanged.
+- Confirm track-select `返回菜单` leaves the selected track unchanged.
+- Confirm `设置` opens the dedicated settings screen.
+- Confirm settings screen music toggle persists after reload.
+- Confirm settings screen minimap toggle hides/shows the in-race minimap and persists after reload.
+- Confirm settings screen operation guide toggle prevents the first-race coach from appearing.
+- Confirm `重看操作引导` resets the coach so it appears on the next race start.
 - Confirm relaunch restores the last selected track.
-- Confirm each track shows its own best lap record.
-- Toggle music in menu and pause overlays.
+- Confirm each track shows its own best lap record per track id.
 - Confirm left-bottom joystick steers the car quickly enough and returns to center on release.
 - Confirm player car remains visible through hills, curves, traffic, collisions, lap wraparound, and continuous steering.
 - Confirm pixel-art elements look sharper after smoothing is disabled.
-- Confirm minimap appears under the HUD only during active driving.
+- Confirm minimap appears under the HUD only during active driving when enabled.
 - Confirm minimap curve preview gives readable left/right/straight information.
-- Confirm minimap traffic dots are useful and not distracting.
 - Confirm commercial asphalt road theme improves road/lane/rumble readability.
-- Confirm road fog color does not wash out player car or traffic cars.
-- Confirm right-bottom brake button slows the car while held and shows active feedback.
 - Confirm pause button is not blocked by the WeChat capsule and shows pressed feedback.
-- Confirm displayed buttons and click hitboxes match on small and large screens.
 - Confirm no debug-only UI appears in release mode.
-- Confirm share, leaderboard, and ad entries do not block replay.
 - Confirm share / leaderboard payloads include selected track metadata.
 - Confirm ads never appear while driving.
-- Confirm crash SFX plays when an audio pack provides `crash.mp3`.
-- Simulate app hide/show lifecycle pause/resume.
 - Finish the configured target lap count on each selectable track and restart.
-- Confirm best lap, selected track, and audio preference persist after reload.
+- Confirm best lap, selected track, audio preference, minimap preference, and operation coach preference persist after reload.
 - Confirm no console errors for missing required assets.
 - Check FPS on low-end and mid-range devices.
 - Check package size.
-
-Owner lane: QA and Performance Agent + Gameplay Readability QA.
 
 ## Agent task board
 
 ### Agent A: UX Director
 
-Task file: `docs/agent-tasks/ui-ux-director.md`
-
 Next tasks:
 
-1. Validate player-facing Chinese copy in menu, pause, result, HUD, minimap, and track-select screen.
+1. Validate player-facing Chinese copy in menu, pause, result, HUD, minimap, track-select screen, and settings screen.
 2. Review release/debug UI split in `RacerUiFlags.ts`.
 3. Decide final commercial game name and branding direction.
 
 ### Agent B: UI Interaction Designer
 
-Task file: `docs/ui-polish-agent-sync.md`
-
 Next tasks:
 
 1. Validate press-down and release-to-confirm behavior.
 2. Confirm drag-outside cancellation feels safe.
-3. Tune pressed state visual intensity if needed.
-4. Validate track selector persistence and relaunch behavior.
-5. Validate dedicated track-select card spacing and return flow.
+3. Validate track selector persistence and relaunch behavior.
+4. Validate dedicated track-select card spacing and return flow.
+5. Validate dedicated settings screen toggles, reset-guide flow, and return flow.
 
 ### Agent C: Control Feel Designer
-
-Task file: `docs/agent-tasks/control-feel-designer.md`
 
 Next tasks:
 
@@ -236,22 +206,19 @@ Next tasks:
 2. Test one-hand control comfort on target devices.
 3. Tune `RacerJoystick.ts`, `RacerUiLayout.ts`, and `RacerState.ts` from device feedback.
 4. Validate each selectable track is controllable with the same joystick/brake setup.
+5. Validate operation guide settings are useful for returning players.
 
 ### Agent D: UI Visual Designer
-
-Task file: `docs/agent-tasks/ui-visual-designer.md`
 
 Next tasks:
 
 1. Produce final color palette and UI component states.
-2. Produce pause/music/share/leaderboard/help/track icons.
+2. Produce pause/music/share/leaderboard/help/track/settings icons.
 3. Tune minimap visual style with the final HUD skin.
 4. Tune `RacerUiTheme.ts` and `RacerRoadTheme.ts` together so HUD, minimap, road, and rumble strips read as one visual system.
 5. Replace placeholder title/logo when commercial branding is ready.
 
 ### Agent E: Gameplay Readability QA
-
-Task file: `docs/agent-tasks/gameplay-readability-qa.md`
 
 Next tasks:
 
@@ -259,24 +226,5 @@ Next tasks:
 2. Confirm the player car never disappears after the renderer stabilization fix.
 3. Validate minimap readability and obstruction on target screens.
 4. Validate commercial asphalt road readability on target screens.
-5. Validate dedicated track-select screen, relaunch restore, and per-track best lap records.
+5. Validate dedicated track-select screen, dedicated settings screen, relaunch restore, and per-track best lap records.
 6. Capture screenshots or recordings for any remaining visibility issue.
-
-### Agent F: Rendering Quality
-
-Next tasks:
-
-1. Validate smoothing-off rendering in WeChat DevTools and on device.
-2. Confirm local compatibility engine high-DPI canvas mode does not break input hit testing.
-3. Validate `COMMERCIAL_ASPHALT_ROAD_THEME` contrast on low-brightness devices.
-4. Replace legacy low-resolution art with commercial-safe high-quality atlases.
-
-### Agent G: Monetization UX Designer
-
-Task file: `docs/agent-tasks/monetization-ux.md`
-
-Next tasks:
-
-1. Define share and leaderboard placement.
-2. Define non-intrusive ad timing.
-3. Confirm monetization entries never interrupt active driving.
