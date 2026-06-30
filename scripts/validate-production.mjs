@@ -9,6 +9,8 @@ const requiredFiles = [
   'src/engine/local-lite-game-engine.ts',
   'src/types/lite-game-engine.d.ts',
   'src/scenes/RacerScene.ts',
+  'src/racer/config.ts',
+  'src/racer/Pseudo3DRenderer.ts',
   'src/racer/RacerAssetManifest.ts',
   'src/racer/RacerAssets.ts',
   'src/racer/RacerJoystick.ts',
