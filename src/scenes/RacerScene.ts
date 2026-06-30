@@ -5,7 +5,7 @@ import { createRacerServices, type RaceResult } from '../racer/RacerServices';
 import { RacerSettings } from '../racer/RacerSettings';
 import { RacerState } from '../racer/RacerState';
 import { RacerStorage } from '../racer/RacerStorage';
-import { ACTIVE_RACER_TRACK, getNextRacerTrack, RACER_TRACKS, racerTrackIndex, type RacerTrackDefinition } from '../racer/RacerTrackDefinition';
+import { ACTIVE_RACER_TRACK, findRacerTrackById, getNextRacerTrack, RACER_TRACKS, racerTrackIndex, type RacerTrackDefinition } from '../racer/RacerTrackDefinition';
 import { resolveRacerTuning } from '../racer/RacerTuning';
 import { RACER_UI_FLAGS } from '../racer/RacerUiFlags';
 import { buildRacerUiLayout, pointInCircle, pointInRect } from '../racer/RacerUiLayout';
@@ -42,8 +42,9 @@ export class RacerScene extends Scene {
 
     this.settings = new RacerSettings(gameEngine);
     this.storage = new RacerStorage(gameEngine);
+    this.activeTrack = findRacerTrackById(this.settings.getSelectedTrackId() ?? ACTIVE_RACER_TRACK.id);
     this.state = new RacerState(gameEngine.width, gameEngine.height, tuning, this.activeTrack);
-    this.savedBestLapTime = this.storage.getBestLapTime();
+    this.savedBestLapTime = this.storage.getBestLapTime(this.activeTrack.id);
     this.audioMuted = this.settings.isAudioMuted();
     this.hasShownControlCoach = !RACER_UI_FLAGS.showFirstRaceCoach || this.settings.hasShownFirstRaceCoach();
     this.assets.setMuted(this.audioMuted);
@@ -54,6 +55,7 @@ export class RacerScene extends Scene {
       tuning: tuning.profile,
       audioMuted: this.audioMuted,
       trackId: this.activeTrack.id,
+      trackName: this.activeTrack.name,
       targetLaps: this.targetLaps
     });
   }
@@ -117,15 +119,15 @@ export class RacerScene extends Scene {
   }
 
   private bindTouchControls(): void {
-    this.gameEngine.input.onStart((touches: TouchPoint[]) => this.handleTouchStart(touches), { persistent: true });
-    this.gameEngine.input.onMove((touches: TouchPoint[]) => {
+    this.gameEngine.input.onStart((touches: TouchPoint[] = []) => this.handleTouchStart(touches), { persistent: true });
+    this.gameEngine.input.onMove((touches: TouchPoint[] = []) => {
       if (this.phase === 'playing') this.applyTouches(touches);
       else this.updatePressedTarget(touches[0]);
     }, { persistent: true });
-    this.gameEngine.input.onEnd((touches: TouchPoint[]) => this.handleTouchEnd(touches), { persistent: true });
+    this.gameEngine.input.onEnd((touches: TouchPoint[] = []) => this.handleTouchEnd(touches), { persistent: true });
   }
 
-  private handleTouchStart(touches: TouchPoint[]): void {
+  private handleTouchStart(touches: TouchPoint[] = []): void {
     const point = touches[0];
     if (!point) return;
 
@@ -143,7 +145,7 @@ export class RacerScene extends Scene {
     this.applyTouches(touches);
   }
 
-  private handleTouchEnd(touches: TouchPoint[]): void {
+  private handleTouchEnd(touches: TouchPoint[] = []): void {
     const point = touches[0];
     const target = this.pressedTarget;
 
@@ -276,13 +278,16 @@ export class RacerScene extends Scene {
     if (this.phase !== 'menu') return;
 
     this.activeTrack = getNextRacerTrack(this.activeTrack.id);
+    this.settings.setSelectedTrackId(this.activeTrack.id);
+    this.savedBestLapTime = this.storage.getBestLapTime(this.activeTrack.id);
     this.state.setTrack(this.activeTrack, this.savedBestLapTime);
     this.lastCollisionCount = this.state.collisionCount;
     this.services.analytics.track('track_select', {
       trackId: this.activeTrack.id,
       trackName: this.activeTrack.name,
       trackIndex: racerTrackIndex(this.activeTrack.id),
-      targetLaps: this.targetLaps
+      targetLaps: this.targetLaps,
+      bestLapTime: this.savedBestLapTime
     });
   }
 
@@ -458,6 +463,8 @@ export class RacerScene extends Scene {
 
   private buildRaceResult(): RaceResult {
     return {
+      trackId: this.activeTrack.id,
+      trackName: this.activeTrack.name,
       completedLaps: this.state.completedLaps,
       targetLaps: this.targetLaps,
       totalRaceTime: this.state.totalRaceTime,
@@ -479,7 +486,7 @@ export class RacerScene extends Scene {
   private persistBestLapIfNeeded(): void {
     if (this.state.bestLapTime > 0 && this.state.bestLapTime !== this.savedBestLapTime) {
       this.savedBestLapTime = this.state.bestLapTime;
-      this.storage.setBestLapTime(this.savedBestLapTime);
+      this.storage.setBestLapTime(this.savedBestLapTime, this.activeTrack.id);
     }
   }
 }
