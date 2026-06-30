@@ -1,9 +1,11 @@
 import type { Engine } from '../engine';
+import { DEFAULT_RACER_CONTROL_SENSITIVITY, findRacerControlSensitivity, type RacerControlSensitivityId } from './RacerControlSensitivity';
 
 const AUDIO_MUTED_KEY = 'racer.v4.audio_muted';
 const FIRST_RACE_COACH_SHOWN_KEY = 'racer.v4.first_race_coach_shown';
 const MINI_MAP_ENABLED_KEY = 'racer.v4.mini_map_enabled';
 const CONTROL_COACH_ENABLED_KEY = 'racer.v4.control_coach_enabled';
+const CONTROL_SENSITIVITY_KEY = 'racer.v4.control_sensitivity';
 const SELECTED_TRACK_ID_KEY = 'racer.v4.selected_track_id';
 
 export class RacerSettings {
@@ -33,6 +35,20 @@ export class RacerSettings {
 
   setControlCoachEnabled(value: boolean): void {
     this.engine.platform.setStorage(CONTROL_COACH_ENABLED_KEY, String(value));
+  }
+
+  getControlSensitivityId(): RacerControlSensitivityId {
+    const value = this.engine.platform.getStorage(CONTROL_SENSITIVITY_KEY);
+    return findRacerControlSensitivity(value).id;
+  }
+
+  setControlSensitivityId(value: RacerControlSensitivityId): void {
+    const profile = findRacerControlSensitivity(value);
+    this.engine.platform.setStorage(CONTROL_SENSITIVITY_KEY, profile.id);
+  }
+
+  resetControlSensitivity(): void {
+    this.setControlSensitivityId(DEFAULT_RACER_CONTROL_SENSITIVITY.id);
   }
 
   hasShownFirstRaceCoach(): boolean {
