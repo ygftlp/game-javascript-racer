@@ -21,6 +21,7 @@ export type RacerUiPressedTarget =
   | 'settings-audio'
   | 'settings-minimap'
   | 'settings-coach'
+  | 'settings-sensitivity'
   | 'settings-reset-coach'
   | 'settings-back'
   | 'help-start'
@@ -49,6 +50,8 @@ export interface RacerUiRenderOptions {
   miniMapEnabled: boolean;
   controlCoachEnabled: boolean;
   controlCoachSeen: boolean;
+  controlSensitivityLabel: string;
+  controlSensitivityDescription: string;
   brakeActive: boolean;
   pressedTarget: RacerUiPressedTarget;
   controlCoachTimeLeft: number;
@@ -302,11 +305,12 @@ export class RacerUiRenderer {
     ctx.fillText('设置', state.width / 2, settings.titleY);
     ctx.font = `${layout.fonts.note}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.note;
-    ctx.fillText('调整显示和新手引导，不影响当前赛道成绩', state.width / 2, settings.line1Y);
+    ctx.fillText(`当前手感：${options.controlSensitivityLabel} · ${options.controlSensitivityDescription}`, state.width / 2, settings.line1Y);
 
     this.drawButton(ctx, settings.audioButton, options.audioMuted ? '音乐：关闭' : '音乐：开启', layout, false, options.pressedTarget === 'settings-audio');
     this.drawButton(ctx, settings.miniMapButton, options.miniMapEnabled ? '小地图：开启' : '小地图：关闭', layout, false, options.pressedTarget === 'settings-minimap');
     this.drawButton(ctx, settings.coachButton, options.controlCoachEnabled ? '操作引导：开启' : '操作引导：关闭', layout, false, options.pressedTarget === 'settings-coach');
+    this.drawButton(ctx, settings.sensitivityButton, `控制手感：${options.controlSensitivityLabel}`, layout, false, options.pressedTarget === 'settings-sensitivity');
     this.drawButton(ctx, settings.resetCoachButton, options.controlCoachSeen ? '重看操作引导' : '操作引导已准备', layout, false, options.pressedTarget === 'settings-reset-coach');
     this.drawButton(ctx, settings.backButton, '返回菜单', layout, true, options.pressedTarget === 'settings-back');
   }
