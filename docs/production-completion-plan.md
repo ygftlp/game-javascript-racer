@@ -55,20 +55,21 @@ Required:
 
 ### Gate 4: Platform services
 
-Status: service boundary implemented; real WeChat adapter still needed.
+Status: WeChat services adapter skeleton implemented; real AppID, cloud/open-data setup, ad unit IDs, and device verification still needed.
 
 Required:
 
-- Implement real share adapter behind `RacerServices.social`.
-- Implement leaderboard adapter behind `RacerServices.leaderboard`.
-- Implement ads adapter behind `RacerServices.ads`.
-- Keep AppID, ad unit IDs, and sensitive platform IDs outside public source where possible.
+- Configure share copy and optional share image for `RacerWechatServices`.
+- Configure leaderboard through WeChat open data context or cloud function.
+- Configure ad unit IDs for interstitial and rewarded ads only after policy review.
+- Keep AppID, ad unit IDs, cloud function names, and sensitive platform IDs outside public source where possible.
 - Avoid direct `wx` usage inside gameplay state or renderer.
 - Ads must never appear during active driving.
+- Verify real share, leaderboard, analytics, and ads in WeChat DevTools and on device.
 
 ### Gate 5: Commercial UI / UX polish
 
-Status: release/debug UI split, polished interaction pass, independent minimap component, optional commercial logo asset support with programmatic logo fallback, optional commercial UI icon atlas support with programmatic icon fallback, safe commercial asset pack switch script, theme-tokenized card metrics, dedicated track-select screen, dedicated settings screen with settings cards and status pill states, configurable control sensitivity, persisted selected track, per-track best laps, and first commercial road theme implemented; commercial art still needed.
+Status: release/debug UI split, polished interaction pass, independent minimap component, optional commercial logo asset support with programmatic logo fallback, optional commercial UI icon atlas support with programmatic icon fallback, safe commercial asset pack switch script, WeChat services adapter skeleton, theme-tokenized card metrics, dedicated track-select screen, dedicated settings screen with settings cards and status pill states, configurable control sensitivity, persisted selected track, per-track best laps, and first commercial road theme implemented; commercial art and real platform configuration still needed.
 
 Source of truth:
 
@@ -84,6 +85,13 @@ Source of truth:
 
 Implemented:
 
+- `src/racer/RacerWechatServices.ts` provides a WeChat services adapter skeleton for share, leaderboard, ads, and analytics.
+- `src/racer/RacerServices.ts` now prefers the WeChat adapter when `globalThis.wx` exists and falls back to noop services outside WeChat.
+- WeChat sharing uses `wx.shareAppMessage` with result/track metadata.
+- WeChat leaderboard submit supports either cloud function submission or open-data-context `postMessage`.
+- WeChat leaderboard view receives `source`, `trackId`, and `trackName` context from `RacerScene`.
+- WeChat ads skeleton supports interstitial and rewarded video ad creation when ad unit IDs are configured.
+- WeChat analytics skeleton forwards events to `wx.reportAnalytics` and can also log to console.
 - `scripts/use-commercial-assets.mjs` checks required commercial files, reports optional fallback files, and only switches the active pack when run with `--apply`.
 - `package.json` exposes `assets:commercial`, `assets:commercial:apply`, and `assets:legacy:apply` commands.
 - `src/racer/RacerAssetManifest.ts` defines optional `images.brandLogo` and `images.uiIconAtlas`.
@@ -141,6 +149,8 @@ Still required before commercial release:
 - Add the final commercial Logo image at `assets/packs/default/images/ui/logo.png`, or keep the programmatic logo fallback.
 - Add the final commercial UI icon atlas at `assets/packs/default/images/ui/icons.png`, or keep the programmatic icon fallback.
 - Replace legacy low-resolution art with a commercial-safe higher-quality asset pack before launch.
+- Configure real WeChat AppID, share image, cloud/open-data leaderboard path, and ad unit IDs.
+- Verify `wx.shareAppMessage`, open data context, cloud score submission, `wx.reportAnalytics`, interstitial ads, and rewarded ads on real WeChat targets.
 - Tune exact joystick/brake/minimap sizes and opacity on real low-end and high-DPI devices.
 - Tune the dedicated track-select screen card spacing, copy length, icon size, and pressed-state intensity on small devices.
 - Tune the dedicated settings screen settings cards, status pill readability, icon size, labels, and touch comfort on small devices.
@@ -174,6 +184,12 @@ Required manual checks:
 - Confirm `npm run assets:commercial` reports optional missing logo/icon/sfx files as fallbacks, not blockers.
 - Confirm `npm run assets:commercial:apply` switches to `COMMERCIAL_TEMPLATE_ASSET_PACK` only after required files exist.
 - Confirm `npm run assets:legacy:apply` switches back to `LEGACY_RACER_ASSET_PACK`.
+- Confirm `createRacerServices()` uses noop fallback outside WeChat and WeChat adapter inside WeChat.
+- Confirm `wx.shareAppMessage` receives result share copy and track query metadata.
+- Confirm leaderboard submit sends `trackId`, `trackName`, `totalRaceTime`, and `bestLapTime`.
+- Confirm leaderboard view receives `source`, `trackId`, and `trackName` context.
+- Confirm interstitial ads only request after race finish, never during active driving.
+- Confirm rewarded video can be configured later without blocking normal gameplay.
 - Start game from menu without external instructions.
 - Confirm missing `assets/packs/default/images/ui/logo.png` falls back to the programmatic Logo.
 - Confirm adding `assets/packs/default/images/ui/logo.png` makes the menu use the commercial Logo image.
@@ -199,8 +215,6 @@ Required manual checks:
 - Confirm commercial asphalt road theme improves road/lane/rumble readability.
 - Confirm pause button is not blocked by the WeChat capsule and shows pressed feedback.
 - Confirm no debug-only UI appears in release mode.
-- Confirm share / leaderboard payloads include selected track metadata.
-- Confirm ads never appear while driving.
 - Finish the configured target lap count on each selectable track and restart.
 - Confirm best lap, selected track, audio preference, minimap preference, operation coach preference, and control sensitivity persist after reload.
 - Confirm no console errors for missing required assets beyond optional Logo/icon/sfx fallback warnings.
