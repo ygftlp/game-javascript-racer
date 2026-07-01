@@ -22,6 +22,13 @@ Implemented highlights:
 - `npm run assets:commercial` checks required and optional commercial files without changing source.
 - `npm run assets:commercial:apply` switches to `COMMERCIAL_TEMPLATE_ASSET_PACK` only when required commercial files exist.
 - `npm run assets:legacy:apply` switches back to `LEGACY_RACER_ASSET_PACK` for QA rollback.
+- `RacerWechatServices` adds a WeChat services adapter skeleton for share, leaderboard, ads, and analytics.
+- `RacerServices` prefers the WeChat adapter when `globalThis.wx` exists and falls back to noop services outside WeChat.
+- WeChat sharing uses `wx.shareAppMessage` with result and track metadata.
+- Leaderboard submit supports WeChat cloud function or open data context `postMessage`.
+- Leaderboard view receives `source`, `trackId`, and `trackName` context for track-specific boards.
+- Ads skeleton supports interstitial and rewarded video creation but only runs when ad unit IDs are configured.
+- Analytics can forward events to `wx.reportAnalytics` while keeping console logs available for QA.
 - `RacerUiTheme.brandLogo` owns image logo bounds, image shadow, programmatic logo plate, stripes, badge, title, and subtitle styling.
 - `RacerUiRenderer` passes `assets.brandLogo` into the menu logo renderer.
 - `RacerUiIcons` and `RacerUiLogo` avoid `roundRect` and use internal paths for better WeChat Canvas compatibility.
@@ -43,7 +50,7 @@ Focus:
 - Verify menu, pause, result, help, minimap, dedicated track-select screen, and dedicated settings screen copy.
 - Confirm optional commercial logo asset and programmatic logo fallback both preserve menu hierarchy.
 - Confirm optional commercial UI icon atlas and programmatic icon fallback both preserve action readability.
-- Confirm commercial asset pack switching does not expose debug or missing-asset copy in release UI.
+- Confirm WeChat share copy is player-facing and not technical.
 
 Checklist:
 
@@ -51,6 +58,7 @@ Checklist:
 - Settings and track selection do not compete with `开始比赛`.
 - Commercial logo image and programmatic logo fallback do not obscure current track / target lap information.
 - Commercial atlas icons and programmatic icons match their action meanings.
+- Share copy includes track/result context without feeling spammy.
 - No debug or placeholder service copy appears in release mode.
 
 ## Agent B: UI Interaction Designer
@@ -61,7 +69,7 @@ Focus:
 - Touch cancel behavior.
 - Icon/text balance.
 - Brand logo placement.
-- Theme-tokenized card and pill metrics.
+- Platform service entry safety.
 
 Checklist:
 
@@ -70,9 +78,8 @@ Checklist:
 - Moving outside cancels the action.
 - Logo image placement does not reduce menu button touch comfort.
 - Icon placement does not reduce perceived touch target size.
-- `buttonIcon.textOffsetRatio` keeps button labels visually centered.
-- Settings cards update status pill states immediately.
-- `控制手感` cycles one profile per confirmed tap.
+- Leaderboard and share taps do not block restart/menu interaction.
+- Ads are never requested while actively driving.
 
 ## Agent C: Asset / Track Systems Designer
 
@@ -90,6 +97,7 @@ Checklist:
 - Optional commercial UI icon atlas path is `assets/packs/default/images/ui/icons.png`.
 - Required switch files are background, sprites, and music.
 - Optional logo, icons, and sfx use runtime fallbacks and do not block switching.
+- Leaderboard payloads carry `trackId` and `trackName`.
 - Missing logo image falls back to the programmatic logo fallback.
 - Missing icon atlas falls back to programmatic icons.
 - `RACER_TRACKS` contains all selectable tracks.
@@ -103,7 +111,7 @@ Focus:
 - Commercial style layer.
 - Logo image readability.
 - UI icon atlas readability.
-- Programmatic fallback readability.
+- Share-card visual direction.
 - Theme-tokenized logo/icon/card/status-pill tuning.
 
 Checklist:
@@ -112,6 +120,7 @@ Checklist:
 - Programmatic logo fallback is readable at small sizes.
 - Commercial atlas icons are readable at small sizes.
 - Programmatic icon fallback is readable at small sizes.
+- Share image can be added later without changing service call sites.
 - `brandLogo`, `buttonIcon`, `trackCard`, `settingCard`, and `statusPill` tokens are the main knobs for final skin tuning.
 
 ## Agent E: Control Feel Designer
@@ -138,13 +147,19 @@ Focus:
 - Optional icon atlas regression checks.
 - Programmatic fallback regression checks.
 - Safe switch script regression checks.
-- Renderer separation regression checks.
+- WeChat services adapter regression checks.
 
 Checklist:
 
 - `npm run assets:commercial` blocks missing required commercial files.
 - `npm run assets:commercial:apply` switches active pack only after required files exist.
 - `npm run assets:legacy:apply` switches active pack back for rollback.
+- WeChat adapter is used only when `globalThis.wx` exists.
+- Non-WeChat environments keep noop fallback services.
+- `wx.shareAppMessage` receives track/result metadata.
+- Leaderboard submit can use cloud function or open data context.
+- Leaderboard view receives `source`, `trackId`, and `trackName` context.
+- Interstitial ads are requested only after race finish.
 - Optional commercial logo asset renders on target devices without Canvas API errors.
 - Optional commercial icon atlas renders on target devices without Canvas API errors.
 - Missing logo image falls back to the programmatic logo fallback.
@@ -152,7 +167,6 @@ Checklist:
 - Theme-tokenized logo, button, track-card, setting-card, and status-pill metrics work on small and high-DPI devices.
 - Settings screen opens from menu, toggles settings, cycles sensitivity, updates status pills, and returns safely.
 - Track-select screen opens from menu, selects a track, and returns safely.
-- Share / leaderboard payloads include selected track metadata.
 
 ## Agent G: Implementation Engineer
 
@@ -161,7 +175,7 @@ Focus:
 - Keep code maintainable.
 - Keep validation updated.
 - Preserve shared layout/hitbox source of truth.
-- Keep logo asset loading, icon atlas loading, fallback rendering, safe pack switching, and theme-tokenized metrics isolated from gameplay internals.
+- Keep logo asset loading, icon atlas loading, fallback rendering, safe pack switching, and platform services isolated from gameplay internals.
 
 Implemented files:
 
@@ -169,6 +183,8 @@ Implemented files:
 - `src/racer/Pseudo3DRenderer.ts`
 - `src/racer/RacerAssetManifest.ts`
 - `src/racer/RacerAssets.ts`
+- `src/racer/RacerServices.ts`
+- `src/racer/RacerWechatServices.ts`
 - `src/racer/RacerUiRenderer.ts`
 - `src/racer/RacerUiLogo.ts`
 - `src/racer/RacerUiIcons.ts`
@@ -180,7 +196,6 @@ Implemented files:
 - `src/racer/RacerSettings.ts`
 - `src/racer/RacerState.ts`
 - `src/racer/RacerStorage.ts`
-- `src/racer/RacerServices.ts`
 - `src/racer/RacerTrackDefinition.ts`
 - `src/racer/RacerUiFlags.ts`
 - `src/racer/RacerUiLayout.ts`
@@ -189,7 +204,7 @@ Implemented files:
 
 Next recommended implementation pass:
 
-1. Add a WeChat services adapter skeleton for share / leaderboard / rewarded ads.
+1. Add concrete WeChat service configuration hooks for AppID-specific share image, cloud function name, and ad unit IDs without committing secrets.
 2. Tune `brandLogo`, `buttonIcon`, `trackCard`, `settingCard`, and `statusPill` from real-device screenshots.
 3. Tune minimap size/opacity after real-device testing on all selectable tracks.
 4. Tune sensitivity presets after device testing.
