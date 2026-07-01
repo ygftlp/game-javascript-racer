@@ -18,6 +18,10 @@ Implemented highlights:
 - `RacerUiIconAtlas` owns the 4-column, 64px-cell atlas mapping for play, track, leaderboard, help, settings, music, minimap, coach, sensitivity, reset, back, and share.
 - `RacerAssets` loads the optional commercial icon atlas and registers it through `RacerUiIcons.setIconAtlasTexture`.
 - `RacerUiIcons` first tries to draw atlas icons, then falls back to programmatic icons if the atlas is missing, still loading, or fails to draw.
+- `scripts/use-commercial-assets.mjs` adds a safe commercial asset pack switch flow.
+- `npm run assets:commercial` checks required and optional commercial files without changing source.
+- `npm run assets:commercial:apply` switches to `COMMERCIAL_TEMPLATE_ASSET_PACK` only when required commercial files exist.
+- `npm run assets:legacy:apply` switches back to `LEGACY_RACER_ASSET_PACK` for QA rollback.
 - `RacerUiTheme.brandLogo` owns image logo bounds, image shadow, programmatic logo plate, stripes, badge, title, and subtitle styling.
 - `RacerUiRenderer` passes `assets.brandLogo` into the menu logo renderer.
 - `RacerUiIcons` and `RacerUiLogo` avoid `roundRect` and use internal paths for better WeChat Canvas compatibility.
@@ -39,7 +43,7 @@ Focus:
 - Verify menu, pause, result, help, minimap, dedicated track-select screen, and dedicated settings screen copy.
 - Confirm optional commercial logo asset and programmatic logo fallback both preserve menu hierarchy.
 - Confirm optional commercial UI icon atlas and programmatic icon fallback both preserve action readability.
-- Confirm theme-tokenized spacing preserves readability after future skin changes.
+- Confirm commercial asset pack switching does not expose debug or missing-asset copy in release UI.
 
 Checklist:
 
@@ -76,6 +80,7 @@ Focus:
 
 - Optional logo asset path and commercial pack structure.
 - Optional UI icon atlas path and atlas frame order.
+- Safe commercial pack switch flow.
 - Track registry design.
 - Per-track progression and score separation.
 
@@ -83,6 +88,8 @@ Checklist:
 
 - Optional commercial logo asset path is `assets/packs/default/images/ui/logo.png`.
 - Optional commercial UI icon atlas path is `assets/packs/default/images/ui/icons.png`.
+- Required switch files are background, sprites, and music.
+- Optional logo, icons, and sfx use runtime fallbacks and do not block switching.
 - Missing logo image falls back to the programmatic logo fallback.
 - Missing icon atlas falls back to programmatic icons.
 - `RACER_TRACKS` contains all selectable tracks.
@@ -130,11 +137,14 @@ Focus:
 - Optional logo image regression checks.
 - Optional icon atlas regression checks.
 - Programmatic fallback regression checks.
-- Theme-tokenized metric regression checks.
+- Safe switch script regression checks.
 - Renderer separation regression checks.
 
 Checklist:
 
+- `npm run assets:commercial` blocks missing required commercial files.
+- `npm run assets:commercial:apply` switches active pack only after required files exist.
+- `npm run assets:legacy:apply` switches active pack back for rollback.
 - Optional commercial logo asset renders on target devices without Canvas API errors.
 - Optional commercial icon atlas renders on target devices without Canvas API errors.
 - Missing logo image falls back to the programmatic logo fallback.
@@ -151,7 +161,7 @@ Focus:
 - Keep code maintainable.
 - Keep validation updated.
 - Preserve shared layout/hitbox source of truth.
-- Keep logo asset loading, icon atlas loading, fallback rendering, and theme-tokenized metrics isolated from gameplay internals.
+- Keep logo asset loading, icon atlas loading, fallback rendering, safe pack switching, and theme-tokenized metrics isolated from gameplay internals.
 
 Implemented files:
 
@@ -174,11 +184,12 @@ Implemented files:
 - `src/racer/RacerTrackDefinition.ts`
 - `src/racer/RacerUiFlags.ts`
 - `src/racer/RacerUiLayout.ts`
+- `scripts/use-commercial-assets.mjs`
 - `scripts/validate-production.mjs`
 
 Next recommended implementation pass:
 
-1. Add commercial asset pack switch checklist once real images/audio are present.
+1. Add a WeChat services adapter skeleton for share / leaderboard / rewarded ads.
 2. Tune `brandLogo`, `buttonIcon`, `trackCard`, `settingCard`, and `statusPill` from real-device screenshots.
 3. Tune minimap size/opacity after real-device testing on all selectable tracks.
 4. Tune sensitivity presets after device testing.
