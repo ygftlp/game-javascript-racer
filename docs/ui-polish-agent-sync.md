@@ -21,6 +21,7 @@ The UI has moved from prototype interactions to a more commercial mobile-game in
 - The old simple cycle-track behavior has been replaced with a dedicated track-select screen.
 - The dedicated track-select screen shows track cards, target laps, current selected state, and `返回菜单`.
 - The dedicated settings screen centralizes music, minimap, first-race operation-guide controls, and control sensitivity.
+- The settings screen now renders settings cards with title, description, status pill, enabled/disabled state, and pressed feedback.
 - `RacerControlSensitivity` now owns three control sensitivity profiles: `舒适`, `标准`, and `灵敏`.
 - The settings screen cycles control sensitivity and persists the selected profile.
 - `RacerJoystick` applies selected `joystickGain` and `steerInputLimit`.
@@ -59,6 +60,7 @@ Checklist:
 - Result screen primary action is `再来一局`.
 - Minimap label `赛道雷达` is understandable and not distracting.
 - Control sensitivity labels `舒适 / 标准 / 灵敏` are understandable to casual players.
+- Settings card titles and descriptions explain the impact of each setting quickly.
 - First-race coach should only appear once per player unless reset in settings.
 - No debug or placeholder service copy appears in release mode.
 
@@ -80,13 +82,13 @@ Checklist:
 - Track cards select exactly one track per confirmed tap.
 - Track-select `返回菜单` does not change the selected track.
 - `设置` opens the dedicated settings screen.
-- Settings toggles update labels immediately after confirmed tap.
+- Settings cards update status pills immediately after confirmed tap.
 - `控制手感` cycles one profile per confirmed tap.
 - Settings `返回菜单` returns without changing unrelated state.
 - Relaunching the game restores the last selected track and settings.
 - Help screen start/back buttons are clear.
 - Pause return-menu action does not trigger accidentally.
-- Buttons do not feel jumpy or delayed.
+- Cards and buttons do not feel jumpy or delayed.
 - Pause button press is visible but not distracting.
 
 ## Agent C: Track Systems Designer
@@ -121,6 +123,7 @@ Focus:
 - Help/onboarding readability.
 - Track-select card readability.
 - Settings screen readability.
+- Settings card and status pill style.
 - Minimap / track radar readability.
 - Future icon/logo integration through the UI renderer.
 
@@ -130,7 +133,9 @@ Checklist:
 - Primary CTA has stronger visual weight than secondary buttons.
 - The gold accent is used consistently.
 - Track-select card text fits small screens.
-- Settings labels fit small screens and clearly show on/off state.
+- Settings card titles, descriptions, and status pills fit small screens.
+- Enabled status is obvious without looking like debug text.
+- Disabled status is readable but visually quieter.
 - Control sensitivity row is readable and does not make the settings panel feel crowded.
 - Selected track state is obvious without looking like debug text.
 - Help screen looks like part of the game, not documentation pasted into the canvas.
@@ -186,7 +191,7 @@ Checklist:
 - Control coach disappears automatically, can be dismissed by driving input, and does not reappear after it is stored as shown unless reset in settings.
 - Overlay transitions do not leave stale pressed states.
 - Track-select screen opens from menu, selects a track, and returns safely.
-- Settings screen opens from menu, toggles settings, cycles sensitivity, and returns safely.
+- Settings screen opens from menu, toggles settings, cycles sensitivity, updates status pills, and returns safely.
 - Result screen appears at the selected track target-lap count.
 - Share / leaderboard payloads include selected track metadata.
 - Extracting `RacerUiRenderer` does not change visual order: world first, player car, then UI.
@@ -223,7 +228,7 @@ Next recommended implementation pass:
 
 1. Add final icon assets for pause/music/share/leaderboard/help/track/settings.
 2. Add final UI logo when commercial art is ready.
-3. Move repeated visual constants into UI theme tokens before the final skin pass.
+3. Move repeated settings card colors and status pill tokens into `RacerUiTheme.ts` before the final skin pass.
 4. Tune minimap size/opacity after real-device testing on all selectable tracks.
 5. Tune sensitivity presets after device testing.
 6. Add pagination or scrolling to the dedicated track-select screen if more than 3 tracks are added.
