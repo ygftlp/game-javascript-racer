@@ -4,6 +4,7 @@ import type { RacerJoystickSnapshot } from './RacerJoystick';
 import { RacerMiniMap } from './RacerMiniMap';
 import type { RacerState } from './RacerState';
 import { RACER_UI_FLAGS } from './RacerUiFlags';
+import { RacerUiIcons, type RacerUiIconName } from './RacerUiIcons';
 import { RACER_UI_THEME } from './RacerUiTheme';
 import type { RacerCircle, RacerRect, RacerUiLayout } from './RacerUiLayout';
 
@@ -81,6 +82,7 @@ function trackPressedTarget(index: number): RacerTrackSelectPressedTarget {
 
 export class RacerUiRenderer {
   private readonly miniMap = new RacerMiniMap();
+  private readonly icons = new RacerUiIcons();
 
   render(
     ctx: CanvasRenderingContext2D,
@@ -242,11 +244,11 @@ export class RacerUiRenderer {
     ctx.fillText(`当前赛道 · ${options.trackName}`, state.width / 2, layout.menu.line2Y);
     ctx.fillText(`目标 ${options.targetLaps} 圈 · ${options.audioMuted ? '音乐关闭' : '音乐开启'}`, state.width / 2, layout.menu.line3Y);
     if (RACER_UI_FLAGS.showAssetStatus) ctx.fillText(`${assets?.statusLabel ?? 'Assets idle'}`, state.width / 2, layout.menu.line3Y);
-    this.drawButton(ctx, layout.menu.startButton, '开始比赛', layout, true, options.pressedTarget === 'menu-start');
-    this.drawButton(ctx, layout.menu.trackButton, '选择赛道', layout, false, options.pressedTarget === 'menu-track');
-    this.drawButton(ctx, layout.menu.leaderboardButton, '排行榜', layout, false, options.pressedTarget === 'menu-leaderboard');
-    this.drawButton(ctx, layout.menu.helpButton, '操作说明', layout, false, options.pressedTarget === 'menu-help');
-    this.drawButton(ctx, layout.menu.settingsButton, '设置', layout, false, options.pressedTarget === 'menu-settings');
+    this.drawButton(ctx, layout.menu.startButton, '开始比赛', layout, true, options.pressedTarget === 'menu-start', 'play');
+    this.drawButton(ctx, layout.menu.trackButton, '选择赛道', layout, false, options.pressedTarget === 'menu-track', 'track');
+    this.drawButton(ctx, layout.menu.leaderboardButton, '排行榜', layout, false, options.pressedTarget === 'menu-leaderboard', 'leaderboard');
+    this.drawButton(ctx, layout.menu.helpButton, '操作说明', layout, false, options.pressedTarget === 'menu-help', 'help');
+    this.drawButton(ctx, layout.menu.settingsButton, '设置', layout, false, options.pressedTarget === 'menu-settings', 'settings');
   }
 
   private drawTrackSelect(ctx: CanvasRenderingContext2D, state: RacerState, options: RacerUiRenderOptions, layout: RacerUiLayout): void {
@@ -268,7 +270,7 @@ export class RacerUiRenderer {
       this.drawTrackCard(ctx, target, track, index, selected, pressed, layout);
     }
 
-    this.drawButton(ctx, select.backButton, '返回菜单', layout, false, options.pressedTarget === 'track-back');
+    this.drawButton(ctx, select.backButton, '返回菜单', layout, false, options.pressedTarget === 'track-back', 'back');
   }
 
   private drawTrackCard(ctx: CanvasRenderingContext2D, target: RacerRect, track: RacerUiTrackOption, index: number, selected: boolean, pressed: boolean, layout: RacerUiLayout): void {
@@ -284,14 +286,15 @@ export class RacerUiRenderer {
     const h = target.h - inset * 2;
 
     this.roundedPanel(ctx, x, y, w, h, fill, stroke);
+    this.icons.render(ctx, 'track', x + 30, y + h / 2, layout.small ? 24 : 30, selected ? RACER_UI_THEME.accent.gold : RACER_UI_THEME.text.note, RACER_UI_THEME.accent.gold);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.font = `bold ${layout.small ? 18 : 21}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.primary;
-    ctx.fillText(`${index + 1}. ${track.name}`, x + 16, y + 10);
+    ctx.fillText(`${index + 1}. ${track.name}`, x + (layout.small ? 52 : 60), y + 10);
     ctx.font = `${layout.small ? 14 : 16}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.body;
-    ctx.fillText(track.description, x + 16, y + (layout.small ? 34 : 40));
+    ctx.fillText(track.description, x + (layout.small ? 52 : 60), y + (layout.small ? 34 : 40));
     ctx.textAlign = 'right';
     ctx.fillStyle = selected ? RACER_UI_THEME.accent.gold : RACER_UI_THEME.text.note;
     ctx.fillText(selected ? '已选择' : `${track.targetLaps} 圈`, x + w - 16, y + 12);
@@ -307,15 +310,15 @@ export class RacerUiRenderer {
     ctx.fillStyle = RACER_UI_THEME.text.note;
     ctx.fillText('调整驾驶、显示和新手引导', state.width / 2, settings.line1Y);
 
-    this.drawSettingCard(ctx, settings.audioButton, '音乐', options.audioMuted ? '关闭' : '开启', '背景音乐和音效', !options.audioMuted, options.pressedTarget === 'settings-audio', layout);
-    this.drawSettingCard(ctx, settings.miniMapButton, '赛道雷达', options.miniMapEnabled ? '开启' : '关闭', '弯道预告和车辆提示', options.miniMapEnabled, options.pressedTarget === 'settings-minimap', layout);
-    this.drawSettingCard(ctx, settings.coachButton, '操作引导', options.controlCoachEnabled ? '开启' : '关闭', '首次比赛显示驾驶提示', options.controlCoachEnabled, options.pressedTarget === 'settings-coach', layout);
-    this.drawSettingCard(ctx, settings.sensitivityButton, '控制手感', options.controlSensitivityLabel, options.controlSensitivityDescription, true, options.pressedTarget === 'settings-sensitivity', layout);
-    this.drawSettingCard(ctx, settings.resetCoachButton, '重看引导', options.controlCoachSeen ? '可重置' : '已准备', options.controlCoachSeen ? '下局重新显示教学' : '下局会显示教学', !options.controlCoachSeen, options.pressedTarget === 'settings-reset-coach', layout);
-    this.drawButton(ctx, settings.backButton, '返回菜单', layout, true, options.pressedTarget === 'settings-back');
+    this.drawSettingCard(ctx, settings.audioButton, '音乐', options.audioMuted ? '关闭' : '开启', '背景音乐和音效', !options.audioMuted, options.pressedTarget === 'settings-audio', layout, 'music');
+    this.drawSettingCard(ctx, settings.miniMapButton, '赛道雷达', options.miniMapEnabled ? '开启' : '关闭', '弯道预告和车辆提示', options.miniMapEnabled, options.pressedTarget === 'settings-minimap', layout, 'minimap');
+    this.drawSettingCard(ctx, settings.coachButton, '操作引导', options.controlCoachEnabled ? '开启' : '关闭', '首次比赛显示驾驶提示', options.controlCoachEnabled, options.pressedTarget === 'settings-coach', layout, 'coach');
+    this.drawSettingCard(ctx, settings.sensitivityButton, '控制手感', options.controlSensitivityLabel, options.controlSensitivityDescription, true, options.pressedTarget === 'settings-sensitivity', layout, 'sensitivity');
+    this.drawSettingCard(ctx, settings.resetCoachButton, '重看引导', options.controlCoachSeen ? '可重置' : '已准备', options.controlCoachSeen ? '下局重新显示教学' : '下局会显示教学', !options.controlCoachSeen, options.pressedTarget === 'settings-reset-coach', layout, 'reset');
+    this.drawButton(ctx, settings.backButton, '返回菜单', layout, true, options.pressedTarget === 'settings-back', 'back');
   }
 
-  private drawSettingCard(ctx: CanvasRenderingContext2D, target: RacerRect, title: string, value: string, description: string, enabled: boolean, pressed: boolean, layout: RacerUiLayout): void {
+  private drawSettingCard(ctx: CanvasRenderingContext2D, target: RacerRect, title: string, value: string, description: string, enabled: boolean, pressed: boolean, layout: RacerUiLayout, icon: RacerUiIconName): void {
     const inset = pressed ? 3 : 0;
     const yOffset = pressed ? 3 : 0;
     const x = target.x + inset;
@@ -324,17 +327,20 @@ export class RacerUiRenderer {
     const h = target.h - inset * 2;
     const fill = pressed ? RACER_UI_THEME.button.secondaryPressed : RACER_UI_THEME.button.secondary;
     const stroke = enabled ? RACER_UI_THEME.accent.gold : RACER_UI_THEME.button.secondaryStroke;
+    const iconSize = layout.small ? 22 : 28;
+    const textX = x + (layout.small ? 46 : 56);
 
     this.roundedPanel(ctx, x, y, w, h, fill, stroke);
+    this.icons.render(ctx, icon, x + (layout.small ? 24 : 30), y + h / 2, iconSize, enabled ? RACER_UI_THEME.accent.gold : RACER_UI_THEME.text.note, RACER_UI_THEME.accent.gold);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.font = `bold ${layout.small ? 15 : 18}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.primary;
-    ctx.fillText(title, x + 14, y + (layout.small ? 6 : 8));
+    ctx.fillText(title, textX, y + (layout.small ? 6 : 8));
 
     ctx.font = `${layout.small ? 12 : 14}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.note;
-    ctx.fillText(description, x + 14, y + (layout.small ? 26 : 32));
+    ctx.fillText(description, textX, y + (layout.small ? 26 : 32));
 
     this.drawStatusPill(ctx, x + w - (layout.small ? 92 : 108), y + (layout.small ? 9 : 12), layout.small ? 76 : 90, layout.small ? 24 : 28, value, enabled, pressed, layout);
     ctx.textAlign = 'left';
@@ -363,8 +369,8 @@ export class RacerUiRenderer {
     ctx.fillText('右下刹车：过弯和避让时减速', state.width / 2, layout.help.line2Y);
     ctx.fillText('右侧暂停：暂停、重开或返回菜单', state.width / 2, layout.help.line3Y);
     ctx.fillText(`目标：完成 ${targetLaps} 圈，刷新最佳圈速`, state.width / 2, layout.help.line4Y);
-    this.drawButton(ctx, layout.help.startButton, '开始比赛', layout, true, pressedTarget === 'help-start');
-    this.drawButton(ctx, layout.help.backButton, '返回菜单', layout, false, pressedTarget === 'help-back');
+    this.drawButton(ctx, layout.help.startButton, '开始比赛', layout, true, pressedTarget === 'help-start', 'play');
+    this.drawButton(ctx, layout.help.backButton, '返回菜单', layout, false, pressedTarget === 'help-back', 'back');
   }
 
   private drawPaused(ctx: CanvasRenderingContext2D, state: RacerState, audioMuted: boolean, layout: RacerUiLayout, pressedTarget: RacerUiPressedTarget): void {
@@ -374,10 +380,10 @@ export class RacerUiRenderer {
     ctx.font = `${layout.fonts.body}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.body;
     ctx.fillText('调整状态后继续冲刺', state.width / 2, layout.paused.line1Y);
-    this.drawButton(ctx, layout.paused.resumeButton, '继续比赛', layout, true, pressedTarget === 'paused-resume');
-    this.drawButton(ctx, layout.paused.restartButton, '重新开始', layout, false, pressedTarget === 'paused-restart');
-    this.drawButton(ctx, layout.paused.audioButton, audioMuted ? '开启音乐' : '关闭音乐', layout, false, pressedTarget === 'paused-audio');
-    this.drawButton(ctx, layout.paused.menuButton, '返回菜单', layout, false, pressedTarget === 'paused-menu');
+    this.drawButton(ctx, layout.paused.resumeButton, '继续比赛', layout, true, pressedTarget === 'paused-resume', 'play');
+    this.drawButton(ctx, layout.paused.restartButton, '重新开始', layout, false, pressedTarget === 'paused-restart', 'reset');
+    this.drawButton(ctx, layout.paused.audioButton, audioMuted ? '开启音乐' : '关闭音乐', layout, false, pressedTarget === 'paused-audio', 'music');
+    this.drawButton(ctx, layout.paused.menuButton, '返回菜单', layout, false, pressedTarget === 'paused-menu', 'back');
   }
 
   private drawFinished(ctx: CanvasRenderingContext2D, state: RacerState, targetLaps: number, layout: RacerUiLayout, pressedTarget: RacerUiPressedTarget): void {
@@ -390,9 +396,9 @@ export class RacerUiRenderer {
     ctx.fillText(`完成圈数 ${state.completedLaps}/${targetLaps}`, state.width / 2, layout.finished.line1Y);
     ctx.fillText(`总用时 ${formatSeconds(state.totalRaceTime)} · 评级 ${grade}`, state.width / 2, layout.finished.line2Y);
     ctx.fillText(`最佳圈速 ${formatSeconds(state.bestLapTime)}`, state.width / 2, layout.finished.line3Y);
-    this.drawButton(ctx, layout.finished.restartButton, '再来一局', layout, true, pressedTarget === 'finished-restart');
-    this.drawButton(ctx, layout.finished.shareButton, '分享', layout, false, pressedTarget === 'finished-share');
-    this.drawButton(ctx, layout.finished.leaderboardButton, '排行榜', layout, false, pressedTarget === 'finished-leaderboard');
+    this.drawButton(ctx, layout.finished.restartButton, '再来一局', layout, true, pressedTarget === 'finished-restart', 'reset');
+    this.drawButton(ctx, layout.finished.shareButton, '分享', layout, false, pressedTarget === 'finished-share', 'share');
+    this.drawButton(ctx, layout.finished.leaderboardButton, '排行榜', layout, false, pressedTarget === 'finished-leaderboard', 'leaderboard');
     ctx.font = `${layout.fonts.note}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.note;
     ctx.fillText('刷新成绩，冲击排行榜', state.width / 2, layout.finished.noteY);
@@ -405,20 +411,31 @@ export class RacerUiRenderer {
     return 'C';
   }
 
-  private drawButton(ctx: CanvasRenderingContext2D, target: RacerRect, text: string, layout: RacerUiLayout, primary = false, pressed = false): void {
+  private drawButton(ctx: CanvasRenderingContext2D, target: RacerRect, text: string, layout: RacerUiLayout, primary = false, pressed = false, icon?: RacerUiIconName): void {
     const inset = pressed ? 3 : 0;
     const yOffset = pressed ? 3 : 0;
     const fill = primary
       ? pressed ? RACER_UI_THEME.accent.goldPressed : RACER_UI_THEME.accent.gold
       : pressed ? RACER_UI_THEME.button.secondaryPressed : RACER_UI_THEME.button.secondary;
     const stroke = primary ? RACER_UI_THEME.button.primaryStroke : RACER_UI_THEME.button.secondaryStroke;
+    const x = target.x + inset;
+    const y = target.y + yOffset + inset;
+    const w = target.w - inset * 2;
+    const h = target.h - inset * 2;
+    const iconSize = layout.small ? 18 : 22;
+    const iconX = x + (layout.small ? 28 : 34);
+    const textX = icon ? x + w / 2 + iconSize * 0.28 : x + w / 2;
+
     if (primary && !pressed) this.roundedPanel(ctx, target.x - 5, target.y - 5, target.w + 10, target.h + 10, RACER_UI_THEME.accent.goldSoft);
-    this.roundedPanel(ctx, target.x + inset, target.y + yOffset + inset, target.w - inset * 2, target.h - inset * 2, fill, stroke);
+    this.roundedPanel(ctx, x, y, w, h, fill, stroke);
+    if (icon) {
+      this.icons.render(ctx, icon, iconX, y + h / 2, iconSize, primary ? RACER_UI_THEME.text.buttonPrimary : RACER_UI_THEME.text.primary, primary ? RACER_UI_THEME.text.buttonPrimary : RACER_UI_THEME.accent.gold);
+    }
     ctx.font = `bold ${layout.fonts.button}px sans-serif`;
     ctx.fillStyle = primary ? RACER_UI_THEME.text.buttonPrimary : RACER_UI_THEME.text.primary;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(text, target.x + target.w / 2, target.y + target.h / 2 + yOffset);
+    ctx.fillText(text, textX, y + h / 2 + yOffset);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
   }
