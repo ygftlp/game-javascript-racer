@@ -186,7 +186,7 @@ if (scene.includes('const TARGET_LAPS')) missing.push('RacerScene must not hardc
 if (scene.includes('cycleTrack()')) missing.push('RacerScene should use dedicated track selection screen instead of cycleTrack');
 requireTokens(renderer, ['RacerUiRenderer', 'this.ui.render(ctx, state, assets, layout, options)', 'state.activeTrack.roadTheme.fog', 'ctx.imageSmoothingEnabled = false', 'drawImage(image', 'drawPlayerFallback', 'drawPlayerVisibilityMarker', 'state.height - carH - 24', 'this.drawPlayer(ctx, state, assets?.sprites ?? null, playerSegment, playerPercent)'], 'Pseudo3DRenderer world/UI integration', missing);
 requireTokens(uiTheme, ['RACER_UI_THEME', 'accent', 'minimap', 'controls'], 'centralized UI theme tokens', missing);
-requireTokens(uiLayout, ['RacerMiniMapLayout', 'miniMapPreviewBar', 'miniMapProgressBar', 'trackButton', 'RacerTrackSelectLayout', 'trackSelect', 'trackButtons', 'RacerSettingsLayout', 'settingsButton', 'settings:', 'miniMapButton', 'coachButton', 'sensitivityButton', 'resetCoachButton', 'backButton', 'RacerHelpLayout', 'menuButton', 'Math.max(76', 'joystickTouchArea'], 'RacerUiLayout publish layout, track select, and settings layout', missing);
+requireTokens(uiLayout, ['RacerMiniMapLayout', 'miniMapPreviewBar', 'miniMapProgressBar', 'trackButton', 'RacerTrackSelectLayout', 'trackSelect', 'trackButtons', 'RacerSettingsLayout', 'settingsCardW', 'settingsCardH', 'settingsGap', 'settingsButton', 'settings:', 'miniMapButton', 'coachButton', 'sensitivityButton', 'resetCoachButton', 'backButton', 'RacerHelpLayout', 'menuButton', 'Math.max(76', 'joystickTouchArea'], 'RacerUiLayout publish layout, track select, and settings card layout', missing);
 requireTokens(joystick, ['class RacerJoystick', 'deadZone = 0.06', 'profile.joystickGain', 'profile.steerInputLimit'], 'configurable virtual joystick model', missing);
 requireTokens(uiRenderer, [
   'RacerMiniMap',
@@ -208,15 +208,17 @@ requireTokens(uiRenderer, [
   'drawTrackSelect',
   'drawTrackCard',
   'drawSettings',
+  'drawSettingCard',
+  'drawStatusPill',
+  '调整驾驶、显示和新手引导',
   '选择赛道',
   '已选择',
   '设置',
-  '音乐：',
-  '小地图：',
-  '操作引导：',
-  '控制手感：',
-  '当前手感：',
-  '重看操作引导',
+  '音乐',
+  '赛道雷达',
+  '操作引导',
+  '控制手感',
+  '重看引导',
   '返回菜单',
   'targetLaps: number',
   '`目标：完成 ${targetLaps} 圈，刷新最佳圈速`',
@@ -229,12 +231,12 @@ requireTokens(uiRenderer, [
   'drawJoystick',
   'drawBrakeButton',
   'drawPauseButton'
-], 'RacerUiRenderer commercial UI, dedicated track select screen, settings screen, and sensitivity display', missing);
+], 'RacerUiRenderer commercial UI, dedicated track select screen, settings card screen, and sensitivity display', missing);
 requireTokens(miniMap, ['class RacerMiniMap', 'drawCurvePreview', 'drawTrafficDots', '赛道雷达', 'RACER_UI_THEME'], 'independent minimap component', missing);
 requireTokens(startup, ['startWeChatRacerGame', 'new WxPlatform', 'onHide', 'onShow'], 'WeChat startup module lifecycle binding', missing);
 requireTokens(roadGuide, ['RACER_TRACKS', '选择赛道', 'selected track id', 'per track id', 'Level 5: Add textured road support'], 'road replacement guide track registry and persistence docs', missing);
-requireTokens(productionPlan, ['dedicated track-select screen', 'dedicated settings screen', 'control sensitivity', '舒适', '标准', '灵敏', 'selected track id', 'per track id', 'Finish the configured target lap count on each selectable track'], 'production completion plan track-select, settings, and sensitivity docs', missing);
-requireTokens(uiAgentSync, ['dedicated track-select screen', 'dedicated settings screen', 'control sensitivity', '舒适', '标准', '灵敏', 'selected track id', 'per track id'], 'UI polish multi-agent sync track-select, settings, and sensitivity docs', missing);
+requireTokens(productionPlan, ['dedicated track-select screen', 'dedicated settings screen', 'settings cards', 'status pill', 'control sensitivity', '舒适', '标准', '灵敏', 'selected track id', 'per track id', 'Finish the configured target lap count on each selectable track'], 'production completion plan track-select, settings cards, and sensitivity docs', missing);
+requireTokens(uiAgentSync, ['dedicated track-select screen', 'dedicated settings screen', 'settings cards', 'status pill', 'control sensitivity', '舒适', '标准', '灵敏', 'selected track id', 'per track id'], 'UI polish multi-agent sync track-select, settings cards, and sensitivity docs', missing);
 
 for (const file of sourceFilesToCheck) {
   const content = files[file];
