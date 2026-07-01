@@ -46,7 +46,35 @@ Use this file as the safe template for:
 
 Do not commit production-only secrets or sensitive platform IDs into public source. Use a private release patch or build-time replacement when needed.
 
-## 4. Switch to commercial assets
+## 4. Wire open data leaderboard
+
+The main domain sends leaderboard messages from `src/racer/RacerWechatServices.ts` through `wx.getOpenDataContext().postMessage(...)`.
+
+Protocol document:
+
+```text
+docs/open-data-leaderboard-protocol.md
+```
+
+Sample open data context handler:
+
+```text
+docs/samples/open-data-leaderboard-handler.js
+```
+
+The sample handler covers:
+
+- `submitRacerScore`
+- `showRacerLeaderboard`
+- per-track storage key `racer.score.${trackId}`
+- `wx.setUserCloudStorage`
+- `wx.getFriendCloudStorage`
+- total-time ranking with best-lap tie-breaker
+- empty-state and malformed-message fallbacks
+
+Copy the sample into the open data context project, replace the console renderer with Canvas drawing, and keep the message names aligned with `RacerWechatConfig.ts`.
+
+## 5. Switch to commercial assets
 
 Before publishing, put commercial-safe files under `assets/packs/default/`.
 
@@ -92,7 +120,7 @@ npm run validate:production
 npm run build:wx
 ```
 
-## 5. Full release validation
+## 6. Full release validation
 
 Run:
 
@@ -108,7 +136,7 @@ Then open the repository root in WeChat DevTools. `project.config.json` points t
 dist/wechat/
 ```
 
-## 6. Manual WeChat checks
+## 7. Manual WeChat checks
 
 Check these before upload/release:
 
@@ -116,8 +144,10 @@ Check these before upload/release:
 - Commercial background, sprites, logo, icons, and audio load when commercial-template is active.
 - Missing optional logo/icons/sfx only show fallback warnings and do not block gameplay.
 - `wx.shareAppMessage` receives share title, query metadata, `trackId`, and best-lap context.
-- Leaderboard submit sends `trackId`, `trackName`, `totalRaceTime`, and `bestLapTime`.
-- Leaderboard view receives `source`, `trackId`, and `trackName`.
+- Open data context receives `submitRacerScore` with `trackId`, `trackName`, `totalRaceTime`, and `bestLapTime`.
+- Open data context receives `showRacerLeaderboard` with `source`, `trackId`, and `trackName`.
+- Open data context stores per-track score keys as `racer.score.${trackId}`.
+- Open data context ignores malformed messages without crashing.
 - Interstitial ads are requested only after race finish, never while driving.
 - Rewarded ads are not shown unless explicitly wired to an opt-in reward.
 - `wx.reportAnalytics` receives scene, race, settings, share, leaderboard, and finish events.
@@ -127,7 +157,7 @@ Check these before upload/release:
 - Player car remains visible through hills, curves, traffic, collisions, and lap wraparound.
 - FPS and package size are acceptable on low-end and mid-range devices.
 
-## 7. Upload package
+## 8. Upload package
 
 After local validation:
 
@@ -136,4 +166,4 @@ After local validation:
 3. Confirm the compiled game root is `dist/wechat/`.
 4. Preview on device.
 5. Upload through WeChat DevTools.
-6. Record the package version, asset pack mode, engine mode, and commit SHA used for the upload.
+6. Record the package version, asset pack mode, engine mode, open data context version, and commit SHA used for the upload.
