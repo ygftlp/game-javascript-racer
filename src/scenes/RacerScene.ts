@@ -661,8 +661,13 @@ export class RacerScene extends Scene {
   }
 
   private async showLeaderboard(source: string): Promise<void> {
-    this.services.analytics.track('leaderboard_tap', { source });
-    await this.services.leaderboard.showLeaderboard();
+    const context = {
+      source,
+      trackId: this.activeTrack.id,
+      trackName: this.activeTrack.name
+    };
+    this.services.analytics.track('leaderboard_tap', context);
+    await this.services.leaderboard.showLeaderboard(context);
   }
 
   private persistBestLapIfNeeded(): void {
