@@ -18,11 +18,14 @@ The UI has moved from prototype interactions to a more commercial mobile-game in
 - Help screen explains steering, braking, pause, and dynamic target-lap objective.
 - Pause screen now includes `返回菜单`.
 - Main menu now includes `选择赛道` and `设置`.
+- Main menu, track cards, settings cards, pause actions, help actions, and result actions now use programmatic icons.
+- `RacerUiIcons` owns fallback programmatic icons for play, track, leaderboard, help, settings, music, minimap, coach, sensitivity, reset, back, and share.
+- `RacerUiIcons` avoids `roundRect` and uses internal paths for better WeChat Canvas compatibility.
 - The old simple cycle-track behavior has been replaced with a dedicated track-select screen.
 - The dedicated track-select screen shows track cards, target laps, current selected state, and `返回菜单`.
 - The dedicated settings screen centralizes music, minimap, first-race operation-guide controls, and control sensitivity.
-- The settings screen now renders settings cards with title, description, status pill, enabled/disabled state, and pressed feedback.
-- `RacerControlSensitivity` now owns three control sensitivity profiles: `舒适`, `标准`, and `灵敏`.
+- The settings screen renders settings cards with title, description, status pill, enabled/disabled state, pressed feedback, and programmatic icons.
+- `RacerControlSensitivity` owns three control sensitivity profiles: `舒适`, `标准`, and `灵敏`.
 - The settings screen cycles control sensitivity and persists the selected profile.
 - `RacerJoystick` applies selected `joystickGain` and `steerInputLimit`.
 - `RacerState` applies selected `steerResponse` and input clamp.
@@ -38,7 +41,7 @@ The UI has moved from prototype interactions to a more commercial mobile-game in
 - The settings screen can disable or reset the first-race operation guide.
 - `RacerUiFlags` exposes `showMiniMap` and `showFirstRaceCoach` release toggles.
 - The persisted minimap setting controls whether the independent minimap renders during gameplay.
-- `RacerUiRenderer` owns HUD, controls, overlays, help, onboarding UI, track-select UI, and settings UI.
+- `RacerUiRenderer` owns HUD, controls, overlays, help, onboarding UI, track-select UI, settings UI, and programmatic icon placement.
 - `RacerMiniMap` owns the independent track radar / curve preview component.
 - `Pseudo3DRenderer` focuses on backdrop, road, world sprites, and player car rendering, then delegates UI drawing.
 
@@ -48,6 +51,7 @@ Focus:
 
 - Verify the press-to-confirm flow feels natural.
 - Confirm menu copy, pause copy, result copy, help copy, minimap labels, track-select copy, and settings copy are player-facing and not technical.
+- Confirm programmatic icons improve scan speed without confusing casual players.
 - Decide whether `极速公路` is final or temporary branding.
 
 Checklist:
@@ -61,6 +65,7 @@ Checklist:
 - Minimap label `赛道雷达` is understandable and not distracting.
 - Control sensitivity labels `舒适 / 标准 / 灵敏` are understandable to casual players.
 - Settings card titles and descriptions explain the impact of each setting quickly.
+- Programmatic icons match their action meanings.
 - First-race coach should only appear once per player unless reset in settings.
 - No debug or placeholder service copy appears in release mode.
 
@@ -71,6 +76,7 @@ Focus:
 - Button press feedback.
 - Touch cancel behavior.
 - Button spacing and hit target comfort.
+- Icon/text balance.
 - Help, track-select, settings, and return-menu safety flows.
 
 Checklist:
@@ -78,6 +84,7 @@ Checklist:
 - Press down visibly changes button state.
 - Releasing inside executes the action.
 - Moving outside cancels the action.
+- Icon placement does not reduce perceived touch target size.
 - `选择赛道` opens the dedicated track-select screen.
 - Track cards select exactly one track per confirmed tap.
 - Track-select `返回菜单` does not change the selected track.
@@ -120,6 +127,7 @@ Focus:
 - Commercial style layer.
 - Modal hierarchy.
 - Button state system.
+- Programmatic icon readability.
 - Help/onboarding readability.
 - Track-select card readability.
 - Settings screen readability.
@@ -132,8 +140,10 @@ Checklist:
 - Modal panel has enough contrast over gameplay.
 - Primary CTA has stronger visual weight than secondary buttons.
 - The gold accent is used consistently.
-- Track-select card text fits small screens.
-- Settings card titles, descriptions, and status pills fit small screens.
+- Programmatic icons are readable at small sizes.
+- Icon stroke weight matches text and button weight.
+- Track-select card text and icon fit small screens.
+- Settings card titles, descriptions, status pills, and icons fit small screens.
 - Enabled status is obvious without looking like debug text.
 - Disabled status is readable but visually quieter.
 - Control sensitivity row is readable and does not make the settings panel feel crowded.
@@ -141,7 +151,7 @@ Checklist:
 - Help screen looks like part of the game, not documentation pasted into the canvas.
 - Minimap looks like part of the HUD, not a debug graph.
 - Result rating feels rewarding, not debug-like.
-- Future icons can replace text labels without changing layout.
+- Final icon assets can replace `RacerUiIcons` without changing layout.
 
 ## Agent E: Control Feel Designer
 
@@ -179,6 +189,7 @@ Focus:
 - Onboarding flow safety.
 - Track-select regression checks.
 - Settings regression checks.
+- Programmatic icon regression checks.
 - Minimap readability and obstruction checks.
 - Renderer separation regression checks.
 
@@ -192,6 +203,7 @@ Checklist:
 - Overlay transitions do not leave stale pressed states.
 - Track-select screen opens from menu, selects a track, and returns safely.
 - Settings screen opens from menu, toggles settings, cycles sensitivity, updates status pills, and returns safely.
+- Programmatic icons render on all target devices without Canvas API errors.
 - Result screen appears at the selected track target-lap count.
 - Share / leaderboard payloads include selected track metadata.
 - Extracting `RacerUiRenderer` does not change visual order: world first, player car, then UI.
@@ -205,13 +217,14 @@ Focus:
 - Preserve shared layout/hitbox source of truth.
 - Keep world rendering and UI rendering separated.
 - Keep minimap as an independent component.
-- Keep track registry, selected track flow, settings flow, and sensitivity tuning isolated from rendering internals.
+- Keep track registry, selected track flow, settings flow, sensitivity tuning, and icon rendering isolated from rendering internals.
 
 Implemented files:
 
 - `src/scenes/RacerScene.ts`
 - `src/racer/Pseudo3DRenderer.ts`
 - `src/racer/RacerUiRenderer.ts`
+- `src/racer/RacerUiIcons.ts`
 - `src/racer/RacerMiniMap.ts`
 - `src/racer/RacerControlSensitivity.ts`
 - `src/racer/RacerJoystick.ts`
@@ -226,9 +239,9 @@ Implemented files:
 
 Next recommended implementation pass:
 
-1. Add final icon assets for pause/music/share/leaderboard/help/track/settings.
+1. Move repeated settings card colors and status pill tokens into `RacerUiTheme.ts` before the final skin pass.
 2. Add final UI logo when commercial art is ready.
-3. Move repeated settings card colors and status pill tokens into `RacerUiTheme.ts` before the final skin pass.
+3. Replace programmatic icons with final assets or keep them as fallback.
 4. Tune minimap size/opacity after real-device testing on all selectable tracks.
 5. Tune sensitivity presets after device testing.
 6. Add pagination or scrolling to the dedicated track-select screen if more than 3 tracks are added.
