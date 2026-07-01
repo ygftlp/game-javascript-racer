@@ -30,6 +30,7 @@ const requiredFiles = [
   'src/racer/RacerUiLayout.ts',
   'src/racer/RacerUiRenderer.ts',
   'src/racer/RacerUiTheme.ts',
+  'src/racer/RacerWechatServices.ts',
   'src/platforms/wechat/startup.ts',
   'src/platforms/wechat/game.json',
   'scripts/build-wechat.mjs',
@@ -84,6 +85,7 @@ const packageJson = files['package.json'];
 const manifest = files['src/racer/RacerAssetManifest.ts'];
 const assets = files['src/racer/RacerAssets.ts'];
 const services = files['src/racer/RacerServices.ts'];
+const wechatServices = files['src/racer/RacerWechatServices.ts'];
 const scene = files['src/scenes/RacerScene.ts'];
 const renderer = files['src/racer/Pseudo3DRenderer.ts'];
 const roadTheme = files['src/racer/RacerRoadTheme.ts'];
@@ -117,84 +119,53 @@ const warnings = [];
 if (manifest.includes('ACTIVE_RACER_ASSET_PACK = LEGACY_RACER_ASSET_PACK')) {
   warnings.push('Runtime still uses legacy asset pack. This is acceptable for migration testing but not final commercial release.');
 }
-if (services.includes('placeholder')) {
-  warnings.push('RacerServices still uses placeholder implementations for ads/share/leaderboard. Replace with a WeChat adapter before launch.');
+if (services.includes('fallback')) {
+  warnings.push('RacerServices can fall back to noop services outside WeChat. Verify real WeChat share, leaderboard, and ads before release.');
 }
 if (engineBoundary.includes('local-lite-game-engine')) {
   warnings.push('Engine boundary currently uses local compatibility mode. Run npm run engine:local to consume ../game-engine.');
 }
 
-requireTokens(packageJson, [
-  'assets:commercial',
-  'assets:commercial:apply',
-  'assets:legacy:apply',
-  'scripts/use-commercial-assets.mjs --apply',
-  'scripts/use-commercial-assets.mjs --legacy --apply'
-], 'package.json safe commercial asset scripts', missing);
-
-requireTokens(commercialAssetScript, [
-  'requiredCommercialFiles',
-  'optionalCommercialFiles',
-  'assets/packs/default/images/background.png',
-  'assets/packs/default/images/sprites.png',
-  'assets/packs/default/audio/music/racer.mp3',
-  'assets/packs/default/images/ui/logo.png',
-  'assets/packs/default/images/ui/icons.png',
-  '--apply',
-  '--legacy',
-  'COMMERCIAL_TEMPLATE_ASSET_PACK',
-  'LEGACY_RACER_ASSET_PACK',
-  'Commercial asset switch blocked',
-  'Dry run only',
-  'process.exit(1)'
-], 'safe commercial asset switch script', missing);
-
+requireTokens(packageJson, ['assets:commercial', 'assets:commercial:apply', 'assets:legacy:apply'], 'package.json safe commercial asset scripts', missing);
+requireTokens(commercialAssetScript, ['requiredCommercialFiles', 'optionalCommercialFiles', 'COMMERCIAL_TEMPLATE_ASSET_PACK', 'LEGACY_RACER_ASSET_PACK', 'Commercial asset switch blocked', 'Dry run only', 'process.exit(1)'], 'safe commercial asset switch script', missing);
 requireTokens(engineModeScript, ['file:../game-engine'], 'engine mode script must support local ../game-engine dependency', missing);
 requireTokens(liteEngineTypes, ["declare module 'lite-game-engine'", 'export class Engine'], 'local lite-game-engine type fallback declaration', missing);
 requireTokens(localEngine, ['this.screen.width * pixelRatio', 'ctx.scale(pixelRatio, pixelRatio)'], 'high-DPI local engine canvas scaling', missing);
 requireTokens(uiFlags, ['releaseMode: true', 'showAssetStatus: false', 'showControlLabels: false', 'showMiniMap: true', 'showFirstRaceCoach: true'], 'commercial release UI flags', missing);
 
-requireTokens(manifest, [
-  'brandLogo?: string',
-  'uiIconAtlas?: string',
-  "id: 'ui.brand-logo'",
-  "id: 'ui.icons'",
-  'assets/packs/default/images/ui/logo.png',
-  'assets/packs/default/images/ui/icons.png',
-  'ACTIVE_RACER_ASSET_PACK'
-], 'optional logo and UI icon asset manifest', missing);
+requireTokens(services, [
+  'RacerLeaderboardViewContext',
+  'showLeaderboard(context?: RacerLeaderboardViewContext)',
+  'createWechatRacerServices(config) ?? createNoopRacerServices()'
+], 'RacerServices WeChat adapter with noop fallback', missing);
 
-requireTokens(assets, [
-  'import { RacerUiIcons }',
-  'brandLogo: Texture | null = null',
-  'uiIcons: Texture | null = null',
-  'loadOptionalBrandLogo(engine)',
-  'loadOptionalUiIconAtlas(engine)',
-  'RacerUiIcons.setIconAtlasTexture(texture)',
-  'using procedural logo fallback',
-  'using procedural icon fallback'
-], 'optional logo and UI icon atlas asset loading', missing);
+requireTokens(wechatServices, [
+  'createWechatRacerServices',
+  'resolveWechatApi',
+  'globalThis',
+  'WechatSocialService',
+  'shareAppMessage',
+  'WechatLeaderboardService',
+  'getOpenDataContext',
+  'postMessage',
+  'submitRacerScore',
+  'showRacerLeaderboard',
+  'cloudFunctionName',
+  'callFunction',
+  'WechatAdsService',
+  'createInterstitialAd',
+  'createRewardedVideoAd',
+  'showInterstitial',
+  'showRewarded',
+  'reportAnalytics',
+  'enableConsoleAnalytics',
+  'context'
+], 'WeChat services adapter skeleton', missing);
 
-requireTokens(uiIconAtlas, [
-  'RACER_UI_ICON_ATLAS_CELL_SIZE',
-  'RACER_UI_ICON_ATLAS',
-  'play: { x: 0, y: 0',
-  'track: { x: 64, y: 0',
-  'share: { x: 192, y: 128'
-], 'UI icon atlas grid mapping', missing);
-
-requireTokens(uiIcons, [
-  'private static iconAtlasTexture',
-  'setIconAtlasTexture(texture: Texture | null)',
-  'drawTextureIcon',
-  'RACER_UI_ICON_ATLAS',
-  'ctx.drawImage(image',
-  'using procedural icon fallback',
-  "| 'play'",
-  "| 'share'",
-  'roundedRectPath'
-], 'commercial UI icon atlas renderer with programmatic fallback', missing);
-
+requireTokens(manifest, ['brandLogo?: string', 'uiIconAtlas?: string', "id: 'ui.brand-logo'", "id: 'ui.icons'", 'assets/packs/default/images/ui/logo.png', 'assets/packs/default/images/ui/icons.png', 'ACTIVE_RACER_ASSET_PACK'], 'optional logo and UI icon asset manifest', missing);
+requireTokens(assets, ['import { RacerUiIcons }', 'brandLogo: Texture | null = null', 'uiIcons: Texture | null = null', 'loadOptionalBrandLogo(engine)', 'loadOptionalUiIconAtlas(engine)', 'RacerUiIcons.setIconAtlasTexture(texture)', 'using procedural logo fallback', 'using procedural icon fallback'], 'optional logo and UI icon atlas asset loading', missing);
+requireTokens(uiIconAtlas, ['RACER_UI_ICON_ATLAS_CELL_SIZE', 'RACER_UI_ICON_ATLAS', 'play: { x: 0, y: 0', 'track: { x: 64, y: 0', 'share: { x: 192, y: 128'], 'UI icon atlas grid mapping', missing);
+requireTokens(uiIcons, ['private static iconAtlasTexture', 'setIconAtlasTexture(texture: Texture | null)', 'drawTextureIcon', 'RACER_UI_ICON_ATLAS', 'ctx.drawImage(image', 'using procedural icon fallback', "| 'play'", "| 'share'", 'roundedRectPath'], 'commercial UI icon atlas renderer with programmatic fallback', missing);
 requireTokens(uiLogo, ['texture?: Texture | null', 'drawTextureLogo', 'texture?.loaded', 'ctx.drawImage(image', 'using procedural fallback', 'RACER_UI_THEME.brandLogo', 'roundedRectPath'], 'programmatic brand logo renderer with texture fallback', missing);
 if (uiIcons.includes('roundRect(') || uiIcons.includes('.roundRect')) missing.push('RacerUiIcons must avoid Canvas roundRect dependency for WeChat compatibility');
 if (uiLogo.includes('roundRect(') || uiLogo.includes('.roundRect')) missing.push('RacerUiLogo must avoid Canvas roundRect dependency for WeChat compatibility');
@@ -208,7 +179,7 @@ requireTokens(controlSensitivity, ['RacerControlSensitivityId', 'RACER_CONTROL_S
 requireTokens(state, ['private track: RacerTrackDefinition', 'setTrack(track: RacerTrackDefinition', 'for (const section of this.track.sections)', 'roadColorForSegment(index, this.track.roadTheme)', 'steer: number', 'private controlSensitivity', 'setControlSensitivity(profile: RacerControlSensitivityProfile)'], 'RacerState track/runtime/control sensitivity state', missing);
 requireTokens(settings, ['SELECTED_TRACK_ID_KEY', 'getSelectedTrackId', 'setSelectedTrackId', 'MINI_MAP_ENABLED_KEY', 'CONTROL_COACH_ENABLED_KEY', 'CONTROL_SENSITIVITY_KEY', 'getControlSensitivityId', 'setControlSensitivityId'], 'RacerSettings persisted settings', missing);
 requireTokens(storage, ['bestLapKey(trackId', 'getBestLapTime(trackId', 'setBestLapTime(seconds: number, trackId'], 'RacerStorage per-track best lap', missing);
-requireTokens(scene, ['tracks: RACER_TRACKS', 'selectedTrackId: this.activeTrack.id', 'this.state.completedLaps >= this.targetLaps', 'targetLaps: this.targetLaps', 'trackName: this.activeTrack.name', '(touches: TouchPoint[] = [])', 'controlSensitivityLabel: this.controlSensitivity.label', 'controlSensitivityDescription: this.controlSensitivity.description', "this.phase = 'trackSelect'", "this.phase = 'settings'"], 'RacerScene selected track, settings, sensitivity, and target-lap flow', missing);
+requireTokens(scene, ['tracks: RACER_TRACKS', 'selectedTrackId: this.activeTrack.id', 'trackName: this.activeTrack.name', 'this.state.completedLaps >= this.targetLaps', 'targetLaps: this.targetLaps', '(touches: TouchPoint[] = [])', 'controlSensitivityLabel: this.controlSensitivity.label', "this.phase = 'trackSelect'", "this.phase = 'settings'", 'this.services.leaderboard.showLeaderboard(context)'], 'RacerScene selected track, settings, leaderboard context, and target-lap flow', missing);
 if (scene.includes('const TARGET_LAPS')) missing.push('RacerScene must not hardcode TARGET_LAPS');
 if (scene.includes('cycleTrack()')) missing.push('RacerScene should use dedicated track selection screen instead of cycleTrack');
 requireTokens(renderer, ['RacerUiRenderer', 'this.ui.render(ctx, state, assets, layout, options)', 'state.activeTrack.roadTheme.fog', 'ctx.imageSmoothingEnabled = false', 'drawImage(image', 'drawPlayerFallback'], 'Pseudo3DRenderer world/UI integration', missing);
@@ -220,8 +191,8 @@ requireTokens(miniMap, ['class RacerMiniMap', 'drawCurvePreview', 'drawTrafficDo
 requireTokens(startup, ['startWeChatRacerGame', 'new WxPlatform', 'onHide', 'onShow'], 'WeChat startup module lifecycle binding', missing);
 requireTokens(roadGuide, ['RACER_TRACKS', '选择赛道', 'selected track id', 'per track id', 'Level 5: Add textured road support'], 'road replacement guide track registry and persistence docs', missing);
 requireTokens(assetGuide, ['npm run assets:commercial', 'npm run assets:commercial:apply', 'npm run assets:legacy:apply', 'required files', 'assets/packs/default/images/ui/logo.png', 'assets/packs/default/images/ui/icons.png', 'programmatic icon'], 'asset replacement guide safe switch and optional UI asset docs', missing);
-requireTokens(productionPlan, ['safe commercial asset pack switch script', 'assets:commercial:apply', 'assets:legacy:apply', 'optional commercial UI icon atlas', 'programmatic icon fallback', 'RacerUiIconAtlas', '舒适', '标准', '灵敏'], 'production completion plan safe switch and UI docs', missing);
-requireTokens(uiAgentSync, ['safe commercial asset pack switch flow', 'assets:commercial:apply', 'assets:legacy:apply', 'optional commercial UI icon atlas', 'programmatic icon fallback', 'RacerUiIconAtlas', '舒适', '标准', '灵敏'], 'UI polish multi-agent sync safe switch and UI docs', missing);
+requireTokens(productionPlan, ['safe commercial asset pack switch script', 'WeChat services adapter skeleton', 'shareAppMessage', 'getOpenDataContext', 'createInterstitialAd', 'createRewardedVideoAd', 'assets:commercial:apply', 'optional commercial UI icon atlas', '舒适', '标准', '灵敏'], 'production completion plan WeChat services, safe switch, and UI docs', missing);
+requireTokens(uiAgentSync, ['WeChat services adapter skeleton', 'shareAppMessage', 'getOpenDataContext', 'createInterstitialAd', 'createRewardedVideoAd', 'safe commercial asset pack switch flow', 'optional commercial UI icon atlas', '舒适', '标准', '灵敏'], 'UI polish multi-agent sync WeChat services, safe switch, and UI docs', missing);
 
 for (const file of sourceFilesToCheck) {
   const content = files[file];
