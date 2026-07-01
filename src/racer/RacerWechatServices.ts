@@ -3,6 +3,7 @@ import type {
   RacerAdsService,
   RacerAnalyticsService,
   RacerLeaderboardService,
+  RacerLeaderboardViewContext,
   RacerServices,
   RacerSocialService
 } from './RacerServices';
@@ -167,12 +168,13 @@ class WechatLeaderboardService implements RacerLeaderboardService {
     return Boolean(openDataContext?.postMessage);
   }
 
-  async showLeaderboard(): Promise<boolean> {
+  async showLeaderboard(context?: RacerLeaderboardViewContext): Promise<boolean> {
     const openDataContext = this.wx.getOpenDataContext?.();
     if (!openDataContext?.postMessage) return false;
 
     openDataContext.postMessage({
-      type: this.config.openDataContextCommand ?? 'showRacerLeaderboard'
+      type: this.config.openDataContextCommand ?? 'showRacerLeaderboard',
+      context
     });
     return true;
   }
