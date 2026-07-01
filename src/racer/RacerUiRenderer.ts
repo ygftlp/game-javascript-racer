@@ -5,6 +5,7 @@ import { RacerMiniMap } from './RacerMiniMap';
 import type { RacerState } from './RacerState';
 import { RACER_UI_FLAGS } from './RacerUiFlags';
 import { RacerUiIcons, type RacerUiIconName } from './RacerUiIcons';
+import { RacerUiLogo } from './RacerUiLogo';
 import { RACER_UI_THEME } from './RacerUiTheme';
 import type { RacerCircle, RacerRect, RacerUiLayout } from './RacerUiLayout';
 
@@ -83,6 +84,7 @@ function trackPressedTarget(index: number): RacerTrackSelectPressedTarget {
 export class RacerUiRenderer {
   private readonly miniMap = new RacerMiniMap();
   private readonly icons = new RacerUiIcons();
+  private readonly logo = new RacerUiLogo();
 
   render(
     ctx: CanvasRenderingContext2D,
@@ -235,9 +237,12 @@ export class RacerUiRenderer {
   }
 
   private drawMenu(ctx: CanvasRenderingContext2D, state: RacerState, assets: RacerAssets | undefined, options: RacerUiRenderOptions, layout: RacerUiLayout): void {
-    ctx.font = `bold ${layout.fonts.title}px sans-serif`;
-    ctx.fillStyle = RACER_UI_THEME.text.primary;
-    ctx.fillText('极速公路', state.width / 2, layout.menu.titleY);
+    this.logo.render(ctx, state.width / 2, layout.menu.titleY + (layout.small ? 23 : 29), {
+      title: '极速公路',
+      subtitle: 'RETRO RACER',
+      small: layout.small,
+      maxWidth: layout.menu.panel.w - 86
+    });
     ctx.font = `${layout.fonts.body}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.body;
     ctx.fillText('复古街机赛车', state.width / 2, layout.menu.line1Y);
