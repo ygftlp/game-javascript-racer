@@ -6,6 +6,7 @@ export interface RacerImageResources {
   backgroundAtlas: string;
   spriteAtlas: string;
   brandLogo?: string;
+  uiIconAtlas?: string;
 }
 
 export interface RacerAudioResources {
@@ -59,6 +60,12 @@ export const RACER_REPLACEMENT_CATEGORIES: RacerReplacementCategory[] = [
     id: 'ui.brand-logo',
     label: '品牌 Logo',
     description: '主菜单标题区 Logo。推荐透明 PNG，代码会优先显示图片 Logo，缺失时回退到程序化 Logo。',
+    required: false
+  },
+  {
+    id: 'ui.icons',
+    label: 'UI 图标',
+    description: '菜单、设置、暂停、结算按钮图标。推荐 4 列 64px 网格透明 PNG，缺失时回退到程序化图标。',
     required: false
   },
   {
@@ -120,7 +127,8 @@ export const COMMERCIAL_TEMPLATE_ASSET_PACK: RacerAssetPackManifest = {
   images: {
     backgroundAtlas: 'assets/packs/default/images/background.png',
     spriteAtlas: 'assets/packs/default/images/sprites.png',
-    brandLogo: 'assets/packs/default/images/ui/logo.png'
+    brandLogo: 'assets/packs/default/images/ui/logo.png',
+    uiIconAtlas: 'assets/packs/default/images/ui/icons.png'
   },
   audio: {
     music: 'assets/packs/default/audio/music/racer.mp3',
