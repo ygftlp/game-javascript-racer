@@ -16,7 +16,13 @@ export type RacerUiIconName =
   | 'share';
 
 export class RacerUiIcons {
-  render(ctx: CanvasRenderingContext2D, icon: RacerUiIconName, x: number, y: number, size: number, color: string, accent = color, texture?: Texture | null): void {
+  private static iconAtlasTexture: Texture | null = null;
+
+  static setIconAtlasTexture(texture: Texture | null): void {
+    RacerUiIcons.iconAtlasTexture = texture;
+  }
+
+  render(ctx: CanvasRenderingContext2D, icon: RacerUiIconName, x: number, y: number, size: number, color: string, accent = color, texture: Texture | null = RacerUiIcons.iconAtlasTexture): void {
     if (this.drawTextureIcon(ctx, icon, x, y, size, texture)) return;
 
     ctx.save();
