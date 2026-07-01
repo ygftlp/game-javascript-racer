@@ -42,7 +42,38 @@ Current packs:
 - `legacy`: points to the original `images/background.png`, `images/sprites.png`, and `music/racer.mp3`. It has no `brandLogo` or `uiIconAtlas`, so the main menu uses the programmatic Logo fallback and buttons use programmatic icon fallbacks.
 - `commercial-template`: points to `assets/packs/default/` and is intended for future commercial-safe replacements, including optional `assets/packs/default/images/ui/logo.png` and `assets/packs/default/images/ui/icons.png`.
 
-To switch the runtime pack, update `ACTIVE_RACER_ASSET_PACK` in `src/racer/RacerAssetManifest.ts` after the replacement files exist.
+To switch the runtime pack manually, update `ACTIVE_RACER_ASSET_PACK` in `src/racer/RacerAssetManifest.ts` after the replacement files exist.
+
+Preferred safe switch flow:
+
+```bash
+npm run assets:commercial
+npm run assets:commercial:apply
+npm run validate:production
+npm run build:wx
+```
+
+- `npm run assets:commercial` checks required and optional commercial files without changing source.
+- `npm run assets:commercial:apply` checks required files and switches `ACTIVE_RACER_ASSET_PACK` to `COMMERCIAL_TEMPLATE_ASSET_PACK` only when required files exist.
+- `npm run assets:legacy:apply` switches back to `LEGACY_RACER_ASSET_PACK`.
+
+Required files for the safe switch:
+
+```text
+assets/packs/default/images/background.png
+assets/packs/default/images/sprites.png
+assets/packs/default/audio/music/racer.mp3
+```
+
+Optional files with runtime fallbacks:
+
+```text
+assets/packs/default/images/ui/logo.png
+assets/packs/default/images/ui/icons.png
+assets/packs/default/audio/sfx/engine-loop.mp3
+assets/packs/default/audio/sfx/crash.mp3
+assets/packs/default/audio/sfx/menu-confirm.mp3
+```
 
 ## Replacement categories
 
@@ -189,11 +220,12 @@ Before switching to a new pack:
 3. Add optional `assets/packs/default/images/ui/icons.png`, or verify the programmatic icon fallback is acceptable.
 4. Update `src/racer/SpriteAtlas.ts` if atlas coordinates changed.
 5. Update `src/racer/RacerUiIconAtlas.ts` if the UI icon atlas grid changes.
-6. Set `ACTIVE_RACER_ASSET_PACK` to `COMMERCIAL_TEMPLATE_ASSET_PACK`.
-7. Run `npm run typecheck`.
-8. Run `npm run validate:production`.
-9. Run `npm run build:wx`.
-10. Open in WeChat DevTools.
-11. Test menu logo, menu icons, settings icons, pause icons, help icons, result icons, race start, steering, braking, collision, pause, finish, share placeholder, leaderboard placeholder.
-12. Check real-device FPS and adjust `RacerTuning` if needed.
-13. Confirm every asset has clear commercial usage rights.
+6. Run `npm run assets:commercial` to check required and optional commercial files.
+7. Run `npm run assets:commercial:apply` to safely switch to `COMMERCIAL_TEMPLATE_ASSET_PACK`.
+8. Run `npm run typecheck`.
+9. Run `npm run validate:production`.
+10. Run `npm run build:wx`.
+11. Open in WeChat DevTools.
+12. Test menu logo, menu icons, settings icons, pause icons, help icons, result icons, race start, steering, braking, collision, pause, finish, share placeholder, leaderboard placeholder.
+13. Check real-device FPS and adjust `RacerTuning` if needed.
+14. Confirm every asset has clear commercial usage rights.
