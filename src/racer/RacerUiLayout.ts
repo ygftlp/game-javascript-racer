@@ -158,9 +158,11 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   const trackButtons = buildTrackButtons(width, trackPanel, small);
   const trackBackY = trackButtons[trackButtons.length - 1].y + trackButtons[trackButtons.length - 1].h + (small ? 14 : 18);
 
-  const settingsPanel = panel(width, height, 640, small ? 430 : 500);
-  const settingsButtonW = small ? Math.min(310, settingsPanel.w - 80) : 336;
-  const settingsStartY = settingsPanel.y + (small ? 106 : 128);
+  const settingsPanel = panel(width, height, 680, small ? 430 : 520);
+  const settingsCardW = Math.min(small ? 450 : 540, settingsPanel.w - 56);
+  const settingsCardH = small ? 44 : 54;
+  const settingsGap = small ? 6 : 9;
+  const settingsStartY = settingsPanel.y + (small ? 102 : 128);
 
   const pausedPanel = panel(width, height, 620, small ? 414 : 466);
   const pausedStartY = pausedPanel.y + (small ? 132 : 158);
@@ -243,16 +245,16 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
     },
     settings: {
       panel: settingsPanel,
-      titleY: settingsPanel.y + (small ? 24 : 32),
-      line1Y: settingsPanel.y + (small ? 70 : 88),
+      titleY: settingsPanel.y + (small ? 22 : 30),
+      line1Y: settingsPanel.y + (small ? 70 : 90),
       line2Y: settingsPanel.y + (small ? 0 : 0),
       line3Y: settingsPanel.y + (small ? 0 : 0),
-      audioButton: centeredButton(width, settingsStartY, settingsButtonW, menuButtonH),
-      miniMapButton: centeredButton(width, settingsStartY + (menuButtonH + menuSpacing), settingsButtonW, menuButtonH),
-      coachButton: centeredButton(width, settingsStartY + (menuButtonH + menuSpacing) * 2, settingsButtonW, menuButtonH),
-      sensitivityButton: centeredButton(width, settingsStartY + (menuButtonH + menuSpacing) * 3, settingsButtonW, menuButtonH),
-      resetCoachButton: centeredButton(width, settingsStartY + (menuButtonH + menuSpacing) * 4, settingsButtonW, menuButtonH),
-      backButton: centeredButton(width, settingsStartY + (menuButtonH + menuSpacing) * 5, small ? 210 : 236, menuButtonH)
+      audioButton: centeredButton(width, settingsStartY, settingsCardW, settingsCardH),
+      miniMapButton: centeredButton(width, settingsStartY + (settingsCardH + settingsGap), settingsCardW, settingsCardH),
+      coachButton: centeredButton(width, settingsStartY + (settingsCardH + settingsGap) * 2, settingsCardW, settingsCardH),
+      sensitivityButton: centeredButton(width, settingsStartY + (settingsCardH + settingsGap) * 3, settingsCardW, settingsCardH),
+      resetCoachButton: centeredButton(width, settingsStartY + (settingsCardH + settingsGap) * 4, settingsCardW, settingsCardH),
+      backButton: centeredButton(width, settingsStartY + (settingsCardH + settingsGap) * 5, small ? 210 : 236, settingsCardH)
     },
     paused: {
       panel: pausedPanel,
