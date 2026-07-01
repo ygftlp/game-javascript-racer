@@ -4,24 +4,29 @@ This document splits the racer resources into stable categories so multiple cont
 
 ## Workstream ownership
 
-Treat the migration as four focused agent lanes:
+Treat the migration as five focused agent lanes:
 
 1. **Asset Taxonomy Agent**
    - Owns `src/racer/SpriteAtlas.ts` and `src/racer/RacerAssetManifest.ts`.
-   - Keeps frame names, groups, and replacement categories stable.
+   - Keeps frame names, groups, UI asset paths, and replacement categories stable.
    - Reviews whether a new atlas preserves required anchors and frame names.
 
 2. **Art Production Agent**
    - Owns `assets/packs/default/images/` and source art files outside the runtime bundle.
    - Replaces legacy art with commercial-safe background and sprite atlas files.
-   - Exports atlas PNGs at the expected paths.
+   - Exports atlas PNGs and UI PNGs at the expected paths.
 
-3. **Audio Agent**
+3. **Brand UI Agent**
+   - Owns `assets/packs/default/images/ui/logo.png` and final logo source art.
+   - Confirms the logo remains readable in the main menu on small and high-DPI screens.
+   - Keeps the current programmatic Logo as fallback when no commercial image is available.
+
+4. **Audio Agent**
    - Owns `assets/packs/default/audio/`.
    - Replaces music and sound effects with licensed files.
    - Keeps mp3 versions for WeChat compatibility and package-size control.
 
-4. **Integration QA Agent**
+5. **Integration QA Agent**
    - Owns WeChat DevTools and real-device verification.
    - Runs `npm run typecheck`, `npm run build:wx`, and manual race tests.
    - Tunes `src/racer/RacerTuning.ts` if new assets affect performance.
@@ -34,8 +39,8 @@ Runtime paths are centralized in `src/racer/RacerAssetManifest.ts`.
 
 Current packs:
 
-- `legacy`: points to the original `images/background.png`, `images/sprites.png`, and `music/racer.mp3`.
-- `commercial-template`: points to `assets/packs/default/` and is intended for future commercial-safe replacements.
+- `legacy`: points to the original `images/background.png`, `images/sprites.png`, and `music/racer.mp3`. It has no `brandLogo`, so the main menu uses the programmatic Logo fallback.
+- `commercial-template`: points to `assets/packs/default/` and is intended for future commercial-safe replacements, including optional `assets/packs/default/images/ui/logo.png`.
 
 To switch the runtime pack, update `ACTIVE_RACER_ASSET_PACK` in `src/racer/RacerAssetManifest.ts` after the replacement files exist.
 
@@ -83,6 +88,27 @@ Traffic frames:
 
 Width is used for collision approximation. If replacements are much wider or narrower, test overtaking and traffic collision on device.
 
+### `ui.brand-logo`
+
+Optional commercial Logo path:
+
+```text
+assets/packs/default/images/ui/logo.png
+```
+
+Recommended format:
+
+- transparent PNG
+- designed for a wide title area
+- readable at small mobile sizes
+- avoids real brands, car manufacturers, or trademarks unless licensed
+
+Runtime behavior:
+
+- `RacerAssets` loads `images.brandLogo` as an optional texture.
+- `RacerUiLogo` first tries to draw that texture.
+- If the file is missing, still loading, or fails to draw, the menu automatically falls back to the current programmatic Logo.
+
 ### `sprites.roadside-billboards`
 
 Billboard frames are non-critical visual dressing. They are safe to replace with:
@@ -122,18 +148,20 @@ assets/packs/default/audio/sfx/crash.mp3
 assets/packs/default/audio/sfx/menu-confirm.mp3
 ```
 
-The runtime currently loads only background music. These files are placeholders for the next audio pass.
+The runtime loads these as optional sounds. Missing sound files must not block gameplay.
 
 ## Replacement checklist
 
 Before switching to a new pack:
 
 1. Replace images and audio in `assets/packs/default/`.
-2. Update `src/racer/SpriteAtlas.ts` if atlas coordinates changed.
-3. Set `ACTIVE_RACER_ASSET_PACK` to `COMMERCIAL_TEMPLATE_ASSET_PACK`.
-4. Run `npm run typecheck`.
-5. Run `npm run build:wx`.
-6. Open in WeChat DevTools.
-7. Test menu, race start, steering, braking, collision, pause, finish, share placeholder, leaderboard placeholder.
-8. Check real-device FPS and adjust `RacerTuning` if needed.
-9. Confirm every asset has clear commercial usage rights.
+2. Add optional `assets/packs/default/images/ui/logo.png`, or verify the programmatic Logo fallback is acceptable.
+3. Update `src/racer/SpriteAtlas.ts` if atlas coordinates changed.
+4. Set `ACTIVE_RACER_ASSET_PACK` to `COMMERCIAL_TEMPLATE_ASSET_PACK`.
+5. Run `npm run typecheck`.
+6. Run `npm run validate:production`.
+7. Run `npm run build:wx`.
+8. Open in WeChat DevTools.
+9. Test menu logo, race start, steering, braking, collision, pause, finish, share placeholder, leaderboard placeholder.
+10. Check real-device FPS and adjust `RacerTuning` if needed.
+11. Confirm every asset has clear commercial usage rights.
