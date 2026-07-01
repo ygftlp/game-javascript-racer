@@ -274,6 +274,7 @@ export class RacerUiRenderer {
   }
 
   private drawTrackCard(ctx: CanvasRenderingContext2D, target: RacerRect, track: RacerUiTrackOption, index: number, selected: boolean, pressed: boolean, layout: RacerUiLayout): void {
+    const theme = RACER_UI_THEME.trackCard;
     const inset = pressed ? 3 : 0;
     const yOffset = pressed ? 3 : 0;
     const fill = selected
@@ -284,20 +285,22 @@ export class RacerUiRenderer {
     const y = target.y + yOffset + inset;
     const w = target.w - inset * 2;
     const h = target.h - inset * 2;
+    const iconSize = layout.small ? theme.iconSmallSize : theme.iconSize;
+    const textX = x + (layout.small ? theme.textSmallX : theme.textX);
 
     this.roundedPanel(ctx, x, y, w, h, fill, stroke);
-    this.icons.render(ctx, 'track', x + 30, y + h / 2, layout.small ? 24 : 30, selected ? RACER_UI_THEME.accent.gold : RACER_UI_THEME.text.note, RACER_UI_THEME.accent.gold);
+    this.icons.render(ctx, 'track', x + theme.iconX, y + h / 2, iconSize, selected ? RACER_UI_THEME.icon.enabled : RACER_UI_THEME.icon.disabled, RACER_UI_THEME.icon.accent);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    ctx.font = `bold ${layout.small ? 18 : 21}px sans-serif`;
+    ctx.font = `bold ${layout.small ? theme.titleSmallSize : theme.titleSize}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.primary;
-    ctx.fillText(`${index + 1}. ${track.name}`, x + (layout.small ? 52 : 60), y + 10);
-    ctx.font = `${layout.small ? 14 : 16}px sans-serif`;
+    ctx.fillText(`${index + 1}. ${track.name}`, textX, y + theme.titleY);
+    ctx.font = `${layout.small ? theme.descriptionSmallSize : theme.descriptionSize}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.body;
-    ctx.fillText(track.description, x + (layout.small ? 52 : 60), y + (layout.small ? 34 : 40));
+    ctx.fillText(track.description, textX, y + (layout.small ? theme.descriptionSmallY : theme.descriptionY));
     ctx.textAlign = 'right';
     ctx.fillStyle = selected ? RACER_UI_THEME.accent.gold : RACER_UI_THEME.text.note;
-    ctx.fillText(selected ? '已选择' : `${track.targetLaps} 圈`, x + w - 16, y + 12);
+    ctx.fillText(selected ? '已选择' : `${track.targetLaps} 圈`, x + w - theme.metaRightPadding, y + theme.metaY);
     ctx.textAlign = 'left';
   }
 
@@ -319,6 +322,8 @@ export class RacerUiRenderer {
   }
 
   private drawSettingCard(ctx: CanvasRenderingContext2D, target: RacerRect, title: string, value: string, description: string, enabled: boolean, pressed: boolean, layout: RacerUiLayout, icon: RacerUiIconName): void {
+    const theme = RACER_UI_THEME.settingCard;
+    const pill = RACER_UI_THEME.statusPill;
     const inset = pressed ? 3 : 0;
     const yOffset = pressed ? 3 : 0;
     const x = target.x + inset;
@@ -327,36 +332,42 @@ export class RacerUiRenderer {
     const h = target.h - inset * 2;
     const fill = pressed ? RACER_UI_THEME.button.secondaryPressed : RACER_UI_THEME.button.secondary;
     const stroke = enabled ? RACER_UI_THEME.accent.gold : RACER_UI_THEME.button.secondaryStroke;
-    const iconSize = layout.small ? 22 : 28;
-    const textX = x + (layout.small ? 46 : 56);
+    const iconSize = layout.small ? theme.iconSmallSize : theme.iconSize;
+    const iconX = x + (layout.small ? theme.iconSmallX : theme.iconX);
+    const textX = x + (layout.small ? theme.textSmallX : theme.textX);
+    const pillW = layout.small ? pill.smallWidth : pill.width;
+    const pillH = layout.small ? pill.smallHeight : pill.height;
+    const pillX = x + w - (layout.small ? pill.smallRightOffset : pill.rightOffset);
+    const pillY = y + (layout.small ? pill.smallY : pill.y);
 
     this.roundedPanel(ctx, x, y, w, h, fill, stroke);
-    this.icons.render(ctx, icon, x + (layout.small ? 24 : 30), y + h / 2, iconSize, enabled ? RACER_UI_THEME.accent.gold : RACER_UI_THEME.text.note, RACER_UI_THEME.accent.gold);
+    this.icons.render(ctx, icon, iconX, y + h / 2, iconSize, enabled ? RACER_UI_THEME.icon.enabled : RACER_UI_THEME.icon.disabled, RACER_UI_THEME.icon.accent);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    ctx.font = `bold ${layout.small ? 15 : 18}px sans-serif`;
+    ctx.font = `bold ${layout.small ? theme.titleSmallSize : theme.titleSize}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.primary;
-    ctx.fillText(title, textX, y + (layout.small ? 6 : 8));
+    ctx.fillText(title, textX, y + (layout.small ? theme.titleSmallY : theme.titleY));
 
-    ctx.font = `${layout.small ? 12 : 14}px sans-serif`;
+    ctx.font = `${layout.small ? theme.descriptionSmallSize : theme.descriptionSize}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.note;
-    ctx.fillText(description, textX, y + (layout.small ? 26 : 32));
+    ctx.fillText(description, textX, y + (layout.small ? theme.descriptionSmallY : theme.descriptionY));
 
-    this.drawStatusPill(ctx, x + w - (layout.small ? 92 : 108), y + (layout.small ? 9 : 12), layout.small ? 76 : 90, layout.small ? 24 : 28, value, enabled, pressed, layout);
+    this.drawStatusPill(ctx, pillX, pillY, pillW, pillH, value, enabled, pressed, layout);
     ctx.textAlign = 'left';
   }
 
   private drawStatusPill(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, text: string, enabled: boolean, pressed: boolean, layout: RacerUiLayout): void {
+    const theme = RACER_UI_THEME.statusPill;
     const fill = enabled
       ? pressed ? RACER_UI_THEME.accent.goldPressed : RACER_UI_THEME.accent.goldSoft
       : pressed ? RACER_UI_THEME.button.secondaryPressed : RACER_UI_THEME.panel.barBg;
     const stroke = enabled ? RACER_UI_THEME.accent.gold : RACER_UI_THEME.button.secondaryStroke;
     this.roundedPanel(ctx, x, y, w, h, fill, stroke);
-    ctx.font = `bold ${layout.small ? 12 : 14}px sans-serif`;
+    ctx.font = `bold ${layout.small ? theme.fontSmallSize : theme.fontSize}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = enabled ? RACER_UI_THEME.accent.gold : RACER_UI_THEME.text.note;
-    ctx.fillText(text, x + w / 2, y + h / 2 + 1);
+    ctx.fillText(text, x + w / 2, y + h / 2 + theme.textYOffset);
   }
 
   private drawHelp(ctx: CanvasRenderingContext2D, state: RacerState, targetLaps: number, layout: RacerUiLayout, pressedTarget: RacerUiPressedTarget): void {
@@ -412,6 +423,7 @@ export class RacerUiRenderer {
   }
 
   private drawButton(ctx: CanvasRenderingContext2D, target: RacerRect, text: string, layout: RacerUiLayout, primary = false, pressed = false, icon?: RacerUiIconName): void {
+    const theme = RACER_UI_THEME.buttonIcon;
     const inset = pressed ? 3 : 0;
     const yOffset = pressed ? 3 : 0;
     const fill = primary
@@ -422,15 +434,15 @@ export class RacerUiRenderer {
     const y = target.y + yOffset + inset;
     const w = target.w - inset * 2;
     const h = target.h - inset * 2;
-    const iconSize = layout.small ? 18 : 22;
-    const iconX = x + (layout.small ? 28 : 34);
-    const textX = icon ? x + w / 2 + iconSize * 0.28 : x + w / 2;
+    const iconSize = layout.small ? theme.smallSize : theme.size;
+    const iconX = x + (layout.small ? theme.smallOffsetX : theme.offsetX);
+    const textX = icon ? x + w / 2 + iconSize * theme.textOffsetRatio : x + w / 2;
+    const iconColor = primary ? RACER_UI_THEME.icon.primary : RACER_UI_THEME.text.primary;
+    const iconAccent = primary ? RACER_UI_THEME.icon.primary : RACER_UI_THEME.icon.accent;
 
     if (primary && !pressed) this.roundedPanel(ctx, target.x - 5, target.y - 5, target.w + 10, target.h + 10, RACER_UI_THEME.accent.goldSoft);
     this.roundedPanel(ctx, x, y, w, h, fill, stroke);
-    if (icon) {
-      this.icons.render(ctx, icon, iconX, y + h / 2, iconSize, primary ? RACER_UI_THEME.text.buttonPrimary : RACER_UI_THEME.text.primary, primary ? RACER_UI_THEME.text.buttonPrimary : RACER_UI_THEME.accent.gold);
-    }
+    if (icon) this.icons.render(ctx, icon, iconX, y + h / 2, iconSize, iconColor, iconAccent);
     ctx.font = `bold ${layout.fonts.button}px sans-serif`;
     ctx.fillStyle = primary ? RACER_UI_THEME.text.buttonPrimary : RACER_UI_THEME.text.primary;
     ctx.textAlign = 'center';
