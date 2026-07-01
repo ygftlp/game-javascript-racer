@@ -64,7 +64,7 @@ Required:
 
 ### Gate 5: Commercial UI / UX polish
 
-Status: release/debug UI split, polished interaction pass, independent minimap component, theme-tokenized programmatic icons and card metrics, dedicated track-select screen, dedicated settings screen with settings cards and status pill states, configurable control sensitivity, persisted selected track, per-track best laps, and first commercial road theme implemented; commercial art still needed.
+Status: release/debug UI split, polished interaction pass, independent minimap component, theme-tokenized programmatic logo, theme-tokenized programmatic icons and card metrics, dedicated track-select screen, dedicated settings screen with settings cards and status pill states, configurable control sensitivity, persisted selected track, per-track best laps, and first commercial road theme implemented; commercial art still needed.
 
 Source of truth:
 
@@ -80,7 +80,11 @@ Source of truth:
 Implemented:
 
 - `src/racer/RacerUiFlags.ts` defines release/debug UI switches.
-- `src/racer/RacerUiTheme.ts` centralizes UI skin tokens for HUD, controls, panels, buttons, overlays, minimap, `buttonIcon`, `trackCard`, `settingCard`, `statusPill`, and icon colors.
+- `src/racer/RacerUiTheme.ts` centralizes UI skin tokens for HUD, controls, panels, buttons, overlays, minimap, `brandLogo`, `buttonIcon`, `trackCard`, `settingCard`, `statusPill`, and icon colors.
+- `src/racer/RacerUiLogo.ts` provides a programmatic logo fallback for the main menu title area.
+- The programmatic logo uses theme-tokenized plate, stripe, badge, title, and subtitle settings from `RACER_UI_THEME.brandLogo`.
+- `RacerUiLogo` avoids `roundRect` so it remains safer for WeChat Canvas compatibility.
+- `RacerUiRenderer` renders the main-menu title area through `RacerUiLogo` using the title `极速公路` and subtitle `RETRO RACER`.
 - `src/racer/RacerRoadTheme.ts` centralizes road palette tokens and active road theme selection.
 - `src/racer/RacerTrackDefinition.ts` defines a selectable track registry.
 - `src/racer/RacerControlSensitivity.ts` defines `舒适`, `标准`, and `灵敏` control sensitivity profiles.
@@ -112,7 +116,7 @@ Implemented:
 - Buttons have a pressed state and overlay actions execute on touch end.
 - Dragging outside a button cancels the pending action.
 - Touch start/move/end handlers tolerate empty platform touch arrays.
-- `RacerUiRenderer` owns HUD, controls, overlays, help, onboarding UI, track-select UI, and settings UI.
+- `RacerUiRenderer` owns HUD, controls, overlays, help, onboarding UI, track-select UI, settings UI, and main-menu branding.
 - `RacerMiniMap` is an independent component for the in-race track radar.
 - Minimap rendering is controlled by the persisted settings screen switch.
 - First-race operation coach can be disabled or reset from the settings screen.
@@ -129,11 +133,12 @@ Implemented:
 Still required before commercial release:
 
 - Replace placeholder title/logo with commercial-safe branding.
+- Replace programmatic logo with final commercial logo assets once the art pack is ready, or keep it as a fallback logo.
 - Replace programmatic icons with final commercial icon assets once the art pack is ready, or keep them as fallback icons.
 - Tune exact joystick/brake/minimap sizes and opacity on real low-end and high-DPI devices.
 - Tune the dedicated track-select screen card spacing, copy length, icon size, and pressed-state intensity on small devices.
 - Tune the dedicated settings screen settings cards, status pill readability, icon size, labels, and touch comfort on small devices.
-- Tune theme-tokenized `buttonIcon`, `trackCard`, `settingCard`, and `statusPill` metrics on target devices.
+- Tune theme-tokenized `brandLogo`, `buttonIcon`, `trackCard`, `settingCard`, and `statusPill` metrics on target devices.
 - Tune the `舒适 / 标准 / 灵敏` sensitivity presets from real device feedback.
 - Tune the commercial asphalt palette on real devices for readability and contrast.
 - Tune all selectable track section layouts on real devices.
@@ -160,6 +165,7 @@ Required manual checks:
 - Open project root in WeChat DevTools.
 - Confirm `project.config.json` points to `dist/wechat/`.
 - Start game from menu without external instructions.
+- Confirm main-menu programmatic logo renders correctly and does not overlap the menu copy.
 - Confirm menu buttons show icons, text, and pressed state on touch down.
 - Confirm menu actions execute only on release inside the button.
 - Confirm moving outside a button cancels the pending action.
@@ -169,7 +175,7 @@ Required manual checks:
 - Confirm `设置` opens the dedicated settings screen.
 - Confirm settings screen renders iconized setting cards with title, description, and status pill.
 - Confirm settings cards show immediate pressed feedback.
-- Confirm theme-tokenized icon sizes, text offsets, and status-pill metrics look correct on small and high-DPI screens.
+- Confirm theme-tokenized logo, icon sizes, text offsets, and status-pill metrics look correct on small and high-DPI screens.
 - Confirm settings screen music toggle persists after reload.
 - Confirm settings screen minimap toggle hides/shows the in-race minimap and persists after reload.
 - Confirm settings screen operation guide toggle prevents the first-race coach from appearing.
@@ -193,58 +199,3 @@ Required manual checks:
 - Confirm no console errors for missing required assets.
 - Check FPS on low-end and mid-range devices.
 - Check package size.
-
-## Agent task board
-
-### Agent A: UX Director
-
-Next tasks:
-
-1. Validate player-facing Chinese copy in menu, pause, result, HUD, minimap, track-select screen, and settings screen.
-2. Confirm the new programmatic icons improve scan speed without making buttons feel crowded.
-3. Confirm theme-tokenized icon spacing still preserves button readability.
-4. Review release/debug UI split in `RacerUiFlags.ts`.
-5. Decide final commercial game name and branding direction.
-
-### Agent B: UI Interaction Designer
-
-Next tasks:
-
-1. Validate press-down and release-to-confirm behavior.
-2. Confirm drag-outside cancellation feels safe.
-3. Validate track selector persistence and relaunch behavior.
-4. Validate dedicated track-select card spacing and return flow.
-5. Validate dedicated settings screen cards, status pill states, sensitivity cycle, reset-guide flow, icon spacing, and return flow.
-6. Tune `buttonIcon`, `trackCard`, `settingCard`, and `statusPill` metrics from real-device screenshots.
-
-### Agent C: Control Feel Designer
-
-Next tasks:
-
-1. Validate joystick radius, dead-zone, and steering gain in WeChat DevTools.
-2. Test one-hand control comfort on target devices.
-3. Tune `RacerControlSensitivity.ts`, `RacerJoystick.ts`, `RacerUiLayout.ts`, and `RacerState.ts` from device feedback.
-4. Validate each selectable track is controllable with all three sensitivity presets.
-5. Validate operation guide settings are useful for returning players.
-
-### Agent D: UI Visual Designer
-
-Next tasks:
-
-1. Produce final color palette and UI component states.
-2. Replace programmatic pause/music/share/leaderboard/help/track/settings icons with final commercial assets, or keep `RacerUiIcons` as fallback.
-3. Tune theme-tokenized settings card and status pill visuals with the final HUD skin.
-4. Tune minimap visual style with the final HUD skin.
-5. Tune `RacerUiTheme.ts` and `RacerRoadTheme.ts` together so HUD, minimap, road, and rumble strips read as one visual system.
-6. Replace placeholder title/logo when commercial branding is ready.
-
-### Agent E: Gameplay Readability QA
-
-Next tasks:
-
-1. Reproduce long runs across hills, heavy curves, collisions, and lap wraparound.
-2. Confirm the player car never disappears after the renderer stabilization fix.
-3. Validate minimap readability and obstruction on target screens.
-4. Validate commercial asphalt road readability on target screens.
-5. Validate dedicated track-select screen, dedicated settings screen, icon readability, settings card readability, relaunch restore, sensitivity persistence, and per-track best lap records.
-6. Capture screenshots or recordings for any remaining visibility issue.
