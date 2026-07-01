@@ -64,7 +64,7 @@ Required:
 
 ### Gate 5: Commercial UI / UX polish
 
-Status: release/debug UI split, polished interaction pass, independent minimap component, UI theme tokens, dedicated track-select screen, dedicated settings screen, configurable control sensitivity, persisted selected track, per-track best laps, and first commercial road theme implemented; commercial art still needed.
+Status: release/debug UI split, polished interaction pass, independent minimap component, UI theme tokens, dedicated track-select screen, dedicated settings screen with settings cards and status pill states, configurable control sensitivity, persisted selected track, per-track best laps, and first commercial road theme implemented; commercial art still needed.
 
 Source of truth:
 
@@ -87,8 +87,8 @@ Implemented:
 - The main menu includes `选择赛道`, `操作说明`, `排行榜`, and `设置`.
 - `RacerUiLayout` defines a dedicated track-select screen with track cards and `返回菜单`.
 - `RacerUiRenderer` renders the dedicated track-select screen, card pressed states, and `已选择` status.
-- `RacerUiLayout` defines a dedicated settings screen with music, minimap, operation guide, control sensitivity, reset-guide, and return controls.
-- `RacerUiRenderer` renders the dedicated settings screen and current setting states.
+- `RacerUiLayout` defines a dedicated settings screen with wider settings cards for music, minimap, operation guide, control sensitivity, reset-guide, and return controls.
+- `RacerUiRenderer` renders the dedicated settings screen as settings cards with title, description, status pill, enabled/disabled visual state, and pressed feedback.
 - `RacerScene` opens the dedicated track-select screen from the menu and confirms a selected card on touch release.
 - `RacerScene` opens the dedicated settings screen from the menu and persists music, minimap, control coach, and control sensitivity settings.
 - `RacerSettings` persists the selected track id, audio state, minimap state, control coach state, control sensitivity id, and whether the first-race coach has already been shown.
@@ -125,7 +125,7 @@ Still required before commercial release:
 - Replace Canvas programmer-art icons with final UI icons.
 - Tune exact joystick/brake/minimap sizes and opacity on real low-end and high-DPI devices.
 - Tune the dedicated track-select screen card spacing, copy length, and pressed-state intensity on small devices.
-- Tune the dedicated settings screen button spacing, labels, and touch comfort on small devices.
+- Tune the dedicated settings screen settings cards, status pill readability, labels, and touch comfort on small devices.
 - Tune the `舒适 / 标准 / 灵敏` sensitivity presets from real device feedback.
 - Tune the commercial asphalt palette on real devices for readability and contrast.
 - Tune all selectable track section layouts on real devices.
@@ -159,10 +159,12 @@ Required manual checks:
 - Confirm every track card can be selected and returns to the menu.
 - Confirm track-select `返回菜单` leaves the selected track unchanged.
 - Confirm `设置` opens the dedicated settings screen.
+- Confirm settings screen renders setting cards with title, description, and status pill.
+- Confirm settings cards show immediate pressed feedback.
 - Confirm settings screen music toggle persists after reload.
 - Confirm settings screen minimap toggle hides/shows the in-race minimap and persists after reload.
 - Confirm settings screen operation guide toggle prevents the first-race coach from appearing.
-- Confirm `重看操作引导` resets the coach so it appears on the next race start.
+- Confirm `重看引导` resets the coach so it appears on the next race start.
 - Confirm `控制手感` cycles through `舒适 -> 标准 -> 灵敏` and persists after reload.
 - Confirm `舒适` feels steadier, `标准` matches the default, and `灵敏` turns faster.
 - Confirm relaunch restores the last selected track.
@@ -201,7 +203,7 @@ Next tasks:
 2. Confirm drag-outside cancellation feels safe.
 3. Validate track selector persistence and relaunch behavior.
 4. Validate dedicated track-select card spacing and return flow.
-5. Validate dedicated settings screen toggles, sensitivity cycle, reset-guide flow, and return flow.
+5. Validate dedicated settings screen cards, status pill states, sensitivity cycle, reset-guide flow, and return flow.
 
 ### Agent C: Control Feel Designer
 
@@ -219,9 +221,10 @@ Next tasks:
 
 1. Produce final color palette and UI component states.
 2. Produce pause/music/share/leaderboard/help/track/settings icons.
-3. Tune minimap visual style with the final HUD skin.
-4. Tune `RacerUiTheme.ts` and `RacerRoadTheme.ts` together so HUD, minimap, road, and rumble strips read as one visual system.
-5. Replace placeholder title/logo when commercial branding is ready.
+3. Tune settings card and status pill visuals with the final HUD skin.
+4. Tune minimap visual style with the final HUD skin.
+5. Tune `RacerUiTheme.ts` and `RacerRoadTheme.ts` together so HUD, minimap, road, and rumble strips read as one visual system.
+6. Replace placeholder title/logo when commercial branding is ready.
 
 ### Agent E: Gameplay Readability QA
 
@@ -231,5 +234,5 @@ Next tasks:
 2. Confirm the player car never disappears after the renderer stabilization fix.
 3. Validate minimap readability and obstruction on target screens.
 4. Validate commercial asphalt road readability on target screens.
-5. Validate dedicated track-select screen, dedicated settings screen, relaunch restore, sensitivity persistence, and per-track best lap records.
+5. Validate dedicated track-select screen, dedicated settings screen, settings card readability, relaunch restore, sensitivity persistence, and per-track best lap records.
 6. Capture screenshots or recordings for any remaining visibility issue.
