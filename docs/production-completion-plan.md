@@ -43,6 +43,7 @@ Required:
 - Replace `legacy` art and music before commercial release.
 - Provide commercial-safe `assets/packs/default/images/background.png`.
 - Provide commercial-safe `assets/packs/default/images/sprites.png`.
+- Provide optional commercial logo asset at `assets/packs/default/images/ui/logo.png`.
 - Provide commercial-safe `assets/packs/default/audio/music/racer.mp3`.
 - Provide commercial-safe UI logo/icons before final release.
 - Optional but recommended: engine loop, crash, and menu confirm sounds.
@@ -64,13 +65,14 @@ Required:
 
 ### Gate 5: Commercial UI / UX polish
 
-Status: release/debug UI split, polished interaction pass, independent minimap component, theme-tokenized programmatic logo, theme-tokenized programmatic icons and card metrics, dedicated track-select screen, dedicated settings screen with settings cards and status pill states, configurable control sensitivity, persisted selected track, per-track best laps, and first commercial road theme implemented; commercial art still needed.
+Status: release/debug UI split, polished interaction pass, independent minimap component, optional commercial logo asset support with programmatic logo fallback, theme-tokenized programmatic icons and card metrics, dedicated track-select screen, dedicated settings screen with settings cards and status pill states, configurable control sensitivity, persisted selected track, per-track best laps, and first commercial road theme implemented; commercial art still needed.
 
 Source of truth:
 
 - `docs/commercial-ui-ux-plan.md`
 - `docs/ui-polish-agent-sync.md`
 - `docs/road-replacement-guide.md`
+- `docs/asset-replacement-guide.md`
 - `docs/agent-tasks/ui-ux-director.md`
 - `docs/agent-tasks/control-feel-designer.md`
 - `docs/agent-tasks/ui-visual-designer.md`
@@ -79,12 +81,14 @@ Source of truth:
 
 Implemented:
 
-- `src/racer/RacerUiFlags.ts` defines release/debug UI switches.
+- `src/racer/RacerAssetManifest.ts` defines optional `images.brandLogo` and maps the commercial template Logo path to `assets/packs/default/images/ui/logo.png`.
+- `src/racer/RacerAssets.ts` loads the optional commercial Logo texture without blocking the required background and sprite atlas.
 - `src/racer/RacerUiTheme.ts` centralizes UI skin tokens for HUD, controls, panels, buttons, overlays, minimap, `brandLogo`, `buttonIcon`, `trackCard`, `settingCard`, `statusPill`, and icon colors.
-- `src/racer/RacerUiLogo.ts` provides a programmatic logo fallback for the main menu title area.
-- The programmatic logo uses theme-tokenized plate, stripe, badge, title, and subtitle settings from `RACER_UI_THEME.brandLogo`.
+- `src/racer/RacerUiLogo.ts` prefers a loaded commercial Logo texture and falls back to the programmatic Logo when it is missing, still loading, or fails to draw.
 - `RacerUiLogo` avoids `roundRect` so it remains safer for WeChat Canvas compatibility.
-- `RacerUiRenderer` renders the main-menu title area through `RacerUiLogo` using the title `极速公路` and subtitle `RETRO RACER`.
+- `RacerUiRenderer` passes `assets.brandLogo` into the main-menu Logo renderer.
+- `RacerUiRenderer` renders the main-menu title area through `RacerUiLogo` using the title `极速公路` and subtitle `RETRO RACER` as the programmatic fallback.
+- `src/racer/RacerUiFlags.ts` defines release/debug UI switches.
 - `src/racer/RacerRoadTheme.ts` centralizes road palette tokens and active road theme selection.
 - `src/racer/RacerTrackDefinition.ts` defines a selectable track registry.
 - `src/racer/RacerControlSensitivity.ts` defines `舒适`, `标准`, and `灵敏` control sensitivity profiles.
@@ -133,7 +137,7 @@ Implemented:
 Still required before commercial release:
 
 - Replace placeholder title/logo with commercial-safe branding.
-- Replace programmatic logo with final commercial logo assets once the art pack is ready, or keep it as a fallback logo.
+- Add the final commercial Logo image at `assets/packs/default/images/ui/logo.png`, or keep the programmatic logo fallback.
 - Replace programmatic icons with final commercial icon assets once the art pack is ready, or keep them as fallback icons.
 - Tune exact joystick/brake/minimap sizes and opacity on real low-end and high-DPI devices.
 - Tune the dedicated track-select screen card spacing, copy length, icon size, and pressed-state intensity on small devices.
@@ -165,7 +169,9 @@ Required manual checks:
 - Open project root in WeChat DevTools.
 - Confirm `project.config.json` points to `dist/wechat/`.
 - Start game from menu without external instructions.
-- Confirm main-menu programmatic logo renders correctly and does not overlap the menu copy.
+- Confirm main-menu Logo renders correctly and does not overlap the menu copy.
+- Confirm missing `assets/packs/default/images/ui/logo.png` falls back to the programmatic Logo.
+- Confirm adding `assets/packs/default/images/ui/logo.png` makes the menu use the commercial Logo image.
 - Confirm menu buttons show icons, text, and pressed state on touch down.
 - Confirm menu actions execute only on release inside the button.
 - Confirm moving outside a button cancels the pending action.
@@ -196,6 +202,6 @@ Required manual checks:
 - Confirm ads never appear while driving.
 - Finish the configured target lap count on each selectable track and restart.
 - Confirm best lap, selected track, audio preference, minimap preference, operation coach preference, and control sensitivity persist after reload.
-- Confirm no console errors for missing required assets.
+- Confirm no console errors for missing required assets beyond optional Logo fallback warning.
 - Check FPS on low-end and mid-range devices.
 - Check package size.
