@@ -30,6 +30,7 @@ const requiredFiles = [
   'src/racer/RacerUiLayout.ts',
   'src/racer/RacerUiRenderer.ts',
   'src/racer/RacerUiTheme.ts',
+  'src/racer/RacerWechatConfig.ts',
   'src/racer/RacerWechatServices.ts',
   'src/platforms/wechat/startup.ts',
   'src/platforms/wechat/game.json',
@@ -40,9 +41,11 @@ const requiredFiles = [
   'docs/asset-replacement-guide.md',
   'docs/agent-workstreams.md',
   'docs/commercial-ui-ux-plan.md',
+  'docs/local-setup-wechat.md',
   'docs/production-completion-plan.md',
   'docs/road-replacement-guide.md',
-  'docs/ui-polish-agent-sync.md'
+  'docs/ui-polish-agent-sync.md',
+  'docs/wechat-deployment-guide.md'
 ];
 
 const sourceFilesToCheck = [
@@ -85,6 +88,7 @@ const packageJson = files['package.json'];
 const manifest = files['src/racer/RacerAssetManifest.ts'];
 const assets = files['src/racer/RacerAssets.ts'];
 const services = files['src/racer/RacerServices.ts'];
+const wechatConfig = files['src/racer/RacerWechatConfig.ts'];
 const wechatServices = files['src/racer/RacerWechatServices.ts'];
 const scene = files['src/scenes/RacerScene.ts'];
 const renderer = files['src/racer/Pseudo3DRenderer.ts'];
@@ -110,10 +114,12 @@ const liteEngineTypes = files['src/types/lite-game-engine.d.ts'];
 const uiFlags = files['src/racer/RacerUiFlags.ts'];
 const uiLayout = files['src/racer/RacerUiLayout.ts'];
 const joystick = files['src/racer/RacerJoystick.ts'];
+const localSetupGuide = files['docs/local-setup-wechat.md'];
 const roadGuide = files['docs/road-replacement-guide.md'];
 const assetGuide = files['docs/asset-replacement-guide.md'];
 const productionPlan = files['docs/production-completion-plan.md'];
 const uiAgentSync = files['docs/ui-polish-agent-sync.md'];
+const deploymentGuide = files['docs/wechat-deployment-guide.md'];
 
 const warnings = [];
 if (manifest.includes('ACTIVE_RACER_ASSET_PACK = LEGACY_RACER_ASSET_PACK')) {
@@ -134,12 +140,25 @@ requireTokens(localEngine, ['this.screen.width * pixelRatio', 'ctx.scale(pixelRa
 requireTokens(uiFlags, ['releaseMode: true', 'showAssetStatus: false', 'showControlLabels: false', 'showMiniMap: true', 'showFirstRaceCoach: true'], 'commercial release UI flags', missing);
 
 requireTokens(services, [
+  'RACER_WECHAT_SERVICES_CONFIG',
   'RacerLeaderboardViewContext',
   'showLeaderboard(context?: RacerLeaderboardViewContext)',
   'createWechatRacerServices(config) ?? createNoopRacerServices()'
-], 'RacerServices WeChat adapter with noop fallback', missing);
+], 'RacerServices WeChat adapter with isolated config and noop fallback', missing);
+
+requireTokens(wechatConfig, [
+  'RACER_WECHAT_SERVICES_CONFIG',
+  'titlePrefix',
+  'openDataContextCommand',
+  'cloudFunctionName',
+  'interstitialAdUnitId',
+  'rewardedAdUnitId',
+  'enableConsoleAnalytics',
+  'Do not commit production-only secrets'
+], 'isolated WeChat services configuration template', missing);
 
 requireTokens(wechatServices, [
+  'RACER_WECHAT_SERVICES_CONFIG',
   'createWechatRacerServices',
   'resolveWechatApi',
   'globalThis',
@@ -191,8 +210,10 @@ requireTokens(miniMap, ['class RacerMiniMap', 'drawCurvePreview', 'drawTrafficDo
 requireTokens(startup, ['startWeChatRacerGame', 'new WxPlatform', 'onHide', 'onShow'], 'WeChat startup module lifecycle binding', missing);
 requireTokens(roadGuide, ['RACER_TRACKS', '选择赛道', 'selected track id', 'per track id', 'Level 5: Add textured road support'], 'road replacement guide track registry and persistence docs', missing);
 requireTokens(assetGuide, ['npm run assets:commercial', 'npm run assets:commercial:apply', 'npm run assets:legacy:apply', 'required files', 'assets/packs/default/images/ui/logo.png', 'assets/packs/default/images/ui/icons.png', 'programmatic icon'], 'asset replacement guide safe switch and optional UI asset docs', missing);
-requireTokens(productionPlan, ['safe commercial asset pack switch script', 'WeChat services adapter skeleton', 'shareAppMessage', 'getOpenDataContext', 'createInterstitialAd', 'createRewardedVideoAd', 'assets:commercial:apply', 'optional commercial UI icon atlas', '舒适', '标准', '灵敏'], 'production completion plan WeChat services, safe switch, and UI docs', missing);
-requireTokens(uiAgentSync, ['WeChat services adapter skeleton', 'shareAppMessage', 'getOpenDataContext', 'createInterstitialAd', 'createRewardedVideoAd', 'safe commercial asset pack switch flow', 'optional commercial UI icon atlas', '舒适', '标准', '灵敏'], 'UI polish multi-agent sync WeChat services, safe switch, and UI docs', missing);
+requireTokens(localSetupGuide, ['docs/wechat-deployment-guide.md', 'npm run assets:commercial', 'npm run assets:commercial:apply', 'npm run validate:production', 'npm run build:wx'], 'local setup guide deployment handoff', missing);
+requireTokens(deploymentGuide, ['WeChat Deployment Guide', 'RacerWechatConfig.ts', 'npm run assets:commercial', 'npm run assets:commercial:apply', 'npm run validate:production', 'npm run build:wx', 'npm run assets:legacy:apply', 'COMMERCIAL_TEMPLATE_ASSET_PACK', 'dist/wechat/', 'wx.shareAppMessage', 'getOpenDataContext', 'createInterstitialAd', 'createRewardedVideoAd', 'Do not commit production-only secrets'], 'WeChat deployment guide release checklist and commercial asset switch flow', missing);
+requireTokens(productionPlan, ['safe commercial asset pack switch script', 'WeChat services adapter skeleton', 'RacerWechatConfig.ts', 'wechat-deployment-guide.md', 'shareAppMessage', 'getOpenDataContext', 'createInterstitialAd', 'createRewardedVideoAd', 'assets:commercial:apply', 'optional commercial UI icon atlas', '舒适', '标准', '灵敏'], 'production completion plan WeChat services, safe switch, deployment guide, and UI docs', missing);
+requireTokens(uiAgentSync, ['WeChat services adapter skeleton', 'RacerWechatConfig.ts', 'wechat-deployment-guide.md', 'shareAppMessage', 'getOpenDataContext', 'createInterstitialAd', 'createRewardedVideoAd', 'safe commercial asset pack switch flow', 'optional commercial UI icon atlas', '舒适', '标准', '灵敏'], 'UI polish multi-agent sync WeChat services, config, deployment guide, and UI docs', missing);
 
 for (const file of sourceFilesToCheck) {
   const content = files[file];
