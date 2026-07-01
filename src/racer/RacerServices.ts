@@ -1,4 +1,5 @@
-import { createWechatRacerServices, DEFAULT_WECHAT_RACER_SERVICES_CONFIG, type WechatRacerServicesConfig } from './RacerWechatServices';
+import { createWechatRacerServices, type WechatRacerServicesConfig } from './RacerWechatServices';
+import { RACER_WECHAT_SERVICES_CONFIG } from './RacerWechatConfig';
 
 export interface RaceResult {
   trackId: string;
@@ -86,6 +87,6 @@ function createNoopRacerServices(): RacerServices {
   };
 }
 
-export function createRacerServices(config: WechatRacerServicesConfig = DEFAULT_WECHAT_RACER_SERVICES_CONFIG): RacerServices {
+export function createRacerServices(config: WechatRacerServicesConfig = RACER_WECHAT_SERVICES_CONFIG): RacerServices {
   return createWechatRacerServices(config) ?? createNoopRacerServices();
 }
