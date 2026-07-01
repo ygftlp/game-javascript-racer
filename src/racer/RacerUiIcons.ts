@@ -1,3 +1,6 @@
+import type { Texture } from '../engine';
+import { RACER_UI_ICON_ATLAS } from './RacerUiIconAtlas';
+
 export type RacerUiIconName =
   | 'play'
   | 'track'
@@ -13,7 +16,9 @@ export type RacerUiIconName =
   | 'share';
 
 export class RacerUiIcons {
-  render(ctx: CanvasRenderingContext2D, icon: RacerUiIconName, x: number, y: number, size: number, color: string, accent = color): void {
+  render(ctx: CanvasRenderingContext2D, icon: RacerUiIconName, x: number, y: number, size: number, color: string, accent = color, texture?: Texture | null): void {
+    if (this.drawTextureIcon(ctx, icon, x, y, size, texture)) return;
+
     ctx.save();
     ctx.translate(x, y);
     ctx.strokeStyle = color;
@@ -62,6 +67,27 @@ export class RacerUiIcons {
     }
 
     ctx.restore();
+  }
+
+  private drawTextureIcon(ctx: CanvasRenderingContext2D, icon: RacerUiIconName, x: number, y: number, size: number, texture?: Texture | null): boolean {
+    if (!texture?.loaded) return false;
+
+    const frame = RACER_UI_ICON_ATLAS[icon];
+    const image = texture.image as unknown as CanvasImageSource;
+    const dest = Math.round(size);
+    const destX = Math.round(x - dest / 2);
+    const destY = Math.round(y - dest / 2);
+
+    try {
+      ctx.save();
+      ctx.drawImage(image, frame.x, frame.y, frame.w, frame.h, destX, destY, dest, dest);
+      ctx.restore();
+      return true;
+    } catch (error) {
+      console.warn('[racer] UI icon atlas draw failed, using procedural icon fallback', error);
+      ctx.restore();
+      return false;
+    }
   }
 
   private play(ctx: CanvasRenderingContext2D, size: number, color: string): void {
