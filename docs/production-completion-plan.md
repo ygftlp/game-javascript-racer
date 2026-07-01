@@ -64,7 +64,7 @@ Required:
 
 ### Gate 5: Commercial UI / UX polish
 
-Status: release/debug UI split, polished interaction pass, independent minimap component, UI theme tokens, programmatic icons, dedicated track-select screen, dedicated settings screen with settings cards and status pill states, configurable control sensitivity, persisted selected track, per-track best laps, and first commercial road theme implemented; commercial art still needed.
+Status: release/debug UI split, polished interaction pass, independent minimap component, theme-tokenized programmatic icons and card metrics, dedicated track-select screen, dedicated settings screen with settings cards and status pill states, configurable control sensitivity, persisted selected track, per-track best laps, and first commercial road theme implemented; commercial art still needed.
 
 Source of truth:
 
@@ -80,17 +80,21 @@ Source of truth:
 Implemented:
 
 - `src/racer/RacerUiFlags.ts` defines release/debug UI switches.
-- `src/racer/RacerUiTheme.ts` centralizes UI skin tokens for HUD, controls, panels, buttons, overlays, and minimap.
+- `src/racer/RacerUiTheme.ts` centralizes UI skin tokens for HUD, controls, panels, buttons, overlays, minimap, `buttonIcon`, `trackCard`, `settingCard`, `statusPill`, and icon colors.
 - `src/racer/RacerRoadTheme.ts` centralizes road palette tokens and active road theme selection.
 - `src/racer/RacerTrackDefinition.ts` defines a selectable track registry.
 - `src/racer/RacerControlSensitivity.ts` defines `舒适`, `标准`, and `灵敏` control sensitivity profiles.
 - `src/racer/RacerUiIcons.ts` provides programmatic icons for play, track, leaderboard, help, settings, music, minimap, coach, sensitivity, reset, back, and share.
 - The programmatic icon renderer avoids `roundRect` so it remains safer for WeChat Canvas compatibility.
 - The main menu includes iconized `开始比赛`, `选择赛道`, `排行榜`, `操作说明`, and `设置` actions.
+- Main menu button icon size, offset, and text offset now come from `RACER_UI_THEME.buttonIcon`.
 - `RacerUiLayout` defines a dedicated track-select screen with track cards and `返回菜单`.
 - `RacerUiRenderer` renders the dedicated track-select screen, card pressed states, track icons, and `已选择` status.
+- Track-card icon size, text offsets, font sizes, and metadata offsets now come from `RACER_UI_THEME.trackCard`.
 - `RacerUiLayout` defines a dedicated settings screen with wider settings cards for music, minimap, operation guide, control sensitivity, reset-guide, and return controls.
 - `RacerUiRenderer` renders the dedicated settings screen as iconized settings cards with title, description, status pill, enabled/disabled visual state, and pressed feedback.
+- Settings-card icon size, text offsets, font sizes, and description offsets now come from `RACER_UI_THEME.settingCard`.
+- Status-pill width, height, offsets, font sizes, and text offset now come from `RACER_UI_THEME.statusPill`.
 - `RacerUiRenderer` also applies programmatic icons to pause, result, help, and return-menu actions where appropriate.
 - `RacerScene` opens the dedicated track-select screen from the menu and confirms a selected card on touch release.
 - `RacerScene` opens the dedicated settings screen from the menu and persists music, minimap, control coach, and control sensitivity settings.
@@ -129,6 +133,7 @@ Still required before commercial release:
 - Tune exact joystick/brake/minimap sizes and opacity on real low-end and high-DPI devices.
 - Tune the dedicated track-select screen card spacing, copy length, icon size, and pressed-state intensity on small devices.
 - Tune the dedicated settings screen settings cards, status pill readability, icon size, labels, and touch comfort on small devices.
+- Tune theme-tokenized `buttonIcon`, `trackCard`, `settingCard`, and `statusPill` metrics on target devices.
 - Tune the `舒适 / 标准 / 灵敏` sensitivity presets from real device feedback.
 - Tune the commercial asphalt palette on real devices for readability and contrast.
 - Tune all selectable track section layouts on real devices.
@@ -164,6 +169,7 @@ Required manual checks:
 - Confirm `设置` opens the dedicated settings screen.
 - Confirm settings screen renders iconized setting cards with title, description, and status pill.
 - Confirm settings cards show immediate pressed feedback.
+- Confirm theme-tokenized icon sizes, text offsets, and status-pill metrics look correct on small and high-DPI screens.
 - Confirm settings screen music toggle persists after reload.
 - Confirm settings screen minimap toggle hides/shows the in-race minimap and persists after reload.
 - Confirm settings screen operation guide toggle prevents the first-race coach from appearing.
@@ -196,8 +202,9 @@ Next tasks:
 
 1. Validate player-facing Chinese copy in menu, pause, result, HUD, minimap, track-select screen, and settings screen.
 2. Confirm the new programmatic icons improve scan speed without making buttons feel crowded.
-3. Review release/debug UI split in `RacerUiFlags.ts`.
-4. Decide final commercial game name and branding direction.
+3. Confirm theme-tokenized icon spacing still preserves button readability.
+4. Review release/debug UI split in `RacerUiFlags.ts`.
+5. Decide final commercial game name and branding direction.
 
 ### Agent B: UI Interaction Designer
 
@@ -208,6 +215,7 @@ Next tasks:
 3. Validate track selector persistence and relaunch behavior.
 4. Validate dedicated track-select card spacing and return flow.
 5. Validate dedicated settings screen cards, status pill states, sensitivity cycle, reset-guide flow, icon spacing, and return flow.
+6. Tune `buttonIcon`, `trackCard`, `settingCard`, and `statusPill` metrics from real-device screenshots.
 
 ### Agent C: Control Feel Designer
 
@@ -225,7 +233,7 @@ Next tasks:
 
 1. Produce final color palette and UI component states.
 2. Replace programmatic pause/music/share/leaderboard/help/track/settings icons with final commercial assets, or keep `RacerUiIcons` as fallback.
-3. Tune settings card and status pill visuals with the final HUD skin.
+3. Tune theme-tokenized settings card and status pill visuals with the final HUD skin.
 4. Tune minimap visual style with the final HUD skin.
 5. Tune `RacerUiTheme.ts` and `RacerRoadTheme.ts` together so HUD, minimap, road, and rumble strips read as one visual system.
 6. Replace placeholder title/logo when commercial branding is ready.
