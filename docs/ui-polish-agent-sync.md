@@ -10,11 +10,14 @@ Implemented highlights:
 
 - Buttons have pressed feedback, release-to-confirm behavior, and drag-outside cancellation.
 - Main menu includes `选择赛道`, `操作说明`, `排行榜`, and `设置`.
+- Main-menu title now uses a theme-tokenized programmatic logo through `RacerUiLogo`.
+- `RacerUiTheme.brandLogo` owns the programmatic logo plate, stripes, badge, title, and subtitle styling.
+- The programmatic logo uses `极速公路` with the subtitle `RETRO RACER` and can later be replaced by commercial logo art.
 - Main menu, track cards, settings cards, pause actions, help actions, and result actions use programmatic icons.
 - `RacerUiIcons` owns fallback programmatic icons for play, track, leaderboard, help, settings, music, minimap, coach, sensitivity, reset, back, and share.
-- `RacerUiIcons` avoids `roundRect` and uses internal paths for better WeChat Canvas compatibility.
+- `RacerUiIcons` and `RacerUiLogo` avoid `roundRect` and use internal paths for better WeChat Canvas compatibility.
 - `RacerUiTheme` owns theme-tokenized icon and card metrics through `buttonIcon`, `trackCard`, `settingCard`, `statusPill`, and `icon` groups.
-- `RacerUiRenderer` reads icon sizes, text offsets, card font sizes, and status-pill metrics from `RacerUiTheme` instead of hardcoding them in render methods.
+- `RacerUiRenderer` reads logo, icon, text offset, card font size, and status-pill metrics from `RacerUiTheme` instead of hardcoding them in render methods.
 - The old simple cycle-track behavior has been replaced with a dedicated track-select screen.
 - The dedicated track-select screen shows track cards, target laps, current selected state, and `返回菜单`.
 - The dedicated settings screen centralizes music, minimap, first-race operation-guide controls, and control sensitivity.
@@ -30,6 +33,7 @@ Implemented highlights:
 Focus:
 
 - Verify menu, pause, result, help, minimap, dedicated track-select screen, and dedicated settings screen copy.
+- Confirm the programmatic logo gives the menu a stronger game identity.
 - Confirm programmatic icons improve scan speed without confusing casual players.
 - Confirm theme-tokenized spacing preserves readability after future skin changes.
 
@@ -37,6 +41,7 @@ Checklist:
 
 - Start button remains the clearest menu action.
 - Settings and track selection do not compete with `开始比赛`.
+- Programmatic logo does not obscure current track / target lap information.
 - Programmatic icons match their action meanings.
 - Theme-tokenized icon spacing does not make text look off-center.
 - No debug or placeholder service copy appears in release mode.
@@ -48,6 +53,7 @@ Focus:
 - Button press feedback.
 - Touch cancel behavior.
 - Icon/text balance.
+- Brand logo placement.
 - Theme-tokenized card and pill metrics.
 
 Checklist:
@@ -55,6 +61,7 @@ Checklist:
 - Press down visibly changes button state.
 - Releasing inside executes the action.
 - Moving outside cancels the action.
+- Programmatic logo does not reduce menu button touch comfort.
 - Icon placement does not reduce perceived touch target size.
 - `buttonIcon.textOffsetRatio` keeps button labels visually centered.
 - Settings cards update status pill states immediately.
@@ -81,16 +88,19 @@ Checklist:
 Focus:
 
 - Commercial style layer.
+- Programmatic logo readability.
 - Programmatic icon readability.
-- Theme-tokenized icon/card/status-pill tuning.
+- Theme-tokenized logo/icon/card/status-pill tuning.
 - Settings card and status pill style.
 
 Checklist:
 
+- Programmatic logo is readable at small sizes.
+- `brandLogo`, `buttonIcon`, `trackCard`, `settingCard`, and `statusPill` tokens are the main knobs for final skin tuning.
 - Programmatic icons are readable at small sizes.
 - Icon stroke weight matches text and button weight.
-- `buttonIcon`, `trackCard`, `settingCard`, and `statusPill` tokens are the main knobs for final skin tuning.
 - Settings card titles, descriptions, status pills, and icons fit small screens.
+- Final logo assets can replace `RacerUiLogo` without changing menu layout.
 - Final icon assets can replace `RacerUiIcons` without changing layout.
 
 ## Agent E: Control Feel Designer
@@ -113,14 +123,16 @@ Checklist:
 Focus:
 
 - UI overlap and readability.
+- Programmatic logo regression checks.
 - Programmatic icon regression checks.
 - Theme-tokenized metric regression checks.
 - Renderer separation regression checks.
 
 Checklist:
 
+- Programmatic logo renders on all target devices without Canvas API errors.
 - Programmatic icons render on all target devices without Canvas API errors.
-- Theme-tokenized button, track-card, setting-card, and status-pill metrics work on small and high-DPI devices.
+- Theme-tokenized logo, button, track-card, setting-card, and status-pill metrics work on small and high-DPI devices.
 - Settings screen opens from menu, toggles settings, cycles sensitivity, updates status pills, and returns safely.
 - Track-select screen opens from menu, selects a track, and returns safely.
 - Share / leaderboard payloads include selected track metadata.
@@ -132,13 +144,14 @@ Focus:
 - Keep code maintainable.
 - Keep validation updated.
 - Preserve shared layout/hitbox source of truth.
-- Keep icon rendering and theme-tokenized metrics isolated from rendering internals.
+- Keep logo rendering, icon rendering, and theme-tokenized metrics isolated from gameplay internals.
 
 Implemented files:
 
 - `src/scenes/RacerScene.ts`
 - `src/racer/Pseudo3DRenderer.ts`
 - `src/racer/RacerUiRenderer.ts`
+- `src/racer/RacerUiLogo.ts`
 - `src/racer/RacerUiIcons.ts`
 - `src/racer/RacerUiTheme.ts`
 - `src/racer/RacerMiniMap.ts`
@@ -155,9 +168,9 @@ Implemented files:
 
 Next recommended implementation pass:
 
-1. Add final UI logo when commercial art is ready.
+1. Add final commercial logo asset support while keeping `RacerUiLogo` as fallback.
 2. Replace programmatic icons with final assets or keep them as fallback.
-3. Tune `buttonIcon`, `trackCard`, `settingCard`, and `statusPill` from real-device screenshots.
+3. Tune `brandLogo`, `buttonIcon`, `trackCard`, `settingCard`, and `statusPill` from real-device screenshots.
 4. Tune minimap size/opacity after real-device testing on all selectable tracks.
 5. Tune sensitivity presets after device testing.
 6. Add pagination or scrolling to the dedicated track-select screen if more than 3 tracks are added.
