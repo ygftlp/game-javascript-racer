@@ -36,6 +36,64 @@ export const RACER_UI_THEME = {
     secondaryStroke: 'rgba(255,255,255,0.42)',
     primaryStroke: 'rgba(255, 255, 255, 0.84)'
   },
+  buttonIcon: {
+    smallSize: 18,
+    size: 22,
+    smallOffsetX: 28,
+    offsetX: 34,
+    textOffsetRatio: 0.28
+  },
+  trackCard: {
+    iconSmallSize: 24,
+    iconSize: 30,
+    iconX: 30,
+    textSmallX: 52,
+    textX: 60,
+    titleSmallSize: 18,
+    titleSize: 21,
+    descriptionSmallSize: 14,
+    descriptionSize: 16,
+    titleY: 10,
+    descriptionSmallY: 34,
+    descriptionY: 40,
+    metaRightPadding: 16,
+    metaY: 12
+  },
+  settingCard: {
+    iconSmallSize: 22,
+    iconSize: 28,
+    iconSmallX: 24,
+    iconX: 30,
+    textSmallX: 46,
+    textX: 56,
+    titleSmallSize: 15,
+    titleSize: 18,
+    descriptionSmallSize: 12,
+    descriptionSize: 14,
+    titleSmallY: 6,
+    titleY: 8,
+    descriptionSmallY: 26,
+    descriptionY: 32
+  },
+  statusPill: {
+    smallWidth: 76,
+    width: 90,
+    smallHeight: 24,
+    height: 28,
+    smallRightOffset: 92,
+    rightOffset: 108,
+    smallY: 9,
+    y: 12,
+    fontSmallSize: 12,
+    fontSize: 14,
+    textYOffset: 1
+  },
+  icon: {
+    enabled: 'rgba(255, 207, 74, 0.94)',
+    disabled: 'rgba(255,255,255,0.72)',
+    primary: 'rgba(20,24,32,0.96)',
+    accent: 'rgba(255, 207, 74, 0.94)'
+  },
   controls: {
     baseIdle: 'rgba(255,255,255,0.15)',
     baseActive: 'rgba(255,255,255,0.24)',
