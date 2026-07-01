@@ -22,6 +22,9 @@ Implemented highlights:
 - `npm run assets:commercial` checks required and optional commercial files without changing source.
 - `npm run assets:commercial:apply` switches to `COMMERCIAL_TEMPLATE_ASSET_PACK` only when required commercial files exist.
 - `npm run assets:legacy:apply` switches back to `LEGACY_RACER_ASSET_PACK` for QA rollback.
+- `docs/wechat-deployment-guide.md` records the WeChat deployment checklist, including `npm run assets:commercial`, `npm run assets:commercial:apply`, `npm run validate:production`, and `npm run build:wx`.
+- `docs/local-setup-wechat.md` links to the deployment guide and repeats the commercial asset switch command sequence.
+- `RacerWechatConfig.ts` isolates safe default WeChat service configuration and keeps share image, cloud function name, and ad unit placeholders out of gameplay code.
 - `RacerWechatServices` adds a WeChat services adapter skeleton for share, leaderboard, ads, and analytics.
 - `RacerServices` prefers the WeChat adapter when `globalThis.wx` exists and falls back to noop services outside WeChat.
 - WeChat sharing uses `wx.shareAppMessage` with result and track metadata.
@@ -50,6 +53,7 @@ Focus:
 - Verify menu, pause, result, help, minimap, dedicated track-select screen, and dedicated settings screen copy.
 - Confirm optional commercial logo asset and programmatic logo fallback both preserve menu hierarchy.
 - Confirm optional commercial UI icon atlas and programmatic icon fallback both preserve action readability.
+- Confirm deployment guide commands are easy to follow before release.
 - Confirm WeChat share copy is player-facing and not technical.
 
 Checklist:
@@ -59,6 +63,7 @@ Checklist:
 - Commercial logo image and programmatic logo fallback do not obscure current track / target lap information.
 - Commercial atlas icons and programmatic icons match their action meanings.
 - Share copy includes track/result context without feeling spammy.
+- Deployment checklist is understandable for future release work.
 - No debug or placeholder service copy appears in release mode.
 
 ## Agent B: UI Interaction Designer
@@ -88,6 +93,7 @@ Focus:
 - Optional logo asset path and commercial pack structure.
 - Optional UI icon atlas path and atlas frame order.
 - Safe commercial pack switch flow.
+- WeChat deployment checklist.
 - Track registry design.
 - Per-track progression and score separation.
 
@@ -97,6 +103,7 @@ Checklist:
 - Optional commercial UI icon atlas path is `assets/packs/default/images/ui/icons.png`.
 - Required switch files are background, sprites, and music.
 - Optional logo, icons, and sfx use runtime fallbacks and do not block switching.
+- Deployment guide includes `npm run assets:commercial`, `npm run assets:commercial:apply`, `npm run validate:production`, and `npm run build:wx`.
 - Leaderboard payloads carry `trackId` and `trackName`.
 - Missing logo image falls back to the programmatic logo fallback.
 - Missing icon atlas falls back to programmatic icons.
@@ -120,7 +127,7 @@ Checklist:
 - Programmatic logo fallback is readable at small sizes.
 - Commercial atlas icons are readable at small sizes.
 - Programmatic icon fallback is readable at small sizes.
-- Share image can be added later without changing service call sites.
+- Share image can be added through `RacerWechatConfig.ts` without changing service call sites.
 - `brandLogo`, `buttonIcon`, `trackCard`, `settingCard`, and `statusPill` tokens are the main knobs for final skin tuning.
 
 ## Agent E: Control Feel Designer
@@ -148,12 +155,15 @@ Focus:
 - Programmatic fallback regression checks.
 - Safe switch script regression checks.
 - WeChat services adapter regression checks.
+- Deployment guide regression checks.
 
 Checklist:
 
 - `npm run assets:commercial` blocks missing required commercial files.
 - `npm run assets:commercial:apply` switches active pack only after required files exist.
 - `npm run assets:legacy:apply` switches active pack back for rollback.
+- Deployment guide command flow works from repository root.
+- `RacerWechatConfig.ts` contains safe defaults or release-approved injected values.
 - WeChat adapter is used only when `globalThis.wx` exists.
 - Non-WeChat environments keep noop fallback services.
 - `wx.shareAppMessage` receives track/result metadata.
@@ -175,7 +185,7 @@ Focus:
 - Keep code maintainable.
 - Keep validation updated.
 - Preserve shared layout/hitbox source of truth.
-- Keep logo asset loading, icon atlas loading, fallback rendering, safe pack switching, and platform services isolated from gameplay internals.
+- Keep logo asset loading, icon atlas loading, fallback rendering, safe pack switching, platform services, and deployment docs isolated from gameplay internals.
 
 Implemented files:
 
@@ -184,6 +194,7 @@ Implemented files:
 - `src/racer/RacerAssetManifest.ts`
 - `src/racer/RacerAssets.ts`
 - `src/racer/RacerServices.ts`
+- `src/racer/RacerWechatConfig.ts`
 - `src/racer/RacerWechatServices.ts`
 - `src/racer/RacerUiRenderer.ts`
 - `src/racer/RacerUiLogo.ts`
@@ -201,10 +212,11 @@ Implemented files:
 - `src/racer/RacerUiLayout.ts`
 - `scripts/use-commercial-assets.mjs`
 - `scripts/validate-production.mjs`
+- `docs/wechat-deployment-guide.md`
 
 Next recommended implementation pass:
 
-1. Add concrete WeChat service configuration hooks for AppID-specific share image, cloud function name, and ad unit IDs without committing secrets.
+1. Add open-data leaderboard message schema docs / sample open-data-context handler.
 2. Tune `brandLogo`, `buttonIcon`, `trackCard`, `settingCard`, and `statusPill` from real-device screenshots.
 3. Tune minimap size/opacity after real-device testing on all selectable tracks.
 4. Tune sensitivity presets after device testing.
