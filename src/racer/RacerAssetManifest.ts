@@ -5,6 +5,7 @@ export type RacerAssetPackId = 'legacy' | 'commercial-template';
 export interface RacerImageResources {
   backgroundAtlas: string;
   spriteAtlas: string;
+  brandLogo?: string;
 }
 
 export interface RacerAudioResources {
@@ -53,6 +54,12 @@ export const RACER_REPLACEMENT_CATEGORIES: RacerReplacementCategory[] = [
     label: '交通车辆',
     description: '普通车辆、卡车、半挂车。宽度会参与碰撞估算，尺寸变化后需要真机调参。',
     required: true
+  },
+  {
+    id: 'ui.brand-logo',
+    label: '品牌 Logo',
+    description: '主菜单标题区 Logo。推荐透明 PNG，代码会优先显示图片 Logo，缺失时回退到程序化 Logo。',
+    required: false
   },
   {
     id: 'sprites.roadside-billboards',
@@ -112,7 +119,8 @@ export const COMMERCIAL_TEMPLATE_ASSET_PACK: RacerAssetPackManifest = {
   commercialSafe: true,
   images: {
     backgroundAtlas: 'assets/packs/default/images/background.png',
-    spriteAtlas: 'assets/packs/default/images/sprites.png'
+    spriteAtlas: 'assets/packs/default/images/sprites.png',
+    brandLogo: 'assets/packs/default/images/ui/logo.png'
   },
   audio: {
     music: 'assets/packs/default/audio/music/racer.mp3',
