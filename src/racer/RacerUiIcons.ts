@@ -158,8 +158,7 @@ export class RacerUiIcons {
   private minimap(ctx: CanvasRenderingContext2D, size: number, color: string, accent: string): void {
     const r = size / 2;
     ctx.strokeStyle = color;
-    ctx.beginPath();
-    ctx.roundRect(-r * 0.72, -r * 0.5, r * 1.44, r, r * 0.18);
+    this.roundedRectPath(ctx, -r * 0.72, -r * 0.5, r * 1.44, r, r * 0.18);
     ctx.stroke();
     ctx.strokeStyle = accent;
     ctx.lineWidth = Math.max(1.5, size * 0.07);
@@ -175,8 +174,7 @@ export class RacerUiIcons {
   private coach(ctx: CanvasRenderingContext2D, size: number, color: string, accent: string): void {
     const r = size / 2;
     ctx.strokeStyle = color;
-    ctx.beginPath();
-    ctx.roundRect(-r * 0.7, -r * 0.48, r * 1.4, r * 0.82, r * 0.16);
+    this.roundedRectPath(ctx, -r * 0.7, -r * 0.48, r * 1.4, r * 0.82, r * 0.16);
     ctx.stroke();
     ctx.beginPath();
     ctx.moveTo(-r * 0.28, r * 0.34);
@@ -255,8 +253,22 @@ export class RacerUiIcons {
 
   private bar(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, fill: string): void {
     ctx.fillStyle = fill;
-    ctx.beginPath();
-    ctx.roundRect(x, y, w, h, Math.min(w, h) * 0.22);
+    this.roundedRectPath(ctx, x, y, w, h, Math.min(w, h) * 0.22);
     ctx.fill();
+  }
+
+  private roundedRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, radius: number): void {
+    const r = Math.min(radius, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
   }
 }
