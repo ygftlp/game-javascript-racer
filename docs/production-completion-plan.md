@@ -55,10 +55,11 @@ Required:
 
 ### Gate 4: Platform services
 
-Status: WeChat services adapter skeleton implemented; real AppID, cloud/open-data setup, ad unit IDs, and device verification still needed.
+Status: WeChat services adapter skeleton and isolated config template implemented; real AppID, share image, cloud/open-data setup, ad unit IDs, and device verification still needed.
 
 Required:
 
+- Configure `src/racer/RacerWechatConfig.ts` through a private release patch or build-time replacement before publishing.
 - Configure share copy and optional share image for `RacerWechatServices`.
 - Configure leaderboard through WeChat open data context or cloud function.
 - Configure ad unit IDs for interstitial and rewarded ads only after policy review.
@@ -69,10 +70,11 @@ Required:
 
 ### Gate 5: Commercial UI / UX polish
 
-Status: release/debug UI split, polished interaction pass, independent minimap component, optional commercial logo asset support with programmatic logo fallback, optional commercial UI icon atlas support with programmatic icon fallback, safe commercial asset pack switch script, WeChat services adapter skeleton, theme-tokenized card metrics, dedicated track-select screen, dedicated settings screen with settings cards and status pill states, configurable control sensitivity, persisted selected track, per-track best laps, and first commercial road theme implemented; commercial art and real platform configuration still needed.
+Status: release/debug UI split, polished interaction pass, independent minimap component, optional commercial logo asset support with programmatic logo fallback, optional commercial UI icon atlas support with programmatic icon fallback, safe commercial asset pack switch script, WeChat services adapter skeleton, isolated `RacerWechatConfig.ts`, WeChat deployment guide, theme-tokenized card metrics, dedicated track-select screen, dedicated settings screen with settings cards and status pill states, configurable control sensitivity, persisted selected track, per-track best laps, and first commercial road theme implemented; commercial art and real platform configuration still needed.
 
 Source of truth:
 
+- `docs/wechat-deployment-guide.md`
 - `docs/commercial-ui-ux-plan.md`
 - `docs/ui-polish-agent-sync.md`
 - `docs/road-replacement-guide.md`
@@ -85,6 +87,9 @@ Source of truth:
 
 Implemented:
 
+- `docs/wechat-deployment-guide.md` defines the release checklist, including the commercial asset switch commands: `npm run assets:commercial`, `npm run assets:commercial:apply`, `npm run validate:production`, and `npm run build:wx`.
+- `docs/local-setup-wechat.md` links to the deployment guide and repeats the commercial asset switch command sequence for discoverability.
+- `src/racer/RacerWechatConfig.ts` isolates safe default WeChat service configuration for share copy, share image placeholder, leaderboard command/cloud function placeholder, ad unit placeholders, and console analytics.
 - `src/racer/RacerWechatServices.ts` provides a WeChat services adapter skeleton for share, leaderboard, ads, and analytics.
 - `src/racer/RacerServices.ts` now prefers the WeChat adapter when `globalThis.wx` exists and falls back to noop services outside WeChat.
 - WeChat sharing uses `wx.shareAppMessage` with result/track metadata.
@@ -108,38 +113,15 @@ Implemented:
 - `src/racer/RacerTrackDefinition.ts` defines a selectable track registry.
 - `src/racer/RacerControlSensitivity.ts` defines `舒适`, `标准`, and `灵敏` control sensitivity profiles.
 - The main menu includes iconized `开始比赛`, `选择赛道`, `排行榜`, `操作说明`, and `设置` actions.
-- `RacerUiLayout` defines a dedicated track-select screen with track cards and `返回菜单`.
-- `RacerUiRenderer` renders the dedicated track-select screen, card pressed states, track icons, and `已选择` status.
-- Track-card icon size, text offsets, font sizes, and metadata offsets come from `RACER_UI_THEME.trackCard`.
-- `RacerUiLayout` defines a dedicated settings screen with wider settings cards for music, minimap, operation guide, control sensitivity, reset-guide, and return controls.
-- `RacerUiRenderer` renders the dedicated settings screen as iconized settings cards with title, description, status pill, enabled/disabled visual state, and pressed feedback.
-- Settings-card icon size, text offsets, font sizes, and description offsets come from `RACER_UI_THEME.settingCard`.
-- Status-pill width, height, offsets, font sizes, and text offset come from `RACER_UI_THEME.statusPill`.
-- `RacerScene` opens the dedicated track-select screen from the menu and confirms a selected card on touch release.
-- `RacerScene` opens the dedicated settings screen from the menu and persists music, minimap, control coach, and control sensitivity settings.
-- `RacerSettings` persists the selected track id, audio state, minimap state, control coach state, control sensitivity id, and whether the first-race coach has already been shown.
-- `RacerJoystick` applies the selected control sensitivity profile to joystick steering output.
-- `RacerState` applies the selected control sensitivity profile to steering response and input clamp.
-- `RacerScene` restores the last selected track and control sensitivity at startup.
-- `RacerStorage` stores best lap records per track id.
+- `RacerUiLayout` defines a dedicated track-select screen and a dedicated settings screen.
+- `RacerScene` persists music, minimap, control coach, control sensitivity, selected track id, and per-track best laps.
 - `RaceResult` includes selected track metadata for share / leaderboard payloads.
-- Release mode is the default UI mode.
-- Debug-only asset/performance/commercial-safe text is hidden by default.
-- Control labels and player visibility marker are hidden by default.
-- Menu, pause, HUD, result, track-select, and settings copy are player-facing Chinese by default.
-- Buttons have a pressed state and overlay actions execute on touch end.
-- Dragging outside a button cancels the pending action.
-- Touch start/move/end handlers tolerate empty platform touch arrays.
+- Release mode is the default UI mode, and debug-only asset/performance/commercial-safe text is hidden by default.
+- Buttons have a pressed state and overlay actions execute on touch end with drag-outside cancellation.
 - `RacerMiniMap` is an independent component for the in-race track radar.
-- Minimap rendering is controlled by the persisted settings screen switch.
-- First-race operation coach can be disabled or reset from the settings screen.
 - `Pseudo3DRenderer` focuses on world rendering and delegates UI drawing.
 - `Pseudo3DRenderer` uses the selected track road theme fog color.
-- `RacerState` generates segment road colors from the selected track road theme.
-- Audio mute state is persisted through platform storage.
-- Optional sound effects are wired for engine loop, crash, and menu confirmation audio.
-- Player car rendering is stabilized outside segment projection clipping and clamped to a visible vertical range.
-- Player car has an always-visible fallback body underneath the sprite frame.
+- Player car rendering is stabilized outside segment projection clipping and has an always-visible fallback body underneath the sprite frame.
 - Canvas image smoothing is disabled for sharper pixel-art sprites and backgrounds.
 - Local compatibility engine creates a high-DPI canvas using `pixelRatio` and scales the context back to logical coordinates.
 
@@ -149,28 +131,33 @@ Still required before commercial release:
 - Add the final commercial Logo image at `assets/packs/default/images/ui/logo.png`, or keep the programmatic logo fallback.
 - Add the final commercial UI icon atlas at `assets/packs/default/images/ui/icons.png`, or keep the programmatic icon fallback.
 - Replace legacy low-resolution art with a commercial-safe higher-quality asset pack before launch.
-- Configure real WeChat AppID, share image, cloud/open-data leaderboard path, and ad unit IDs.
+- Configure real WeChat AppID, share image, cloud/open-data leaderboard path, and ad unit IDs through a private release process.
 - Verify `wx.shareAppMessage`, open data context, cloud score submission, `wx.reportAnalytics`, interstitial ads, and rewarded ads on real WeChat targets.
 - Tune exact joystick/brake/minimap sizes and opacity on real low-end and high-DPI devices.
-- Tune the dedicated track-select screen card spacing, copy length, icon size, and pressed-state intensity on small devices.
-- Tune the dedicated settings screen settings cards, status pill readability, icon size, labels, and touch comfort on small devices.
+- Tune the dedicated track-select screen and settings screen on small devices.
 - Tune theme-tokenized `brandLogo`, `buttonIcon`, `trackCard`, `settingCard`, and `statusPill` metrics on target devices.
 - Tune the `舒适 / 标准 / 灵敏` sensitivity presets from real device feedback.
-- Tune the commercial asphalt palette on real devices for readability and contrast.
-- Tune all selectable track section layouts on real devices.
+- Tune the commercial asphalt palette and all selectable track section layouts on real devices.
 - Add final result-screen share copy, ranking entry polish, and optional medal/rating art.
 - Switch `src/engine/index.ts` to the real SDK after the SDK package is built/published correctly.
 
 ### Gate 6: Quality and validation
 
-Status: scripts added; full validation requires local environment.
+Status: scripts and deployment guide added; full validation requires local environment.
 
-Required commands:
+Required commercial switch commands:
+
+```bash
+npm run assets:commercial
+npm run assets:commercial:apply
+npm run validate:production
+npm run build:wx
+```
+
+Required full validation commands:
 
 ```bash
 npm install
-npm run assets:commercial
-npm run assets:commercial:apply
 npm run typecheck
 npm run validate:production
 npm run build:wx
@@ -184,39 +171,16 @@ Required manual checks:
 - Confirm `npm run assets:commercial` reports optional missing logo/icon/sfx files as fallbacks, not blockers.
 - Confirm `npm run assets:commercial:apply` switches to `COMMERCIAL_TEMPLATE_ASSET_PACK` only after required files exist.
 - Confirm `npm run assets:legacy:apply` switches back to `LEGACY_RACER_ASSET_PACK`.
+- Confirm `RacerWechatConfig.ts` contains only safe defaults or release-approved injected values.
 - Confirm `createRacerServices()` uses noop fallback outside WeChat and WeChat adapter inside WeChat.
 - Confirm `wx.shareAppMessage` receives result share copy and track query metadata.
 - Confirm leaderboard submit sends `trackId`, `trackName`, `totalRaceTime`, and `bestLapTime`.
 - Confirm leaderboard view receives `source`, `trackId`, and `trackName` context.
 - Confirm interstitial ads only request after race finish, never during active driving.
 - Confirm rewarded video can be configured later without blocking normal gameplay.
-- Start game from menu without external instructions.
-- Confirm missing `assets/packs/default/images/ui/logo.png` falls back to the programmatic Logo.
-- Confirm adding `assets/packs/default/images/ui/logo.png` makes the menu use the commercial Logo image.
-- Confirm missing `assets/packs/default/images/ui/icons.png` falls back to programmatic icons.
-- Confirm adding `assets/packs/default/images/ui/icons.png` makes menu, settings, pause, help, result, and track-select actions use atlas icons.
-- Confirm menu actions execute only on release inside the button.
-- Confirm moving outside a button cancels the pending action.
-- Confirm `选择赛道` opens the dedicated track-select screen.
-- Confirm every track card can be selected and returns to the menu.
-- Confirm track-select `返回菜单` leaves the selected track unchanged.
-- Confirm `设置` opens the dedicated settings screen.
-- Confirm settings cards show immediate pressed feedback.
-- Confirm theme-tokenized logo, icon sizes, text offsets, and status-pill metrics look correct on small and high-DPI screens.
-- Confirm settings screen music, minimap, operation guide, reset guide, and control sensitivity settings persist after reload.
-- Confirm `控制手感` cycles through `舒适 -> 标准 -> 灵敏` and persists after reload.
-- Confirm relaunch restores the last selected track.
-- Confirm each track shows its own best lap record per track id.
-- Confirm left-bottom joystick steers the car quickly enough and returns to center on release.
-- Confirm player car remains visible through hills, curves, traffic, collisions, lap wraparound, and continuous steering.
-- Confirm pixel-art elements look sharper after smoothing is disabled.
-- Confirm minimap appears under the HUD only during active driving when enabled.
-- Confirm minimap curve preview gives readable left/right/straight information.
-- Confirm commercial asphalt road theme improves road/lane/rumble readability.
-- Confirm pause button is not blocked by the WeChat capsule and shows pressed feedback.
+- Confirm missing optional Logo/icon/sfx files only show fallback warnings and do not block gameplay.
+- Confirm selected track, per-track best lap, audio preference, minimap preference, operation coach preference, and control sensitivity persist after reload.
 - Confirm no debug-only UI appears in release mode.
 - Finish the configured target lap count on each selectable track and restart.
-- Confirm best lap, selected track, audio preference, minimap preference, operation coach preference, and control sensitivity persist after reload.
-- Confirm no console errors for missing required assets beyond optional Logo/icon/sfx fallback warnings.
 - Check FPS on low-end and mid-range devices.
 - Check package size.
