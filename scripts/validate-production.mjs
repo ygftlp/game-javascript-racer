@@ -24,6 +24,7 @@ const requiredFiles = [
   'src/racer/RacerTrackDefinition.ts',
   'src/racer/RacerTuning.ts',
   'src/racer/RacerUiFlags.ts',
+  'src/racer/RacerUiIconAtlas.ts',
   'src/racer/RacerUiIcons.ts',
   'src/racer/RacerUiLogo.ts',
   'src/racer/RacerUiLayout.ts',
@@ -87,9 +88,10 @@ const roadTheme = files['src/racer/RacerRoadTheme.ts'];
 const trackDefinition = files['src/racer/RacerTrackDefinition.ts'];
 const controlSensitivity = files['src/racer/RacerControlSensitivity.ts'];
 const config = files['src/racer/config.ts'];
-const uiRenderer = files['src/racer/RacerUiRenderer.ts'];
+const uiIconAtlas = files['src/racer/RacerUiIconAtlas.ts'];
 const uiIcons = files['src/racer/RacerUiIcons.ts'];
 const uiLogo = files['src/racer/RacerUiLogo.ts'];
+const uiRenderer = files['src/racer/RacerUiRenderer.ts'];
 const uiTheme = files['src/racer/RacerUiTheme.ts'];
 const miniMap = files['src/racer/RacerMiniMap.ts'];
 const settings = files['src/racer/RacerSettings.ts'];
@@ -123,36 +125,99 @@ requireTokens(engineModeScript, ['file:../game-engine'], 'engine mode script mus
 requireTokens(liteEngineTypes, ["declare module 'lite-game-engine'", 'export class Engine'], 'local lite-game-engine type fallback declaration', missing);
 requireTokens(localEngine, ['this.screen.width * pixelRatio', 'ctx.scale(pixelRatio, pixelRatio)'], 'high-DPI local engine canvas scaling', missing);
 requireTokens(uiFlags, ['releaseMode: true', 'showAssetStatus: false', 'showControlLabels: false', 'showMiniMap: true', 'showFirstRaceCoach: true'], 'commercial release UI flags', missing);
-requireTokens(manifest, ['brandLogo?: string', "id: 'ui.brand-logo'", 'assets/packs/default/images/ui/logo.png'], 'optional brand logo asset manifest', missing);
-requireTokens(assets, ['brandLogo: Texture | null = null', 'loadOptionalBrandLogo(engine)', 'this.pack.images.brandLogo', 'this.brandLogo = texture', 'using procedural logo fallback'], 'optional brand logo asset loading', missing);
-requireTokens(roadTheme, ['COMMERCIAL_ASPHALT_ROAD_THEME', 'LEGACY_GREEN_ROAD_THEME', 'roadColorForSegment'], 'commercial road theme', missing);
-requireTokens(trackDefinition, ['RacerTrackDefinition', 'DEFAULT_OUTRUN_TRACK', 'COAST_SPRINT_TRACK', 'CITY_NIGHT_TRACK', 'RACER_TRACKS', 'findRacerTrackById', 'getNextRacerTrack', 'racerTrackIndex'], 'multi-track registry', missing);
-requireTokens(controlSensitivity, ['RacerControlSensitivityId', 'RACER_CONTROL_SENSITIVITY_PROFILES', "id: 'comfort'", "id: 'standard'", "id: 'sensitive'", 'joystickGain', 'steerInputLimit', 'steerResponse', 'findRacerControlSensitivity', 'nextRacerControlSensitivity'], 'control sensitivity profiles', missing);
-requireTokens(uiIcons, ['RacerUiIconName', 'class RacerUiIcons', 'render(ctx: CanvasRenderingContext2D', "| 'play'", "| 'track'", "| 'leaderboard'", "| 'help'", "| 'settings'", "| 'music'", "| 'minimap'", "| 'coach'", "| 'sensitivity'", "| 'reset'", "| 'back'", "| 'share'", 'roundedRectPath'], 'programmatic UI icons', missing);
+
+requireTokens(manifest, [
+  'brandLogo?: string',
+  'uiIconAtlas?: string',
+  "id: 'ui.brand-logo'",
+  "id: 'ui.icons'",
+  'assets/packs/default/images/ui/logo.png',
+  'assets/packs/default/images/ui/icons.png'
+], 'optional logo and UI icon asset manifest', missing);
+
+requireTokens(assets, [
+  'import { RacerUiIcons }',
+  'brandLogo: Texture | null = null',
+  'uiIcons: Texture | null = null',
+  'loadOptionalBrandLogo(engine)',
+  'loadOptionalUiIconAtlas(engine)',
+  'this.pack.images.brandLogo',
+  'this.pack.images.uiIconAtlas',
+  'this.brandLogo = texture',
+  'this.uiIcons = texture',
+  'RacerUiIcons.setIconAtlasTexture(texture)',
+  'using procedural logo fallback',
+  'using procedural icon fallback'
+], 'optional logo and UI icon atlas asset loading', missing);
+
+requireTokens(uiIconAtlas, [
+  'RACER_UI_ICON_ATLAS_CELL_SIZE',
+  'RACER_UI_ICON_ATLAS',
+  'play: { x: 0, y: 0',
+  'track: { x: 64, y: 0',
+  'leaderboard: { x: 128, y: 0',
+  'help: { x: 192, y: 0',
+  'settings: { x: 0, y: 64',
+  'music: { x: 64, y: 64',
+  'minimap: { x: 128, y: 64',
+  'coach: { x: 192, y: 64',
+  'sensitivity: { x: 0, y: 128',
+  'reset: { x: 64, y: 128',
+  'back: { x: 128, y: 128',
+  'share: { x: 192, y: 128'
+], 'UI icon atlas grid mapping', missing);
+
+requireTokens(uiIcons, [
+  'RacerUiIconName',
+  'class RacerUiIcons',
+  'private static iconAtlasTexture',
+  'setIconAtlasTexture(texture: Texture | null)',
+  'drawTextureIcon',
+  'RACER_UI_ICON_ATLAS',
+  'ctx.drawImage(image',
+  'using procedural icon fallback',
+  "| 'play'",
+  "| 'track'",
+  "| 'leaderboard'",
+  "| 'help'",
+  "| 'settings'",
+  "| 'music'",
+  "| 'minimap'",
+  "| 'coach'",
+  "| 'sensitivity'",
+  "| 'reset'",
+  "| 'back'",
+  "| 'share'",
+  'roundedRectPath'
+], 'commercial UI icon atlas renderer with programmatic fallback', missing);
+
 requireTokens(uiLogo, ['RacerUiLogoOptions', 'texture?: Texture | null', 'drawTextureLogo', 'texture?.loaded', 'ctx.drawImage(image', 'using procedural fallback', 'RACER_UI_THEME.brandLogo', 'drawLogoPlate', 'drawSpeedStripes', 'drawBadge', 'drawLogoText', 'roundedRectPath'], 'programmatic brand logo renderer with texture fallback', missing);
 if (uiIcons.includes('roundRect(') || uiIcons.includes('.roundRect')) missing.push('RacerUiIcons must avoid Canvas roundRect dependency for WeChat compatibility');
 if (uiLogo.includes('roundRect(') || uiLogo.includes('.roundRect')) missing.push('RacerUiLogo must avoid Canvas roundRect dependency for WeChat compatibility');
+
 if (!config.includes("from './RacerTrackDefinition'") || config.includes('const TRACK_SECTIONS: TrackSection[] = [')) {
   missing.push('config.ts must re-export track definitions without owning track section data');
 }
-requireTokens(state, ['private track: RacerTrackDefinition', 'setTrack(track: RacerTrackDefinition', 'for (const section of this.track.sections)', 'roadColorForSegment(index, this.track.roadTheme)', 'this.track.roadTheme.start', 'this.track.roadTheme.finish', 'steer: number', 'private controlSensitivity', 'setControlSensitivity(profile: RacerControlSensitivityProfile)', 'this.controlSensitivity.steerResponse', 'this.controlSensitivity.steerInputLimit'], 'RacerState track/runtime/control sensitivity state', missing);
-requireTokens(settings, ['SELECTED_TRACK_ID_KEY', 'getSelectedTrackId', 'setSelectedTrackId', 'FIRST_RACE_COACH_SHOWN_KEY', 'MINI_MAP_ENABLED_KEY', 'CONTROL_COACH_ENABLED_KEY', 'CONTROL_SENSITIVITY_KEY', 'getControlSensitivityId', 'setControlSensitivityId', 'resetControlSensitivity', 'isMiniMapEnabled', 'setMiniMapEnabled', 'isControlCoachEnabled', 'setControlCoachEnabled', 'resetFirstRaceCoach'], 'RacerSettings persisted settings', missing);
+requireTokens(roadTheme, ['COMMERCIAL_ASPHALT_ROAD_THEME', 'LEGACY_GREEN_ROAD_THEME', 'roadColorForSegment'], 'commercial road theme', missing);
+requireTokens(trackDefinition, ['RacerTrackDefinition', 'DEFAULT_OUTRUN_TRACK', 'COAST_SPRINT_TRACK', 'CITY_NIGHT_TRACK', 'RACER_TRACKS', 'findRacerTrackById', 'getNextRacerTrack', 'racerTrackIndex'], 'multi-track registry', missing);
+requireTokens(controlSensitivity, ['RacerControlSensitivityId', 'RACER_CONTROL_SENSITIVITY_PROFILES', "id: 'comfort'", "id: 'standard'", "id: 'sensitive'", 'joystickGain', 'steerInputLimit', 'steerResponse', 'findRacerControlSensitivity', 'nextRacerControlSensitivity'], 'control sensitivity profiles', missing);
+requireTokens(state, ['private track: RacerTrackDefinition', 'setTrack(track: RacerTrackDefinition', 'for (const section of this.track.sections)', 'roadColorForSegment(index, this.track.roadTheme)', 'steer: number', 'private controlSensitivity', 'setControlSensitivity(profile: RacerControlSensitivityProfile)'], 'RacerState track/runtime/control sensitivity state', missing);
+requireTokens(settings, ['SELECTED_TRACK_ID_KEY', 'getSelectedTrackId', 'setSelectedTrackId', 'MINI_MAP_ENABLED_KEY', 'CONTROL_COACH_ENABLED_KEY', 'CONTROL_SENSITIVITY_KEY', 'getControlSensitivityId', 'setControlSensitivityId'], 'RacerSettings persisted settings', missing);
 requireTokens(storage, ['bestLapKey(trackId', 'getBestLapTime(trackId', 'setBestLapTime(seconds: number, trackId'], 'RacerStorage per-track best lap', missing);
-requireTokens(services, ['trackId: string', 'trackName: string'], 'RaceResult selected track metadata', missing);
-requireTokens(scene, ['findRacerTrackById', 'findRacerControlSensitivity', 'nextRacerControlSensitivity', 'private controlSensitivity: RacerControlSensitivityProfile', 'this.settings.getControlSensitivityId()', 'this.state.setControlSensitivity(this.controlSensitivity)', 'this.settings.setControlSensitivityId(this.controlSensitivity.id)', 'cycleControlSensitivity()', 'this.joystick.steer(this.controlSensitivity)', 'controlSensitivityLabel: this.controlSensitivity.label', 'controlSensitivityDescription: this.controlSensitivity.description', 'this.settings.getSelectedTrackId()', 'this.settings.setSelectedTrackId(this.activeTrack.id)', 'this.storage.getBestLapTime(this.activeTrack.id)', 'this.storage.setBestLapTime(this.savedBestLapTime, this.activeTrack.id)', 'private activeTrack: RacerTrackDefinition', 'private get targetLaps(): number', 'private miniMapEnabled = true', 'private controlCoachEnabled = true', 'this.settings.isMiniMapEnabled()', 'this.settings.isControlCoachEnabled()', 'miniMapEnabled: this.miniMapEnabled', 'controlCoachEnabled: this.controlCoachEnabled', 'controlCoachSeen: this.hasShownControlCoach', "this.phase = 'trackSelect'", "this.phase = 'settings'", 'openTrackSelect()', 'openSettings()', 'selectTrack(trackIndex: number)', 'toggleMiniMap()', 'toggleControlCoach()', 'resetControlCoachSetting()', 'isSettingsSensitivityButton', "'settings-sensitivity'", 'trackSelectIndex(point: TouchPoint)', 'trackPressedTarget(index: number)', 'trackIndexFromPressedTarget', 'isMenuSettingsButton', 'isSettingsAudioButton', 'isSettingsMiniMapButton', 'isSettingsCoachButton', 'isSettingsResetCoachButton', 'isSettingsBackButton', "'track-back'", "'menu-settings'", "'settings-back'", 'tracks: RACER_TRACKS', 'selectedTrackId: this.activeTrack.id', 'this.state.completedLaps >= this.targetLaps', 'targetLaps: this.targetLaps', 'trackName: this.activeTrack.name', '(touches: TouchPoint[] = [])', 'private handleTouchEnd(touches: TouchPoint[] = [])'], 'RacerScene dedicated track selection, settings, control sensitivity, and selected track flow', missing);
+requireTokens(scene, ['tracks: RACER_TRACKS', 'selectedTrackId: this.activeTrack.id', 'this.state.completedLaps >= this.targetLaps', 'targetLaps: this.targetLaps', 'trackName: this.activeTrack.name', '(touches: TouchPoint[] = [])', 'controlSensitivityLabel: this.controlSensitivity.label', 'controlSensitivityDescription: this.controlSensitivity.description', "this.phase = 'trackSelect'", "this.phase = 'settings'"], 'RacerScene selected track, settings, sensitivity, and target-lap flow', missing);
 if (scene.includes('const TARGET_LAPS')) missing.push('RacerScene must not hardcode TARGET_LAPS');
 if (scene.includes('cycleTrack()')) missing.push('RacerScene should use dedicated track selection screen instead of cycleTrack');
-requireTokens(renderer, ['RacerUiRenderer', 'this.ui.render(ctx, state, assets, layout, options)', 'state.activeTrack.roadTheme.fog', 'ctx.imageSmoothingEnabled = false', 'drawImage(image', 'drawPlayerFallback', 'drawPlayerVisibilityMarker', 'state.height - carH - 24', 'this.drawPlayer(ctx, state, assets?.sprites ?? null, playerSegment, playerPercent)'], 'Pseudo3DRenderer world/UI integration', missing);
-requireTokens(uiTheme, ['RACER_UI_THEME', 'brandLogo', 'imageMaxWidth', 'imageSmallMaxWidth', 'imageShadowBlur', 'plateTop', 'plateBottom', 'stripePrimary', 'badgeFill', 'titleStroke', 'buttonIcon', 'trackCard', 'settingCard', 'statusPill', 'icon', 'textOffsetRatio', 'iconSmallSize', 'smallRightOffset', 'fontSmallSize', 'accent', 'minimap', 'controls'], 'centralized UI theme tokens, logo image metrics, and icon/card metrics', missing);
-requireTokens(uiLayout, ['RacerMiniMapLayout', 'miniMapPreviewBar', 'miniMapProgressBar', 'trackButton', 'RacerTrackSelectLayout', 'trackSelect', 'trackButtons', 'RacerSettingsLayout', 'settingsCardW', 'settingsCardH', 'settingsGap', 'settingsButton', 'settings:', 'miniMapButton', 'coachButton', 'sensitivityButton', 'resetCoachButton', 'backButton', 'RacerHelpLayout', 'menuButton', 'Math.max(76', 'joystickTouchArea'], 'RacerUiLayout publish layout, track select, and settings card layout', missing);
+requireTokens(renderer, ['RacerUiRenderer', 'this.ui.render(ctx, state, assets, layout, options)', 'state.activeTrack.roadTheme.fog', 'ctx.imageSmoothingEnabled = false', 'drawImage(image', 'drawPlayerFallback'], 'Pseudo3DRenderer world/UI integration', missing);
+requireTokens(uiTheme, ['RACER_UI_THEME', 'brandLogo', 'imageMaxWidth', 'buttonIcon', 'trackCard', 'settingCard', 'statusPill', 'icon', 'accent', 'minimap', 'controls'], 'centralized UI theme tokens', missing);
+requireTokens(uiLayout, ['RacerMiniMapLayout', 'RacerTrackSelectLayout', 'RacerSettingsLayout', 'miniMapButton', 'coachButton', 'sensitivityButton', 'resetCoachButton', 'joystickTouchArea'], 'RacerUiLayout publish layout, track select, and settings card layout', missing);
 requireTokens(joystick, ['class RacerJoystick', 'deadZone = 0.06', 'profile.joystickGain', 'profile.steerInputLimit'], 'configurable virtual joystick model', missing);
-requireTokens(uiRenderer, ['RacerMiniMap', 'RacerUiIcons', 'RacerUiLogo', 'private readonly icons = new RacerUiIcons()', 'private readonly logo = new RacerUiLogo()', 'this.logo.render(ctx', 'texture: assets?.brandLogo ?? null', 'RETRO RACER', 'RACER_UI_FLAGS.showMiniMap && options.miniMapEnabled', 'this.miniMap.render(ctx, state, layout)', 'RACER_UI_THEME', 'RACER_UI_THEME.buttonIcon', 'RACER_UI_THEME.trackCard', 'RACER_UI_THEME.settingCard', 'RACER_UI_THEME.statusPill', 'RACER_UI_THEME.icon.enabled', 'RacerUiPhase =', 'trackSelect', 'settings', 'RacerTrackSelectPressedTarget', 'RacerUiTrackOption', 'miniMapEnabled: boolean', 'controlCoachEnabled: boolean', 'controlCoachSeen: boolean', 'controlSensitivityLabel: string', 'controlSensitivityDescription: string', 'selectedTrackId: string', 'tracks: readonly RacerUiTrackOption[]', 'drawTrackSelect', 'drawTrackCard', 'drawSettings', 'drawSettingCard', 'drawStatusPill', 'this.icons.render(ctx, icon', "'play'", "'track'", "'leaderboard'", "'help'", "'settings'", "'music'", "'minimap'", "'coach'", "'sensitivity'", "'reset'", "'back'", "'share'", '调整驾驶、显示和新手引导', '选择赛道', '已选择', '设置', '音乐', '赛道雷达', '操作引导', '控制手感', '重看引导', '返回菜单', 'targetLaps: number', '`目标：完成 ${targetLaps} 圈，刷新最佳圈速`', 'drawControlCoach', 'drawVignette', 'raceGrade', 'RACER_UI_THEME.accent.goldSoft', 'drawModalPanel', 'primary = false', 'drawJoystick', 'drawBrakeButton', 'drawPauseButton'], 'RacerUiRenderer commercial UI, optional logo asset, programmatic logo fallback, theme-tokenized icons, track select, settings card screen, and sensitivity display', missing);
+requireTokens(uiRenderer, ['RacerMiniMap', 'RacerUiIcons', 'RacerUiLogo', 'private readonly icons = new RacerUiIcons()', 'private readonly logo = new RacerUiLogo()', 'this.logo.render(ctx', 'texture: assets?.brandLogo ?? null', 'RETRO RACER', 'drawTrackSelect', 'drawTrackCard', 'drawSettings', 'drawSettingCard', 'drawStatusPill', 'this.icons.render(ctx, icon', '选择赛道', '设置', '音乐', '赛道雷达', '控制手感', 'targetLaps: number'], 'RacerUiRenderer commercial UI, optional logo asset, icon atlas fallback, track select, settings cards, and sensitivity display', missing);
 requireTokens(miniMap, ['class RacerMiniMap', 'drawCurvePreview', 'drawTrafficDots', '赛道雷达', 'RACER_UI_THEME'], 'independent minimap component', missing);
 requireTokens(startup, ['startWeChatRacerGame', 'new WxPlatform', 'onHide', 'onShow'], 'WeChat startup module lifecycle binding', missing);
 requireTokens(roadGuide, ['RACER_TRACKS', '选择赛道', 'selected track id', 'per track id', 'Level 5: Add textured road support'], 'road replacement guide track registry and persistence docs', missing);
-requireTokens(assetGuide, ['assets/packs/default/images/ui/logo.png', 'brandLogo', 'ui.brand-logo', '程序化 Logo'], 'asset replacement guide optional logo asset docs', missing);
-requireTokens(productionPlan, ['optional commercial logo asset', 'programmatic logo fallback', 'brandLogo', 'theme-tokenized', 'programmatic icons', 'buttonIcon', 'settingCard', 'statusPill', 'dedicated track-select screen', 'dedicated settings screen', 'settings cards', 'status pill', 'control sensitivity', '舒适', '标准', '灵敏', 'selected track id', 'per track id', 'Finish the configured target lap count on each selectable track'], 'production completion plan optional logo asset, theme-tokenized icons, track-select, settings cards, and sensitivity docs', missing);
-requireTokens(uiAgentSync, ['optional commercial logo asset', 'programmatic logo fallback', 'brandLogo', 'theme-tokenized', 'programmatic icons', 'buttonIcon', 'settingCard', 'statusPill', 'dedicated track-select screen', 'dedicated settings screen', 'settings cards', 'status pill', 'control sensitivity', '舒适', '标准', '灵敏', 'selected track id', 'per track id'], 'UI polish multi-agent sync optional logo asset, theme-tokenized icons, track-select, settings cards, and sensitivity docs', missing);
+requireTokens(assetGuide, ['assets/packs/default/images/ui/logo.png', 'assets/packs/default/images/ui/icons.png', 'brandLogo', 'uiIconAtlas', 'ui.brand-logo', 'ui.icons', '程序化 Logo', 'programmatic icon'], 'asset replacement guide optional logo and UI icon atlas docs', missing);
+requireTokens(productionPlan, ['optional commercial logo asset', 'optional commercial UI icon atlas', 'programmatic logo fallback', 'programmatic icon fallback', 'RacerUiIconAtlas', '舒适', '标准', '灵敏', 'selected track id', 'per track id', 'Finish the configured target lap count on each selectable track'], 'production completion plan optional logo/icon atlas, track-select, settings, and sensitivity docs', missing);
+requireTokens(uiAgentSync, ['optional commercial logo asset', 'optional commercial UI icon atlas', 'programmatic logo fallback', 'programmatic icon fallback', 'RacerUiIconAtlas', '舒适', '标准', '灵敏', 'selected track id', 'per track id'], 'UI polish multi-agent sync optional logo/icon atlas, settings, and sensitivity docs', missing);
 
 for (const file of sourceFilesToCheck) {
   const content = files[file];
