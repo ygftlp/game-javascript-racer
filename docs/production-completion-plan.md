@@ -49,7 +49,9 @@ Required:
 - Optional but recommended: engine loop, crash, and menu confirm sounds.
 - Update `SpriteAtlas.ts` if new sprite atlas coordinates differ.
 - Update `RacerUiIconAtlas.ts` if the UI icon atlas grid changes.
-- Switch `ACTIVE_RACER_ASSET_PACK` to `COMMERCIAL_TEMPLATE_ASSET_PACK` when assets exist.
+- Use `npm run assets:commercial` before switching packs.
+- Use `npm run assets:commercial:apply` to safely switch `ACTIVE_RACER_ASSET_PACK` to `COMMERCIAL_TEMPLATE_ASSET_PACK` only after required files exist.
+- Use `npm run assets:legacy:apply` to switch back to `LEGACY_RACER_ASSET_PACK` during QA.
 
 ### Gate 4: Platform services
 
@@ -66,7 +68,7 @@ Required:
 
 ### Gate 5: Commercial UI / UX polish
 
-Status: release/debug UI split, polished interaction pass, independent minimap component, optional commercial logo asset support with programmatic logo fallback, optional commercial UI icon atlas support with programmatic icon fallback, theme-tokenized card metrics, dedicated track-select screen, dedicated settings screen with settings cards and status pill states, configurable control sensitivity, persisted selected track, per-track best laps, and first commercial road theme implemented; commercial art still needed.
+Status: release/debug UI split, polished interaction pass, independent minimap component, optional commercial logo asset support with programmatic logo fallback, optional commercial UI icon atlas support with programmatic icon fallback, safe commercial asset pack switch script, theme-tokenized card metrics, dedicated track-select screen, dedicated settings screen with settings cards and status pill states, configurable control sensitivity, persisted selected track, per-track best laps, and first commercial road theme implemented; commercial art still needed.
 
 Source of truth:
 
@@ -82,6 +84,8 @@ Source of truth:
 
 Implemented:
 
+- `scripts/use-commercial-assets.mjs` checks required commercial files, reports optional fallback files, and only switches the active pack when run with `--apply`.
+- `package.json` exposes `assets:commercial`, `assets:commercial:apply`, and `assets:legacy:apply` commands.
 - `src/racer/RacerAssetManifest.ts` defines optional `images.brandLogo` and `images.uiIconAtlas`.
 - The commercial template maps Logo to `assets/packs/default/images/ui/logo.png` and UI icons to `assets/packs/default/images/ui/icons.png`.
 - `src/racer/RacerUiIconAtlas.ts` defines the 4-column, 64px-cell UI icon atlas frame order.
@@ -155,8 +159,9 @@ Required commands:
 
 ```bash
 npm install
+npm run assets:commercial
+npm run assets:commercial:apply
 npm run typecheck
-npm run validate
 npm run validate:production
 npm run build:wx
 ```
@@ -165,6 +170,10 @@ Required manual checks:
 
 - Open project root in WeChat DevTools.
 - Confirm `project.config.json` points to `dist/wechat/`.
+- Confirm `npm run assets:commercial` fails when required commercial files are missing.
+- Confirm `npm run assets:commercial` reports optional missing logo/icon/sfx files as fallbacks, not blockers.
+- Confirm `npm run assets:commercial:apply` switches to `COMMERCIAL_TEMPLATE_ASSET_PACK` only after required files exist.
+- Confirm `npm run assets:legacy:apply` switches back to `LEGACY_RACER_ASSET_PACK`.
 - Start game from menu without external instructions.
 - Confirm missing `assets/packs/default/images/ui/logo.png` falls back to the programmatic Logo.
 - Confirm adding `assets/packs/default/images/ui/logo.png` makes the menu use the commercial Logo image.
@@ -194,6 +203,6 @@ Required manual checks:
 - Confirm ads never appear while driving.
 - Finish the configured target lap count on each selectable track and restart.
 - Confirm best lap, selected track, audio preference, minimap preference, operation coach preference, and control sensitivity persist after reload.
-- Confirm no console errors for missing required assets beyond optional Logo/icon fallback warnings.
+- Confirm no console errors for missing required assets beyond optional Logo/icon/sfx fallback warnings.
 - Check FPS on low-end and mid-range devices.
 - Check package size.
