@@ -6,6 +6,7 @@ export type RacerAssetStatus = 'idle' | 'loading' | 'ready' | 'fallback';
 export class RacerAssets {
   background: Texture | null = null;
   sprites: Texture | null = null;
+  brandLogo: Texture | null = null;
   music: Audio | null = null;
   engineLoop: Audio | null = null;
   crash: Audio | null = null;
@@ -35,6 +36,7 @@ export class RacerAssets {
   async load(engine: Engine): Promise<void> {
     this.status = 'loading';
     this.loadAudio(engine);
+    this.loadOptionalBrandLogo(engine);
 
     try {
       const [background, sprites] = await Promise.all([
@@ -98,6 +100,20 @@ export class RacerAssets {
 
   playMenuConfirm(): void {
     this.playSfx(this.menuConfirm, 'menu confirm');
+  }
+
+  private loadOptionalBrandLogo(engine: Engine): void {
+    const path = this.pack.images.brandLogo;
+    if (!path) return;
+
+    engine.loader.loadTexture(path)
+      .then((texture) => {
+        this.brandLogo = texture;
+      })
+      .catch((error) => {
+        this.brandLogo = null;
+        console.warn('[racer] brand logo loading failed, using procedural logo fallback', error);
+      });
   }
 
   private loadAudio(engine: Engine): void {
