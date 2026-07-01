@@ -1,5 +1,6 @@
 import type { Audio, Engine, Texture } from '../engine';
 import { ACTIVE_RACER_ASSET_PACK, type RacerAssetPackManifest } from './RacerAssetManifest';
+import { RacerUiIcons } from './RacerUiIcons';
 
 export type RacerAssetStatus = 'idle' | 'loading' | 'ready' | 'fallback';
 
@@ -120,14 +121,19 @@ export class RacerAssets {
 
   private loadOptionalUiIconAtlas(engine: Engine): void {
     const path = this.pack.images.uiIconAtlas;
-    if (!path) return;
+    if (!path) {
+      RacerUiIcons.setIconAtlasTexture(null);
+      return;
+    }
 
     engine.loader.loadTexture(path)
       .then((texture) => {
         this.uiIcons = texture;
+        RacerUiIcons.setIconAtlasTexture(texture);
       })
       .catch((error) => {
         this.uiIcons = null;
+        RacerUiIcons.setIconAtlasTexture(null);
         console.warn('[racer] UI icon atlas loading failed, using procedural icon fallback', error);
       });
   }
