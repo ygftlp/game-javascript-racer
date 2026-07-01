@@ -7,6 +7,7 @@ import type {
   RacerServices,
   RacerSocialService
 } from './RacerServices';
+import { RACER_WECHAT_SERVICES_CONFIG } from './RacerWechatConfig';
 
 export interface WechatRacerShareConfig {
   titlePrefix: string;
@@ -72,18 +73,7 @@ type WechatRewardedVideoAd = {
   onError?: (callback: (error: unknown) => void) => void;
 };
 
-export const DEFAULT_WECHAT_RACER_SERVICES_CONFIG: WechatRacerServicesConfig = {
-  share: {
-    titlePrefix: '极速公路'
-  },
-  ads: {},
-  leaderboard: {
-    openDataContextCommand: 'showRacerLeaderboard'
-  },
-  enableConsoleAnalytics: true
-};
-
-export function createWechatRacerServices(config: WechatRacerServicesConfig = DEFAULT_WECHAT_RACER_SERVICES_CONFIG): RacerServices | null {
+export function createWechatRacerServices(config: WechatRacerServicesConfig = RACER_WECHAT_SERVICES_CONFIG): RacerServices | null {
   const wx = resolveWechatApi();
   if (!wx) return null;
 
