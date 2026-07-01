@@ -12,6 +12,9 @@
     "validate:assets": "node scripts/validate-assets.mjs default",
     "validate:assets:legacy": "node scripts/validate-assets.mjs legacy",
     "validate:production": "node scripts/validate-production.mjs",
+    "assets:commercial": "node scripts/use-commercial-assets.mjs",
+    "assets:commercial:apply": "node scripts/use-commercial-assets.mjs --apply",
+    "assets:legacy:apply": "node scripts/use-commercial-assets.mjs --legacy --apply",
     "engine:compat": "node scripts/use-engine-mode.mjs compat",
     "engine:local": "node scripts/use-engine-mode.mjs local-sdk",
     "prebuild:wx": "npm run validate:production"
