@@ -144,6 +144,25 @@ dist/wechat/music/**
 dist/wechat/assets/**
 ```
 
+## Commercial asset switch and deployment
+
+Deployment instructions are tracked in:
+
+```text
+docs/wechat-deployment-guide.md
+```
+
+When commercial assets are ready, use this release flow from the repository root:
+
+```bash
+npm run assets:commercial
+npm run assets:commercial:apply
+npm run validate:production
+npm run build:wx
+```
+
+`assets:commercial` checks required files without changing source. `assets:commercial:apply` switches to `COMMERCIAL_TEMPLATE_ASSET_PACK` only after required files exist.
+
 ## Open in WeChat DevTools
 
 Open the repository root:
@@ -171,6 +190,8 @@ src/scenes/RacerScene.ts             Main racer scene
 src/racer/                           Gameplay, renderer, assets, services, storage, UI layout
 scripts/build-wechat.mjs             Bundles src/main.wx.ts to dist/wechat/game.js
 scripts/use-engine-mode.mjs          Switches compatibility/local-SDK engine modes
+scripts/use-commercial-assets.mjs    Checks and switches legacy/commercial asset packs
+docs/wechat-deployment-guide.md      Release/deployment checklist for WeChat upload
 project.config.json                  WeChat DevTools project config
 ```
 
