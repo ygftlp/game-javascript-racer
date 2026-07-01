@@ -7,6 +7,7 @@ export class RacerAssets {
   background: Texture | null = null;
   sprites: Texture | null = null;
   brandLogo: Texture | null = null;
+  uiIcons: Texture | null = null;
   music: Audio | null = null;
   engineLoop: Audio | null = null;
   crash: Audio | null = null;
@@ -37,6 +38,7 @@ export class RacerAssets {
     this.status = 'loading';
     this.loadAudio(engine);
     this.loadOptionalBrandLogo(engine);
+    this.loadOptionalUiIconAtlas(engine);
 
     try {
       const [background, sprites] = await Promise.all([
@@ -113,6 +115,20 @@ export class RacerAssets {
       .catch((error) => {
         this.brandLogo = null;
         console.warn('[racer] brand logo loading failed, using procedural logo fallback', error);
+      });
+  }
+
+  private loadOptionalUiIconAtlas(engine: Engine): void {
+    const path = this.pack.images.uiIconAtlas;
+    if (!path) return;
+
+    engine.loader.loadTexture(path)
+      .then((texture) => {
+        this.uiIcons = texture;
+      })
+      .catch((error) => {
+        this.uiIcons = null;
+        console.warn('[racer] UI icon atlas loading failed, using procedural icon fallback', error);
       });
   }
 
