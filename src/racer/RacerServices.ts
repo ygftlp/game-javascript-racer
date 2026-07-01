@@ -9,6 +9,12 @@ export interface RaceResult {
   bestLapTime: number;
 }
 
+export interface RacerLeaderboardViewContext {
+  source: string;
+  trackId: string;
+  trackName: string;
+}
+
 export interface RacerAdsService {
   showInterstitial(placement: string): Promise<boolean>;
   showRewarded(placement: string): Promise<boolean>;
@@ -20,7 +26,7 @@ export interface RacerSocialService {
 
 export interface RacerLeaderboardService {
   submitScore(result: RaceResult): Promise<boolean>;
-  showLeaderboard(): Promise<boolean>;
+  showLeaderboard(context?: RacerLeaderboardViewContext): Promise<boolean>;
 }
 
 export interface RacerAnalyticsService {
@@ -59,8 +65,8 @@ class NoopLeaderboardService implements RacerLeaderboardService {
     return false;
   }
 
-  async showLeaderboard(): Promise<boolean> {
-    console.log('[racer:leaderboard] show fallback');
+  async showLeaderboard(context?: RacerLeaderboardViewContext): Promise<boolean> {
+    console.log('[racer:leaderboard] show fallback', context);
     return false;
   }
 }
