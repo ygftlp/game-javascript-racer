@@ -241,7 +241,8 @@ export class RacerUiRenderer {
       title: '极速公路',
       subtitle: 'RETRO RACER',
       small: layout.small,
-      maxWidth: layout.menu.panel.w - 86
+      maxWidth: layout.menu.panel.w - 86,
+      texture: assets?.brandLogo ?? null
     });
     ctx.font = `${layout.fonts.body}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.body;
