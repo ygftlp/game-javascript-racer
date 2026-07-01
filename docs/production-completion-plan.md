@@ -44,10 +44,11 @@ Required:
 - Provide commercial-safe `assets/packs/default/images/background.png`.
 - Provide commercial-safe `assets/packs/default/images/sprites.png`.
 - Provide optional commercial logo asset at `assets/packs/default/images/ui/logo.png`.
+- Provide optional commercial UI icon atlas at `assets/packs/default/images/ui/icons.png`.
 - Provide commercial-safe `assets/packs/default/audio/music/racer.mp3`.
-- Provide commercial-safe UI logo/icons before final release.
 - Optional but recommended: engine loop, crash, and menu confirm sounds.
-- Update `SpriteAtlas.ts` if new atlas coordinates differ.
+- Update `SpriteAtlas.ts` if new sprite atlas coordinates differ.
+- Update `RacerUiIconAtlas.ts` if the UI icon atlas grid changes.
 - Switch `ACTIVE_RACER_ASSET_PACK` to `COMMERCIAL_TEMPLATE_ASSET_PACK` when assets exist.
 
 ### Gate 4: Platform services
@@ -65,7 +66,7 @@ Required:
 
 ### Gate 5: Commercial UI / UX polish
 
-Status: release/debug UI split, polished interaction pass, independent minimap component, optional commercial logo asset support with programmatic logo fallback, theme-tokenized programmatic icons and card metrics, dedicated track-select screen, dedicated settings screen with settings cards and status pill states, configurable control sensitivity, persisted selected track, per-track best laps, and first commercial road theme implemented; commercial art still needed.
+Status: release/debug UI split, polished interaction pass, independent minimap component, optional commercial logo asset support with programmatic logo fallback, optional commercial UI icon atlas support with programmatic icon fallback, theme-tokenized card metrics, dedicated track-select screen, dedicated settings screen with settings cards and status pill states, configurable control sensitivity, persisted selected track, per-track best laps, and first commercial road theme implemented; commercial art still needed.
 
 Source of truth:
 
@@ -81,29 +82,27 @@ Source of truth:
 
 Implemented:
 
-- `src/racer/RacerAssetManifest.ts` defines optional `images.brandLogo` and maps the commercial template Logo path to `assets/packs/default/images/ui/logo.png`.
-- `src/racer/RacerAssets.ts` loads the optional commercial Logo texture without blocking the required background and sprite atlas.
-- `src/racer/RacerUiTheme.ts` centralizes UI skin tokens for HUD, controls, panels, buttons, overlays, minimap, `brandLogo`, `buttonIcon`, `trackCard`, `settingCard`, `statusPill`, and icon colors.
+- `src/racer/RacerAssetManifest.ts` defines optional `images.brandLogo` and `images.uiIconAtlas`.
+- The commercial template maps Logo to `assets/packs/default/images/ui/logo.png` and UI icons to `assets/packs/default/images/ui/icons.png`.
+- `src/racer/RacerUiIconAtlas.ts` defines the 4-column, 64px-cell UI icon atlas frame order.
+- `src/racer/RacerAssets.ts` loads the optional commercial Logo texture and optional commercial UI icon atlas without blocking the required background and sprite atlas.
 - `src/racer/RacerUiLogo.ts` prefers a loaded commercial Logo texture and falls back to the programmatic Logo when it is missing, still loading, or fails to draw.
-- `RacerUiLogo` avoids `roundRect` so it remains safer for WeChat Canvas compatibility.
-- `RacerUiRenderer` passes `assets.brandLogo` into the main-menu Logo renderer.
-- `RacerUiRenderer` renders the main-menu title area through `RacerUiLogo` using the title `极速公路` and subtitle `RETRO RACER` as the programmatic fallback.
+- `src/racer/RacerUiIcons.ts` prefers a loaded commercial UI icon atlas and falls back to programmatic icons when it is missing, still loading, or fails to draw.
+- `RacerUiLogo` and `RacerUiIcons` avoid `roundRect` so they remain safer for WeChat Canvas compatibility.
+- `src/racer/RacerUiTheme.ts` centralizes UI skin tokens for HUD, controls, panels, buttons, overlays, minimap, `brandLogo`, `buttonIcon`, `trackCard`, `settingCard`, `statusPill`, and icon colors.
+- `RacerUiRenderer` renders the main-menu title area through `RacerUiLogo` using `极速公路` and `RETRO RACER` as fallback copy.
 - `src/racer/RacerUiFlags.ts` defines release/debug UI switches.
 - `src/racer/RacerRoadTheme.ts` centralizes road palette tokens and active road theme selection.
 - `src/racer/RacerTrackDefinition.ts` defines a selectable track registry.
 - `src/racer/RacerControlSensitivity.ts` defines `舒适`, `标准`, and `灵敏` control sensitivity profiles.
-- `src/racer/RacerUiIcons.ts` provides programmatic icons for play, track, leaderboard, help, settings, music, minimap, coach, sensitivity, reset, back, and share.
-- The programmatic icon renderer avoids `roundRect` so it remains safer for WeChat Canvas compatibility.
 - The main menu includes iconized `开始比赛`, `选择赛道`, `排行榜`, `操作说明`, and `设置` actions.
-- Main menu button icon size, offset, and text offset now come from `RACER_UI_THEME.buttonIcon`.
 - `RacerUiLayout` defines a dedicated track-select screen with track cards and `返回菜单`.
 - `RacerUiRenderer` renders the dedicated track-select screen, card pressed states, track icons, and `已选择` status.
-- Track-card icon size, text offsets, font sizes, and metadata offsets now come from `RACER_UI_THEME.trackCard`.
+- Track-card icon size, text offsets, font sizes, and metadata offsets come from `RACER_UI_THEME.trackCard`.
 - `RacerUiLayout` defines a dedicated settings screen with wider settings cards for music, minimap, operation guide, control sensitivity, reset-guide, and return controls.
 - `RacerUiRenderer` renders the dedicated settings screen as iconized settings cards with title, description, status pill, enabled/disabled visual state, and pressed feedback.
-- Settings-card icon size, text offsets, font sizes, and description offsets now come from `RACER_UI_THEME.settingCard`.
-- Status-pill width, height, offsets, font sizes, and text offset now come from `RACER_UI_THEME.statusPill`.
-- `RacerUiRenderer` also applies programmatic icons to pause, result, help, and return-menu actions where appropriate.
+- Settings-card icon size, text offsets, font sizes, and description offsets come from `RACER_UI_THEME.settingCard`.
+- Status-pill width, height, offsets, font sizes, and text offset come from `RACER_UI_THEME.statusPill`.
 - `RacerScene` opens the dedicated track-select screen from the menu and confirms a selected card on touch release.
 - `RacerScene` opens the dedicated settings screen from the menu and persists music, minimap, control coach, and control sensitivity settings.
 - `RacerSettings` persists the selected track id, audio state, minimap state, control coach state, control sensitivity id, and whether the first-race coach has already been shown.
@@ -112,7 +111,6 @@ Implemented:
 - `RacerScene` restores the last selected track and control sensitivity at startup.
 - `RacerStorage` stores best lap records per track id.
 - `RaceResult` includes selected track metadata for share / leaderboard payloads.
-- `ACTIVE_RACER_ROAD_THEME` defaults to `COMMERCIAL_ASPHALT_ROAD_THEME`.
 - Release mode is the default UI mode.
 - Debug-only asset/performance/commercial-safe text is hidden by default.
 - Control labels and player visibility marker are hidden by default.
@@ -120,7 +118,6 @@ Implemented:
 - Buttons have a pressed state and overlay actions execute on touch end.
 - Dragging outside a button cancels the pending action.
 - Touch start/move/end handlers tolerate empty platform touch arrays.
-- `RacerUiRenderer` owns HUD, controls, overlays, help, onboarding UI, track-select UI, settings UI, and main-menu branding.
 - `RacerMiniMap` is an independent component for the in-race track radar.
 - Minimap rendering is controlled by the persisted settings screen switch.
 - First-race operation coach can be disabled or reset from the settings screen.
@@ -138,7 +135,8 @@ Still required before commercial release:
 
 - Replace placeholder title/logo with commercial-safe branding.
 - Add the final commercial Logo image at `assets/packs/default/images/ui/logo.png`, or keep the programmatic logo fallback.
-- Replace programmatic icons with final commercial icon assets once the art pack is ready, or keep them as fallback icons.
+- Add the final commercial UI icon atlas at `assets/packs/default/images/ui/icons.png`, or keep the programmatic icon fallback.
+- Replace legacy low-resolution art with a commercial-safe higher-quality asset pack before launch.
 - Tune exact joystick/brake/minimap sizes and opacity on real low-end and high-DPI devices.
 - Tune the dedicated track-select screen card spacing, copy length, icon size, and pressed-state intensity on small devices.
 - Tune the dedicated settings screen settings cards, status pill readability, icon size, labels, and touch comfort on small devices.
@@ -147,7 +145,6 @@ Still required before commercial release:
 - Tune the commercial asphalt palette on real devices for readability and contrast.
 - Tune all selectable track section layouts on real devices.
 - Add final result-screen share copy, ranking entry polish, and optional medal/rating art.
-- Replace legacy low-resolution art with a commercial-safe higher-quality asset pack before launch.
 - Switch `src/engine/index.ts` to the real SDK after the SDK package is built/published correctly.
 
 ### Gate 6: Quality and validation
@@ -169,25 +166,20 @@ Required manual checks:
 - Open project root in WeChat DevTools.
 - Confirm `project.config.json` points to `dist/wechat/`.
 - Start game from menu without external instructions.
-- Confirm main-menu Logo renders correctly and does not overlap the menu copy.
 - Confirm missing `assets/packs/default/images/ui/logo.png` falls back to the programmatic Logo.
 - Confirm adding `assets/packs/default/images/ui/logo.png` makes the menu use the commercial Logo image.
-- Confirm menu buttons show icons, text, and pressed state on touch down.
+- Confirm missing `assets/packs/default/images/ui/icons.png` falls back to programmatic icons.
+- Confirm adding `assets/packs/default/images/ui/icons.png` makes menu, settings, pause, help, result, and track-select actions use atlas icons.
 - Confirm menu actions execute only on release inside the button.
 - Confirm moving outside a button cancels the pending action.
 - Confirm `选择赛道` opens the dedicated track-select screen.
 - Confirm every track card can be selected and returns to the menu.
 - Confirm track-select `返回菜单` leaves the selected track unchanged.
 - Confirm `设置` opens the dedicated settings screen.
-- Confirm settings screen renders iconized setting cards with title, description, and status pill.
 - Confirm settings cards show immediate pressed feedback.
 - Confirm theme-tokenized logo, icon sizes, text offsets, and status-pill metrics look correct on small and high-DPI screens.
-- Confirm settings screen music toggle persists after reload.
-- Confirm settings screen minimap toggle hides/shows the in-race minimap and persists after reload.
-- Confirm settings screen operation guide toggle prevents the first-race coach from appearing.
-- Confirm `重看引导` resets the coach so it appears on the next race start.
+- Confirm settings screen music, minimap, operation guide, reset guide, and control sensitivity settings persist after reload.
 - Confirm `控制手感` cycles through `舒适 -> 标准 -> 灵敏` and persists after reload.
-- Confirm `舒适` feels steadier, `标准` matches the default, and `灵敏` turns faster.
 - Confirm relaunch restores the last selected track.
 - Confirm each track shows its own best lap record per track id.
 - Confirm left-bottom joystick steers the car quickly enough and returns to center on release.
@@ -202,6 +194,6 @@ Required manual checks:
 - Confirm ads never appear while driving.
 - Finish the configured target lap count on each selectable track and restart.
 - Confirm best lap, selected track, audio preference, minimap preference, operation coach preference, and control sensitivity persist after reload.
-- Confirm no console errors for missing required assets beyond optional Logo fallback warning.
+- Confirm no console errors for missing required assets beyond optional Logo/icon fallback warnings.
 - Check FPS on low-end and mid-range devices.
 - Check package size.
