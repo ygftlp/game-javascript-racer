@@ -10,21 +10,22 @@ Implemented highlights:
 
 - Buttons have pressed feedback, release-to-confirm behavior, and drag-outside cancellation.
 - Main menu includes `选择赛道`, `操作说明`, `排行榜`, and `设置`.
-- Main-menu title now supports an optional commercial logo asset and a programmatic logo fallback through `RacerUiLogo`.
+- Main-menu title supports an optional commercial logo asset and a programmatic logo fallback through `RacerUiLogo`.
 - `RacerAssetManifest` defines optional `images.brandLogo` and the commercial template path `assets/packs/default/images/ui/logo.png`.
 - `RacerAssets` loads the optional commercial logo asset without blocking the required background and sprite atlas.
+- Main menu, track cards, settings cards, pause actions, help actions, and result actions support an optional commercial UI icon atlas and programmatic icon fallback.
+- `RacerAssetManifest` defines optional `images.uiIconAtlas` and the commercial template path `assets/packs/default/images/ui/icons.png`.
+- `RacerUiIconAtlas` owns the 4-column, 64px-cell atlas mapping for play, track, leaderboard, help, settings, music, minimap, coach, sensitivity, reset, back, and share.
+- `RacerAssets` loads the optional commercial icon atlas and registers it through `RacerUiIcons.setIconAtlasTexture`.
+- `RacerUiIcons` first tries to draw atlas icons, then falls back to programmatic icons if the atlas is missing, still loading, or fails to draw.
 - `RacerUiTheme.brandLogo` owns image logo bounds, image shadow, programmatic logo plate, stripes, badge, title, and subtitle styling.
 - `RacerUiRenderer` passes `assets.brandLogo` into the menu logo renderer.
-- The programmatic logo fallback uses `极速公路` with the subtitle `RETRO RACER`.
-- Main menu, track cards, settings cards, pause actions, help actions, and result actions use programmatic icons.
-- `RacerUiIcons` owns fallback programmatic icons for play, track, leaderboard, help, settings, music, minimap, coach, sensitivity, reset, back, and share.
 - `RacerUiIcons` and `RacerUiLogo` avoid `roundRect` and use internal paths for better WeChat Canvas compatibility.
 - `RacerUiTheme` owns theme-tokenized icon and card metrics through `buttonIcon`, `trackCard`, `settingCard`, `statusPill`, and `icon` groups.
-- `RacerUiRenderer` reads logo, icon, text offset, card font size, and status-pill metrics from `RacerUiTheme` instead of hardcoding them in render methods.
 - The old simple cycle-track behavior has been replaced with a dedicated track-select screen.
 - The dedicated track-select screen shows track cards, target laps, current selected state, and `返回菜单`.
 - The dedicated settings screen centralizes music, minimap, first-race operation-guide controls, and control sensitivity.
-- The settings screen renders settings cards with title, description, status pill, enabled/disabled state, pressed feedback, and programmatic icons.
+- The settings screen renders settings cards with title, description, status pill, enabled/disabled state, pressed feedback, and icon support.
 - `RacerControlSensitivity` owns three control sensitivity profiles: `舒适`, `标准`, and `灵敏`.
 - `RacerSettings` persists the selected track id, audio state, minimap state, control coach state, control sensitivity id, and first-race coach state.
 - `RacerScene` restores the last selected track and control sensitivity at launch.
@@ -37,16 +38,15 @@ Focus:
 
 - Verify menu, pause, result, help, minimap, dedicated track-select screen, and dedicated settings screen copy.
 - Confirm optional commercial logo asset and programmatic logo fallback both preserve menu hierarchy.
-- Confirm programmatic icons improve scan speed without confusing casual players.
+- Confirm optional commercial UI icon atlas and programmatic icon fallback both preserve action readability.
 - Confirm theme-tokenized spacing preserves readability after future skin changes.
 
 Checklist:
 
 - Start button remains the clearest menu action.
 - Settings and track selection do not compete with `开始比赛`.
-- Commercial logo image does not obscure current track / target lap information.
-- Programmatic logo fallback does not obscure current track / target lap information.
-- Programmatic icons match their action meanings.
+- Commercial logo image and programmatic logo fallback do not obscure current track / target lap information.
+- Commercial atlas icons and programmatic icons match their action meanings.
 - No debug or placeholder service copy appears in release mode.
 
 ## Agent B: UI Interaction Designer
@@ -75,13 +75,16 @@ Checklist:
 Focus:
 
 - Optional logo asset path and commercial pack structure.
+- Optional UI icon atlas path and atlas frame order.
 - Track registry design.
 - Per-track progression and score separation.
 
 Checklist:
 
 - Optional commercial logo asset path is `assets/packs/default/images/ui/logo.png`.
+- Optional commercial UI icon atlas path is `assets/packs/default/images/ui/icons.png`.
 - Missing logo image falls back to the programmatic logo fallback.
+- Missing icon atlas falls back to programmatic icons.
 - `RACER_TRACKS` contains all selectable tracks.
 - Selected track id is saved through `RacerSettings`.
 - Best lap display is per track id through `RacerStorage`.
@@ -92,17 +95,17 @@ Focus:
 
 - Commercial style layer.
 - Logo image readability.
-- Programmatic logo fallback readability.
-- Programmatic icon readability.
+- UI icon atlas readability.
+- Programmatic fallback readability.
 - Theme-tokenized logo/icon/card/status-pill tuning.
 
 Checklist:
 
 - Commercial logo image is readable at small sizes.
 - Programmatic logo fallback is readable at small sizes.
+- Commercial atlas icons are readable at small sizes.
+- Programmatic icon fallback is readable at small sizes.
 - `brandLogo`, `buttonIcon`, `trackCard`, `settingCard`, and `statusPill` tokens are the main knobs for final skin tuning.
-- Programmatic icons are readable at small sizes.
-- Final icon assets can replace `RacerUiIcons` without changing layout.
 
 ## Agent E: Control Feel Designer
 
@@ -125,14 +128,17 @@ Focus:
 
 - UI overlap and readability.
 - Optional logo image regression checks.
-- Programmatic logo fallback regression checks.
+- Optional icon atlas regression checks.
+- Programmatic fallback regression checks.
 - Theme-tokenized metric regression checks.
 - Renderer separation regression checks.
 
 Checklist:
 
 - Optional commercial logo asset renders on target devices without Canvas API errors.
+- Optional commercial icon atlas renders on target devices without Canvas API errors.
 - Missing logo image falls back to the programmatic logo fallback.
+- Missing icon atlas falls back to programmatic icons.
 - Theme-tokenized logo, button, track-card, setting-card, and status-pill metrics work on small and high-DPI devices.
 - Settings screen opens from menu, toggles settings, cycles sensitivity, updates status pills, and returns safely.
 - Track-select screen opens from menu, selects a track, and returns safely.
@@ -145,7 +151,7 @@ Focus:
 - Keep code maintainable.
 - Keep validation updated.
 - Preserve shared layout/hitbox source of truth.
-- Keep logo asset loading, fallback logo rendering, icon rendering, and theme-tokenized metrics isolated from gameplay internals.
+- Keep logo asset loading, icon atlas loading, fallback rendering, and theme-tokenized metrics isolated from gameplay internals.
 
 Implemented files:
 
@@ -156,6 +162,7 @@ Implemented files:
 - `src/racer/RacerUiRenderer.ts`
 - `src/racer/RacerUiLogo.ts`
 - `src/racer/RacerUiIcons.ts`
+- `src/racer/RacerUiIconAtlas.ts`
 - `src/racer/RacerUiTheme.ts`
 - `src/racer/RacerMiniMap.ts`
 - `src/racer/RacerControlSensitivity.ts`
@@ -171,7 +178,7 @@ Implemented files:
 
 Next recommended implementation pass:
 
-1. Add final commercial icon asset support while keeping `RacerUiIcons` as fallback.
+1. Add commercial asset pack switch checklist once real images/audio are present.
 2. Tune `brandLogo`, `buttonIcon`, `trackCard`, `settingCard`, and `statusPill` from real-device screenshots.
 3. Tune minimap size/opacity after real-device testing on all selectable tracks.
 4. Tune sensitivity presets after device testing.
