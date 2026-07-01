@@ -1,3 +1,4 @@
+import type { Texture } from '../engine';
 import { RACER_UI_THEME } from './RacerUiTheme';
 
 export interface RacerUiLogoOptions {
@@ -5,10 +6,13 @@ export interface RacerUiLogoOptions {
   subtitle: string;
   small: boolean;
   maxWidth: number;
+  texture?: Texture | null;
 }
 
 export class RacerUiLogo {
   render(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, options: RacerUiLogoOptions): void {
+    if (this.drawTextureLogo(ctx, centerX, centerY, options)) return;
+
     const theme = RACER_UI_THEME.brandLogo;
     const w = Math.min(options.maxWidth, options.small ? theme.smallWidth : theme.width);
     const h = options.small ? theme.smallHeight : theme.height;
@@ -21,6 +25,37 @@ export class RacerUiLogo {
     this.drawBadge(ctx, x, y, h, options.small);
     this.drawLogoText(ctx, x, y, w, h, options);
     ctx.restore();
+  }
+
+  private drawTextureLogo(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, options: RacerUiLogoOptions): boolean {
+    const texture = options.texture;
+    if (!texture?.loaded) return false;
+
+    const theme = RACER_UI_THEME.brandLogo;
+    const maxW = Math.min(options.maxWidth, options.small ? theme.imageSmallMaxWidth : theme.imageMaxWidth);
+    const maxH = options.small ? theme.imageSmallMaxHeight : theme.imageMaxHeight;
+    const image = texture.image as unknown as CanvasImageSource;
+    const sourceW = Math.max(1, Number(texture.image.width) || maxW);
+    const sourceH = Math.max(1, Number(texture.image.height) || maxH);
+    const scale = Math.min(maxW / sourceW, maxH / sourceH);
+    const w = Math.max(1, Math.round(sourceW * scale));
+    const h = Math.max(1, Math.round(sourceH * scale));
+    const x = Math.round(centerX - w / 2);
+    const y = Math.round(centerY - h / 2);
+
+    try {
+      ctx.save();
+      ctx.shadowColor = theme.imageShadow;
+      ctx.shadowBlur = theme.imageShadowBlur;
+      ctx.shadowOffsetY = theme.imageShadowOffsetY;
+      ctx.drawImage(image, x, y, w, h);
+      ctx.restore();
+      return true;
+    } catch (error) {
+      console.warn('[racer] brand logo draw failed, using procedural fallback', error);
+      ctx.restore();
+      return false;
+    }
   }
 
   private drawLogoPlate(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
