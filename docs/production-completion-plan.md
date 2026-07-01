@@ -55,13 +55,15 @@ Required:
 
 ### Gate 4: Platform services
 
-Status: WeChat services adapter skeleton and isolated config template implemented; real AppID, share image, cloud/open-data setup, ad unit IDs, and device verification still needed.
+Status: WeChat services adapter skeleton, isolated config template, open data leaderboard protocol, and sample handler implemented; real AppID, share image, open-data project wiring, cloud setup, ad unit IDs, and device verification still needed.
 
 Required:
 
 - Configure `src/racer/RacerWechatConfig.ts` through a private release patch or build-time replacement before publishing.
 - Configure share copy and optional share image for `RacerWechatServices`.
 - Configure leaderboard through WeChat open data context or cloud function.
+- Copy/adapt `docs/samples/open-data-leaderboard-handler.js` into the open data context project.
+- Keep open data message names aligned with `docs/open-data-leaderboard-protocol.md` and `RacerWechatConfig.ts`.
 - Configure ad unit IDs for interstitial and rewarded ads only after policy review.
 - Keep AppID, ad unit IDs, cloud function names, and sensitive platform IDs outside public source where possible.
 - Avoid direct `wx` usage inside gameplay state or renderer.
@@ -70,11 +72,13 @@ Required:
 
 ### Gate 5: Commercial UI / UX polish
 
-Status: release/debug UI split, polished interaction pass, independent minimap component, optional commercial logo asset support with programmatic logo fallback, optional commercial UI icon atlas support with programmatic icon fallback, safe commercial asset pack switch script, WeChat services adapter skeleton, isolated `RacerWechatConfig.ts`, WeChat deployment guide, theme-tokenized card metrics, dedicated track-select screen, dedicated settings screen with settings cards and status pill states, configurable control sensitivity, persisted selected track, per-track best laps, and first commercial road theme implemented; commercial art and real platform configuration still needed.
+Status: release/debug UI split, polished interaction pass, independent minimap component, optional commercial logo asset support with programmatic logo fallback, optional commercial UI icon atlas support with programmatic icon fallback, safe commercial asset pack switch script, WeChat services adapter skeleton, isolated `RacerWechatConfig.ts`, open data leaderboard protocol/sample handler, WeChat deployment guide, theme-tokenized card metrics, dedicated track-select screen, dedicated settings screen with settings cards and status pill states, configurable control sensitivity, persisted selected track, per-track best laps, and first commercial road theme implemented; commercial art and real platform configuration still needed.
 
 Source of truth:
 
 - `docs/wechat-deployment-guide.md`
+- `docs/open-data-leaderboard-protocol.md`
+- `docs/samples/open-data-leaderboard-handler.js`
 - `docs/commercial-ui-ux-plan.md`
 - `docs/ui-polish-agent-sync.md`
 - `docs/road-replacement-guide.md`
@@ -87,7 +91,9 @@ Source of truth:
 
 Implemented:
 
-- `docs/wechat-deployment-guide.md` defines the release checklist, including the commercial asset switch commands: `npm run assets:commercial`, `npm run assets:commercial:apply`, `npm run validate:production`, and `npm run build:wx`.
+- `docs/open-data-leaderboard-protocol.md` defines the `submitRacerScore` and `showRacerLeaderboard` message contract between the main domain and open data context.
+- `docs/samples/open-data-leaderboard-handler.js` provides a sample `wx.onMessage` handler with `wx.setUserCloudStorage`, `wx.getFriendCloudStorage`, per-track keys, score sorting, empty state, and malformed-message fallback.
+- `docs/wechat-deployment-guide.md` defines the release checklist, including the open data leaderboard wiring step and the commercial asset switch commands: `npm run assets:commercial`, `npm run assets:commercial:apply`, `npm run validate:production`, and `npm run build:wx`.
 - `docs/local-setup-wechat.md` links to the deployment guide and repeats the commercial asset switch command sequence for discoverability.
 - `src/racer/RacerWechatConfig.ts` isolates safe default WeChat service configuration for share copy, share image placeholder, leaderboard command/cloud function placeholder, ad unit placeholders, and console analytics.
 - `src/racer/RacerWechatServices.ts` provides a WeChat services adapter skeleton for share, leaderboard, ads, and analytics.
@@ -132,7 +138,8 @@ Still required before commercial release:
 - Add the final commercial UI icon atlas at `assets/packs/default/images/ui/icons.png`, or keep the programmatic icon fallback.
 - Replace legacy low-resolution art with a commercial-safe higher-quality asset pack before launch.
 - Configure real WeChat AppID, share image, cloud/open-data leaderboard path, and ad unit IDs through a private release process.
-- Verify `wx.shareAppMessage`, open data context, cloud score submission, `wx.reportAnalytics`, interstitial ads, and rewarded ads on real WeChat targets.
+- Replace the sample open data console renderer with a production Canvas leaderboard UI.
+- Verify `wx.shareAppMessage`, open data context score storage/ranking, cloud score submission, `wx.reportAnalytics`, interstitial ads, and rewarded ads on real WeChat targets.
 - Tune exact joystick/brake/minimap sizes and opacity on real low-end and high-DPI devices.
 - Tune the dedicated track-select screen and settings screen on small devices.
 - Tune theme-tokenized `brandLogo`, `buttonIcon`, `trackCard`, `settingCard`, and `statusPill` metrics on target devices.
@@ -174,8 +181,10 @@ Required manual checks:
 - Confirm `RacerWechatConfig.ts` contains only safe defaults or release-approved injected values.
 - Confirm `createRacerServices()` uses noop fallback outside WeChat and WeChat adapter inside WeChat.
 - Confirm `wx.shareAppMessage` receives result share copy and track query metadata.
-- Confirm leaderboard submit sends `trackId`, `trackName`, `totalRaceTime`, and `bestLapTime`.
-- Confirm leaderboard view receives `source`, `trackId`, and `trackName` context.
+- Confirm open data context receives `submitRacerScore` with `trackId`, `trackName`, `totalRaceTime`, and `bestLapTime`.
+- Confirm open data context receives `showRacerLeaderboard` with `source`, `trackId`, and `trackName`.
+- Confirm open data context stores and reads per-track keys as `racer.score.${trackId}`.
+- Confirm malformed open data messages do not crash the open data context.
 - Confirm interstitial ads only request after race finish, never during active driving.
 - Confirm rewarded video can be configured later without blocking normal gameplay.
 - Confirm missing optional Logo/icon/sfx files only show fallback warnings and do not block gameplay.
