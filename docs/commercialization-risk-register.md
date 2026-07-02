@@ -21,7 +21,10 @@ Mitigation:
 
 - Use `commercial-template` asset pack before release.
 - Replace background, sprites, music, logo, icons, and sfx with commercial-safe files.
-- Record source/license for every asset.
+- Fill `docs/commercialization-asset-rights-register.md` for every release asset.
+- Mark required assets as `approved` before release.
+- Mark optional assets as `approved` or `fallback-approved` before release.
+- Record source/license/proof for every asset.
 - Keep `npm run assets:commercial` and `npm run assets:commercial:apply` in the deployment flow.
 
 Owner:
@@ -43,6 +46,7 @@ Mitigation:
 - Avoid real car manufacturer names and badges.
 - Avoid real sponsor billboards unless licensed.
 - Review all share images and icons before launch.
+- Record trademark review status in `docs/commercialization-asset-rights-register.md`.
 
 Owner:
 
