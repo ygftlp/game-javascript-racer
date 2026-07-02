@@ -9,6 +9,7 @@ Plan commercial features without damaging the core racing experience.
 - Share UX.
 - Leaderboard UX.
 - Open data context message protocol.
+- Open data context Canvas leaderboard UI.
 - Ad timing and placement.
 - Service failure behavior.
 - WeChat platform service configuration review.
@@ -22,14 +23,16 @@ Plan commercial features without damaging the core racing experience.
 - Leaderboard view receives `source`, `trackId`, and `trackName` context for track-specific boards.
 - `docs/open-data-leaderboard-protocol.md` defines the open data context message contract.
 - `docs/samples/open-data-leaderboard-handler.js` provides a sample `wx.onMessage` handler for open data context integration.
+- `docs/samples/open-data-leaderboard-canvas.js` provides a sample sharedCanvas leaderboard renderer.
 - The sample handler covers `submitRacerScore`, `showRacerLeaderboard`, `wx.setUserCloudStorage`, `wx.getFriendCloudStorage`, per-track keys, empty states, and malformed-message fallback.
+- The Canvas renderer covers title, source subtitle, avatar image with fallback, top-three rank badges, total time, best lap, and empty state.
 - Ads skeleton supports interstitial and rewarded video but only runs when ad unit IDs are configured.
 - Interstitial is currently requested only after race finish.
 
 ## Current problems to solve
 
 - Real AppID, share image, cloud/open-data setup, and ad unit IDs are not configured yet.
-- Open data context Canvas rendering still needs a production visual design.
+- Open data context Canvas rendering still needs final commercial visual tuning.
 - Share, leaderboard, and ads need real WeChat DevTools and device verification.
 - Commercial release needs these entry points to feel natural, not forced.
 - Ads must not interrupt active driving.
@@ -53,6 +56,7 @@ Plan commercial features without damaging the core racing experience.
    - Total time.
    - Best lap tie-breaker.
    - Empty state.
+   - Loading/error state if needed.
 5. Define ad rules:
    - Interstitial only after race finish or safe menu transition.
    - Rewarded video only for explicit opt-in rewards.
@@ -76,3 +80,4 @@ Plan commercial features without damaging the core racing experience.
 - Open data context receives and safely handles `submitRacerScore`.
 - Open data context receives and safely handles `showRacerLeaderboard`.
 - Each track uses a separate ranking key.
+- Canvas leaderboard renders title, friend rows, avatar fallback, total time, best lap, and empty state.
