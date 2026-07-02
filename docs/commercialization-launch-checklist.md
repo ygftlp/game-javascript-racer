@@ -37,13 +37,19 @@ npm run build:wx
 
 ## 3. License and compliance
 
-- [ ] Every image has an owner/source/license record.
-- [ ] Every audio file has an owner/source/license record.
+- [ ] `docs/commercialization-asset-rights-register.md` is filled for every release asset.
+- [ ] Required asset rows are marked `approved` before release.
+- [ ] Optional asset rows are marked `approved` or `fallback-approved` before release.
+- [ ] Every image has an owner/source/license/proof record.
+- [ ] Every audio file has an owner/source/license/proof record.
+- [ ] Commercial use permission is confirmed for every shipped asset.
+- [ ] Redistribution inside a WeChat mini game package is confirmed for every shipped asset.
+- [ ] Modification rights are confirmed for every modified asset.
 - [ ] No unlicensed legacy art remains in the release bundle.
 - [ ] No unlicensed music remains in the release bundle.
 - [ ] No real car brand or trademark is visible unless licensed.
 - [ ] No real advertiser logo is visible unless licensed.
-- [ ] Share image is commercial-safe.
+- [ ] Share image is commercial-safe or text-only fallback is approved.
 - [ ] App name and logo are commercial-safe.
 - [ ] Latest WeChat platform rules were reviewed before release.
 
