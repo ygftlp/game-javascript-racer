@@ -42,6 +42,7 @@ const requiredFiles = [
   'docs/agent-workstreams.md',
   'docs/commercial-ui-ux-plan.md',
   'docs/commercialization-agent-workstreams.md',
+  'docs/commercialization-asset-rights-register.md',
   'docs/commercialization-launch-checklist.md',
   'docs/commercialization-plan.md',
   'docs/commercialization-risk-register.md',
@@ -134,6 +135,7 @@ const deploymentGuide = files['docs/wechat-deployment-guide.md'];
 const productionPlan = files['docs/production-completion-plan.md'];
 const commercialPlan = files['docs/commercialization-plan.md'];
 const commercialWorkstreams = files['docs/commercialization-agent-workstreams.md'];
+const commercialAssetRights = files['docs/commercialization-asset-rights-register.md'];
 const commercialRoadmap = files['docs/commercialization-roadmap.md'];
 const commercialRisks = files['docs/commercialization-risk-register.md'];
 const commercialChecklist = files['docs/commercialization-launch-checklist.md'];
@@ -192,13 +194,14 @@ requireTokens(startup, ['startWeChatRacerGame', 'new WxPlatform', 'onHide', 'onS
 
 requireTokens(assetGuide, ['npm run assets:commercial', 'npm run assets:commercial:apply', 'npm run assets:legacy:apply', 'required files', 'assets/packs/default/images/ui/logo.png', 'assets/packs/default/images/ui/icons.png'], 'asset replacement guide safe switch and optional UI asset docs', missing);
 requireTokens(deploymentGuide, ['WeChat Deployment Guide', 'RacerWechatConfig.ts', 'docs/open-data-leaderboard-protocol.md', 'docs/samples/open-data-leaderboard-handler.js', 'docs/samples/open-data-leaderboard-canvas.js', 'npm run assets:commercial', 'npm run assets:commercial:apply', 'npm run validate:production', 'npm run build:wx', 'COMMERCIAL_TEMPLATE_ASSET_PACK', 'dist/wechat/', 'Do not commit production-only secrets'], 'WeChat deployment guide release checklist, open data samples, and commercial asset switch flow', missing);
-requireTokens(productionPlan, ['Commercialization readiness', 'commercialization-plan.md', 'commercialization-agent-workstreams.md', 'commercialization-roadmap.md', 'commercialization-risk-register.md', 'commercialization-launch-checklist.md', 'Commercialization Director', 'Licensing & Compliance', 'go/no-go'], 'production completion plan commercialization gate', missing);
+requireTokens(productionPlan, ['Commercialization readiness', 'commercialization-plan.md', 'commercialization-agent-workstreams.md', 'commercialization-roadmap.md', 'commercialization-asset-rights-register.md', 'commercialization-risk-register.md', 'commercialization-launch-checklist.md', 'Commercialization Director', 'Licensing & Compliance', 'go/no-go'], 'production completion plan commercialization gate', missing);
 
 requireTokens(commercialPlan, ['Game Commercialization Plan', 'Commercial goal', 'Product positioning', 'Revenue model options', 'Key performance indicators', 'Commercial milestones', 'Go / no-go rules'], 'commercialization master plan', missing);
 requireTokens(commercialWorkstreams, ['Commercialization Agent Workstreams', 'Commercialization Director', 'Licensing & Compliance Agent', 'Monetization Strategy Agent', 'Growth & Publishing Agent', 'LiveOps & Analytics Agent', 'Commercial QA Agent', 'Handoff map'], 'commercialization multi-agent workstreams', missing);
 requireTokens(commercialRoadmap, ['Commercialization Roadmap', 'Phase 1: Commercial-safe content pack', 'Phase 3: WeChat platform integration', 'Phase 4: Soft launch', 'Phase 5: Monetization expansion', 'Release record template'], 'commercialization roadmap', missing);
-requireTokens(commercialRisks, ['Commercialization Risk Register', 'P0 blocker', 'unlicensed legacy assets', 'ads interrupt gameplay', 'leaderboard mixes tracks', 'WeChat service misconfiguration', 'scope creep'], 'commercialization risk register', missing);
-requireTokens(commercialChecklist, ['Commercialization Launch Checklist', 'Commercial asset pack', 'License and compliance', 'WeChat services', 'Gameplay QA', 'UI / UX QA', 'Build validation', 'Device validation', 'Go / no-go signoff'], 'commercialization launch checklist', missing);
+requireTokens(commercialAssetRights, ['Commercialization Asset Rights Register', 'P0 release blockers', 'background.png', 'sprites.png', 'racer.mp3', 'logo.png', 'icons.png', 'engine-loop.mp3', 'crash.mp3', 'menu-confirm.mp3', 'share.card', 'owner / creator', 'License proof location', 'Commercial use allowed', 'Redistribution in WeChat package allowed', 'fallback-approved', 'Approval rule'], 'commercial asset rights register', missing);
+requireTokens(commercialRisks, ['Commercialization Risk Register', 'P0 blocker', 'unlicensed legacy assets', 'commercialization-asset-rights-register.md', 'ads interrupt gameplay', 'leaderboard mixes tracks', 'WeChat service misconfiguration', 'scope creep'], 'commercialization risk register', missing);
+requireTokens(commercialChecklist, ['Commercialization Launch Checklist', 'Commercial asset pack', 'commercialization-asset-rights-register.md', 'Required asset rows are marked `approved`', 'fallback-approved', 'License and compliance', 'WeChat services', 'Gameplay QA', 'UI / UX QA', 'Build validation', 'Device validation', 'Go / no-go signoff'], 'commercialization launch checklist with asset rights gate', missing);
 
 const agentTaskChecks = {
   'docs/agent-tasks/commercialization-director.md': ['Commercialization Director', 'go / no-go', 'Release scope'],
