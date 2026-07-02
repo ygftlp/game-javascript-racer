@@ -101,6 +101,51 @@ wx.setUserCloudStorage({
 })
 ```
 
+## Sample files
+
+Protocol and behavior sample:
+
+```text
+docs/samples/open-data-leaderboard-handler.js
+```
+
+Canvas UI renderer sample:
+
+```text
+docs/samples/open-data-leaderboard-canvas.js
+```
+
+Recommended open data load order:
+
+```js
+require('./open-data-leaderboard-canvas.js')
+require('./open-data-leaderboard-handler.js')
+```
+
+When the Canvas renderer is loaded first, the handler automatically calls:
+
+```js
+renderRacerLeaderboardCanvas(context, rows)
+renderEmptyRacerLeaderboardCanvas(context, message)
+```
+
+If the renderer is not loaded, the handler falls back to console output for debugging.
+
+## Canvas renderer behavior
+
+The Canvas renderer sample draws:
+
+- title and source subtitle
+- friend rank rows
+- avatar image with nickname fallback
+- top-three rank badges
+- total race time
+- best lap tie-breaker
+- empty state
+- malformed or unavailable storage fallback state
+
+Replace the sample visual theme and Canvas layout before final release.
+
 ## Failure behavior
 
 - Unknown message types should be ignored.
@@ -115,4 +160,5 @@ wx.setUserCloudStorage({
 - Tap leaderboard from the main menu and result screen.
 - Confirm `showRacerLeaderboard` includes `source`, `trackId`, and `trackName`.
 - Confirm each track displays a separate ranking key.
+- Confirm the Canvas renderer draws title, avatar/fallback, total time, best lap, and empty state.
 - Confirm malformed messages do not crash the open data context.
