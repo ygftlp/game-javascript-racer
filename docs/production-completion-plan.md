@@ -4,7 +4,7 @@ This plan defines what must be complete before the WeChat racer can be considere
 
 ## Goal
 
-Ship a complete WeChat mini game version of the pseudo-3D racer with commercial-safe assets, stable gameplay, mobile UX, platform services, and launch validation.
+Ship a complete WeChat mini game version of the pseudo-3D racer with commercial-safe assets, stable gameplay, mobile UX, platform services, commercialization readiness, and launch validation.
 
 ## Completion gates
 
@@ -91,69 +91,43 @@ Source of truth:
 - `docs/agent-tasks/gameplay-readability-qa.md`
 - `docs/agent-tasks/monetization-ux.md`
 
+### Gate 6: Commercialization readiness
+
+Status: commercialization plan, multi-agent workstreams, roadmap, risk register, launch checklist, and dedicated commercial agent task cards implemented; commercial assets, live platform values, launch QA, and go/no-go signoff still needed.
+
+Source of truth:
+
+- `docs/commercialization-plan.md`
+- `docs/commercialization-agent-workstreams.md`
+- `docs/commercialization-roadmap.md`
+- `docs/commercialization-risk-register.md`
+- `docs/commercialization-launch-checklist.md`
+- `docs/agent-tasks/commercialization-director.md`
+- `docs/agent-tasks/licensing-compliance.md`
+- `docs/agent-tasks/monetization-strategy.md`
+- `docs/agent-tasks/growth-publishing.md`
+- `docs/agent-tasks/liveops-analytics.md`
+
 Implemented:
 
-- `docs/open-data-leaderboard-protocol.md` defines the `submitRacerScore` and `showRacerLeaderboard` message contract between the main domain and open data context.
-- `docs/samples/open-data-leaderboard-handler.js` provides a sample `wx.onMessage` handler with `wx.setUserCloudStorage`, `wx.getFriendCloudStorage`, per-track keys, score sorting, empty state, malformed-message fallback, and optional Canvas renderer integration.
-- `docs/samples/open-data-leaderboard-canvas.js` provides a sharedCanvas renderer for title, source subtitle, avatar/fallback, rank badges, total time, best lap, and empty state.
-- `docs/wechat-deployment-guide.md` defines the release checklist, including the open data leaderboard wiring step and the commercial asset switch commands: `npm run assets:commercial`, `npm run assets:commercial:apply`, `npm run validate:production`, and `npm run build:wx`.
-- `docs/local-setup-wechat.md` links to the deployment guide and repeats the commercial asset switch command sequence for discoverability.
-- `src/racer/RacerWechatConfig.ts` isolates safe default WeChat service configuration for share copy, share image placeholder, leaderboard command/cloud function placeholder, ad unit placeholders, and console analytics.
-- `src/racer/RacerWechatServices.ts` provides a WeChat services adapter skeleton for share, leaderboard, ads, and analytics.
-- `src/racer/RacerServices.ts` now prefers the WeChat adapter when `globalThis.wx` exists and falls back to noop services outside WeChat.
-- WeChat sharing uses `wx.shareAppMessage` with result/track metadata.
-- WeChat leaderboard submit supports either cloud function submission or open-data-context `postMessage`.
-- WeChat leaderboard view receives `source`, `trackId`, and `trackName` context from `RacerScene`.
-- WeChat ads skeleton supports interstitial and rewarded video ad creation when ad unit IDs are configured.
-- WeChat analytics skeleton forwards events to `wx.reportAnalytics` and can also log to console.
-- `scripts/use-commercial-assets.mjs` checks required commercial files, reports optional fallback files, and only switches the active pack when run with `--apply`.
-- `package.json` exposes `assets:commercial`, `assets:commercial:apply`, and `assets:legacy:apply` commands.
-- `src/racer/RacerAssetManifest.ts` defines optional `images.brandLogo` and `images.uiIconAtlas`.
-- The commercial template maps Logo to `assets/packs/default/images/ui/logo.png` and UI icons to `assets/packs/default/images/ui/icons.png`.
-- `src/racer/RacerUiIconAtlas.ts` defines the 4-column, 64px-cell UI icon atlas frame order.
-- `src/racer/RacerAssets.ts` loads the optional commercial Logo texture and optional commercial UI icon atlas without blocking the required background and sprite atlas.
-- `src/racer/RacerUiLogo.ts` prefers a loaded commercial Logo texture and falls back to the programmatic Logo when it is missing, still loading, or fails to draw.
-- `src/racer/RacerUiIcons.ts` prefers a loaded commercial UI icon atlas and falls back to programmatic icons when it is missing, still loading, or fails to draw.
-- `RacerUiLogo` and `RacerUiIcons` avoid `roundRect` so they remain safer for WeChat Canvas compatibility.
-- `src/racer/RacerUiTheme.ts` centralizes UI skin tokens for HUD, controls, panels, buttons, overlays, minimap, `brandLogo`, `buttonIcon`, `trackCard`, `settingCard`, `statusPill`, and icon colors.
-- `RacerUiRenderer` renders the main-menu title area through `RacerUiLogo` using `极速公路` and `RETRO RACER` as fallback copy.
-- `src/racer/RacerUiFlags.ts` defines release/debug UI switches.
-- `src/racer/RacerRoadTheme.ts` centralizes road palette tokens and active road theme selection.
-- `src/racer/RacerTrackDefinition.ts` defines a selectable track registry.
-- `src/racer/RacerControlSensitivity.ts` defines `舒适`, `标准`, and `灵敏` control sensitivity profiles.
-- The main menu includes iconized `开始比赛`, `选择赛道`, `排行榜`, `操作说明`, and `设置` actions.
-- `RacerUiLayout` defines a dedicated track-select screen and a dedicated settings screen.
-- `RacerScene` persists music, minimap, control coach, control sensitivity, selected track id, and per-track best laps.
-- `RaceResult` includes selected track metadata for share / leaderboard payloads.
-- Release mode is the default UI mode, and debug-only asset/performance/commercial-safe text is hidden by default.
-- Buttons have a pressed state and overlay actions execute on touch end with drag-outside cancellation.
-- `RacerMiniMap` is an independent component for the in-race track radar.
-- `Pseudo3DRenderer` focuses on world rendering and delegates UI drawing.
-- `Pseudo3DRenderer` uses the selected track road theme fog color.
-- Player car rendering is stabilized outside segment projection clipping and has an always-visible fallback body underneath the sprite frame.
-- Canvas image smoothing is disabled for sharper pixel-art sprites and backgrounds.
-- Local compatibility engine creates a high-DPI canvas using `pixelRatio` and scales the context back to logical coordinates.
+- `docs/commercialization-plan.md` defines product positioning, target audience, commercial pillars, revenue model phases, KPIs, commercial milestones, and go/no-go rules.
+- `docs/commercialization-agent-workstreams.md` assigns Commercialization Director, Licensing & Compliance, Product & Gameplay, Monetization Strategy, Growth & Publishing, LiveOps & Analytics, Art & Audio, Platform Integration, and Commercial QA roles.
+- `docs/commercialization-roadmap.md` defines phases from commercial-safe content pack through soft launch, monetization expansion, and content expansion.
+- `docs/commercialization-risk-register.md` tracks launch blockers around asset rights, trademarks, ads, leaderboard fairness, controls, visibility, WeChat service configuration, package size, policy review, and scope creep.
+- `docs/commercialization-launch-checklist.md` defines the release go/no-go checklist covering source branch, commercial assets, licensing, WeChat services, gameplay QA, UI/UX QA, build validation, device validation, soft-launch measurement, and signoff.
+- Commercialization agent task cards define ownership for launch direction, compliance, monetization, growth/publishing, and liveops analytics.
 
-Still required before commercial release:
+Required before commercial release:
 
-- Replace placeholder title/logo with commercial-safe branding.
-- Add the final commercial Logo image at `assets/packs/default/images/ui/logo.png`, or keep the programmatic logo fallback.
-- Add the final commercial UI icon atlas at `assets/packs/default/images/ui/icons.png`, or keep the programmatic icon fallback.
-- Replace legacy low-resolution art with a commercial-safe higher-quality asset pack before launch.
-- Configure real WeChat AppID, share image, cloud/open-data leaderboard path, and ad unit IDs through a private release process.
-- Replace the sample open data Canvas theme/layout with the final production leaderboard UI.
-- Verify `wx.shareAppMessage`, open data context score storage/ranking, cloud score submission, `wx.reportAnalytics`, interstitial ads, and rewarded ads on real WeChat targets.
-- Tune exact joystick/brake/minimap sizes and opacity on real low-end and high-DPI devices.
-- Tune the dedicated track-select screen and settings screen on small devices.
-- Tune theme-tokenized `brandLogo`, `buttonIcon`, `trackCard`, `settingCard`, and `statusPill` metrics on target devices.
-- Tune the `舒适 / 标准 / 灵敏` sensitivity presets from real device feedback.
-- Tune the commercial asphalt palette and all selectable track section layouts on real devices.
-- Add final result-screen share copy, ranking entry polish, and optional medal/rating art.
-- Switch `src/engine/index.ts` to the real SDK after the SDK package is built/published correctly.
+- Complete commercial-safe asset pack and asset rights register.
+- Configure live WeChat share, leaderboard, analytics, and ad values through a private release process.
+- Run the full deployment checklist and launch checklist.
+- Resolve all P0 blockers in `docs/commercialization-risk-register.md`.
+- Capture go/no-go signoff in `docs/commercialization-launch-checklist.md`.
 
-### Gate 6: Quality and validation
+### Gate 7: Quality and validation
 
-Status: scripts, deployment guide, and open data samples added; full validation requires local environment.
+Status: scripts, deployment guide, open data samples, and commercialization docs added; full validation requires local environment.
 
 Required commercial switch commands:
 
@@ -194,6 +168,7 @@ Required manual checks:
 - Confirm missing optional Logo/icon/sfx files only show fallback warnings and do not block gameplay.
 - Confirm selected track, per-track best lap, audio preference, minimap preference, operation coach preference, and control sensitivity persist after reload.
 - Confirm no debug-only UI appears in release mode.
+- Confirm commercialization launch checklist has owners and current go/no-go status.
 - Finish the configured target lap count on each selectable track and restart.
 - Check FPS on low-end and mid-range devices.
 - Check package size.
