@@ -4,6 +4,9 @@
  * Copy this into the open data context project and adapt rendering/storage for
  * your real leaderboard UI. This file is documentation sample code only; it is
  * not imported by the main game bundle.
+ *
+ * Optional: load docs/samples/open-data-leaderboard-canvas.js before this file
+ * to render the leaderboard on sharedCanvas instead of console output.
  */
 
 const SCORE_KEY_PREFIX = 'racer.score.';
@@ -124,7 +127,11 @@ function parseLeaderboardRows(data, trackId) {
 }
 
 function renderLeaderboard(context, rows) {
-  // Replace this console renderer with Canvas drawing in the open data context.
+  if (typeof renderRacerLeaderboardCanvas === 'function') {
+    renderRacerLeaderboardCanvas(context, rows);
+    return;
+  }
+
   console.log(`[open-data:racer] ${context.trackName} leaderboard from ${context.source}`);
   if (!rows.length) {
     renderEmptyLeaderboard(context, '暂无好友成绩');
@@ -139,7 +146,11 @@ function renderLeaderboard(context, rows) {
 }
 
 function renderEmptyLeaderboard(context, message) {
-  // Replace this console renderer with Canvas empty-state drawing.
+  if (typeof renderEmptyRacerLeaderboardCanvas === 'function') {
+    renderEmptyRacerLeaderboardCanvas(context, message);
+    return;
+  }
+
   console.log(`[open-data:racer] ${context?.trackName || '赛道'} ${message}`);
 }
 
