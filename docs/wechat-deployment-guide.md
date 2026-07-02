@@ -56,13 +56,21 @@ Protocol document:
 docs/open-data-leaderboard-protocol.md
 ```
 
-Sample open data context handler:
+Sample open data context files:
 
 ```text
+docs/samples/open-data-leaderboard-canvas.js
 docs/samples/open-data-leaderboard-handler.js
 ```
 
-The sample handler covers:
+Recommended load order in the open data context project:
+
+```js
+require('./open-data-leaderboard-canvas.js')
+require('./open-data-leaderboard-handler.js')
+```
+
+The handler covers:
 
 - `submitRacerScore`
 - `showRacerLeaderboard`
@@ -72,7 +80,16 @@ The sample handler covers:
 - total-time ranking with best-lap tie-breaker
 - empty-state and malformed-message fallbacks
 
-Copy the sample into the open data context project, replace the console renderer with Canvas drawing, and keep the message names aligned with `RacerWechatConfig.ts`.
+The Canvas renderer covers:
+
+- sharedCanvas resolution
+- title and source subtitle
+- avatar image with nickname fallback
+- top-three rank badges
+- total race time and best lap
+- empty-state drawing
+
+Copy both sample files into the open data context project, replace the sample visual theme/layout if needed, and keep the message names aligned with `RacerWechatConfig.ts`.
 
 ## 5. Switch to commercial assets
 
@@ -147,6 +164,7 @@ Check these before upload/release:
 - Open data context receives `submitRacerScore` with `trackId`, `trackName`, `totalRaceTime`, and `bestLapTime`.
 - Open data context receives `showRacerLeaderboard` with `source`, `trackId`, and `trackName`.
 - Open data context stores per-track score keys as `racer.score.${trackId}`.
+- Open data context draws title, avatar/fallback, rank, total time, best lap, and empty state on sharedCanvas.
 - Open data context ignores malformed messages without crashing.
 - Interstitial ads are requested only after race finish, never while driving.
 - Rewarded ads are not shown unless explicitly wired to an opt-in reward.
