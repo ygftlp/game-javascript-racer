@@ -46,6 +46,7 @@ const requiredFiles = [
   'docs/production-completion-plan.md',
   'docs/road-replacement-guide.md',
   'docs/samples/open-data-leaderboard-handler.js',
+  'docs/samples/open-data-leaderboard-canvas.js',
   'docs/ui-polish-agent-sync.md',
   'docs/wechat-deployment-guide.md'
 ];
@@ -118,7 +119,8 @@ const uiLayout = files['src/racer/RacerUiLayout.ts'];
 const joystick = files['src/racer/RacerJoystick.ts'];
 const localSetupGuide = files['docs/local-setup-wechat.md'];
 const openDataProtocol = files['docs/open-data-leaderboard-protocol.md'];
-const openDataSample = files['docs/samples/open-data-leaderboard-handler.js'];
+const openDataHandler = files['docs/samples/open-data-leaderboard-handler.js'];
+const openDataCanvas = files['docs/samples/open-data-leaderboard-canvas.js'];
 const roadGuide = files['docs/road-replacement-guide.md'];
 const assetGuide = files['docs/asset-replacement-guide.md'];
 const productionPlan = files['docs/production-completion-plan.md'];
@@ -147,35 +149,9 @@ requireTokens(services, ['RACER_WECHAT_SERVICES_CONFIG', 'RacerLeaderboardViewCo
 requireTokens(wechatConfig, ['RACER_WECHAT_SERVICES_CONFIG', 'titlePrefix', 'openDataContextCommand', 'cloudFunctionName', 'interstitialAdUnitId', 'rewardedAdUnitId', 'enableConsoleAnalytics', 'Do not commit production-only secrets'], 'isolated WeChat services configuration template', missing);
 requireTokens(wechatServices, ['RACER_WECHAT_SERVICES_CONFIG', 'createWechatRacerServices', 'resolveWechatApi', 'globalThis', 'WechatSocialService', 'shareAppMessage', 'WechatLeaderboardService', 'getOpenDataContext', 'postMessage', 'submitRacerScore', 'showRacerLeaderboard', 'cloudFunctionName', 'callFunction', 'WechatAdsService', 'createInterstitialAd', 'createRewardedVideoAd', 'showInterstitial', 'showRewarded', 'reportAnalytics', 'enableConsoleAnalytics', 'context'], 'WeChat services adapter skeleton', missing);
 
-requireTokens(openDataProtocol, [
-  'Open Data Leaderboard Protocol',
-  'submitRacerScore',
-  'showRacerLeaderboard',
-  'trackId: string',
-  'trackName: string',
-  'totalRaceTime: number',
-  'bestLapTime: number',
-  'racer.score.${trackId}',
-  'wx.setUserCloudStorage',
-  'Unknown message types should be ignored',
-  'malformed messages'
-], 'open data leaderboard protocol doc', missing);
-
-requireTokens(openDataSample, [
-  'handleRacerOpenDataMessage',
-  'submitRacerScore',
-  'showRacerLeaderboard',
-  'SCORE_KEY_PREFIX',
-  'racer.score.',
-  'isValidScorePayload',
-  'wx.setUserCloudStorage',
-  'wx.getFriendCloudStorage',
-  'parseLeaderboardRows',
-  'renderLeaderboard',
-  'renderEmptyLeaderboard',
-  'wx.onMessage',
-  'module.exports'
-], 'sample open data leaderboard handler', missing);
+requireTokens(openDataProtocol, ['Open Data Leaderboard Protocol', 'submitRacerScore', 'showRacerLeaderboard', 'trackId: string', 'trackName: string', 'totalRaceTime: number', 'bestLapTime: number', 'racer.score.${trackId}', 'wx.setUserCloudStorage', 'open-data-leaderboard-handler.js', 'open-data-leaderboard-canvas.js', 'renderRacerLeaderboardCanvas', 'Canvas renderer behavior', 'Unknown message types should be ignored', 'malformed messages'], 'open data leaderboard protocol doc and canvas sample docs', missing);
+requireTokens(openDataHandler, ['handleRacerOpenDataMessage', 'submitRacerScore', 'showRacerLeaderboard', 'SCORE_KEY_PREFIX', 'racer.score.', 'isValidScorePayload', 'wx.setUserCloudStorage', 'wx.getFriendCloudStorage', 'parseLeaderboardRows', 'renderLeaderboard', 'renderEmptyLeaderboard', 'renderRacerLeaderboardCanvas', 'renderEmptyRacerLeaderboardCanvas', 'wx.onMessage', 'module.exports'], 'sample open data leaderboard handler with optional canvas renderer', missing);
+requireTokens(openDataCanvas, ['RACER_LEADERBOARD_CANVAS_THEME', 'resolveOpenDataCanvas', 'sharedCanvas', 'renderRacerLeaderboardCanvas', 'renderEmptyRacerLeaderboardCanvas', 'drawHeader', 'drawLeaderboardRows', 'drawLeaderboardRow', 'drawRankBadge', 'drawAvatar', 'getAvatarImage', 'wx.createImage', 'drawEmptyState', 'formatSeconds', 'roundedRectPath', 'module.exports'], 'sample open data canvas leaderboard renderer', missing);
 
 requireTokens(manifest, ['brandLogo?: string', 'uiIconAtlas?: string', "id: 'ui.brand-logo'", "id: 'ui.icons'", 'assets/packs/default/images/ui/logo.png', 'assets/packs/default/images/ui/icons.png', 'ACTIVE_RACER_ASSET_PACK'], 'optional logo and UI icon asset manifest', missing);
 requireTokens(assets, ['import { RacerUiIcons }', 'brandLogo: Texture | null = null', 'uiIcons: Texture | null = null', 'loadOptionalBrandLogo(engine)', 'loadOptionalUiIconAtlas(engine)', 'RacerUiIcons.setIconAtlasTexture(texture)', 'using procedural logo fallback', 'using procedural icon fallback'], 'optional logo and UI icon atlas asset loading', missing);
@@ -204,12 +180,13 @@ requireTokens(joystick, ['class RacerJoystick', 'deadZone = 0.06', 'profile.joys
 requireTokens(uiRenderer, ['RacerMiniMap', 'RacerUiIcons', 'RacerUiLogo', 'this.logo.render(ctx', 'texture: assets?.brandLogo ?? null', 'RETRO RACER', 'drawTrackSelect', 'drawSettings', 'this.icons.render(ctx, icon', '选择赛道', '设置', '控制手感'], 'RacerUiRenderer commercial UI, optional logo asset, icon atlas fallback, track select, settings cards, and sensitivity display', missing);
 requireTokens(miniMap, ['class RacerMiniMap', 'drawCurvePreview', 'drawTrafficDots', '赛道雷达', 'RACER_UI_THEME'], 'independent minimap component', missing);
 requireTokens(startup, ['startWeChatRacerGame', 'new WxPlatform', 'onHide', 'onShow'], 'WeChat startup module lifecycle binding', missing);
+
 requireTokens(roadGuide, ['RACER_TRACKS', '选择赛道', 'selected track id', 'per track id', 'Level 5: Add textured road support'], 'road replacement guide track registry and persistence docs', missing);
 requireTokens(assetGuide, ['npm run assets:commercial', 'npm run assets:commercial:apply', 'npm run assets:legacy:apply', 'required files', 'assets/packs/default/images/ui/logo.png', 'assets/packs/default/images/ui/icons.png', 'programmatic icon'], 'asset replacement guide safe switch and optional UI asset docs', missing);
 requireTokens(localSetupGuide, ['docs/wechat-deployment-guide.md', 'npm run assets:commercial', 'npm run assets:commercial:apply', 'npm run validate:production', 'npm run build:wx'], 'local setup guide deployment handoff', missing);
-requireTokens(deploymentGuide, ['WeChat Deployment Guide', 'RacerWechatConfig.ts', 'docs/open-data-leaderboard-protocol.md', 'docs/samples/open-data-leaderboard-handler.js', 'submitRacerScore', 'showRacerLeaderboard', 'racer.score.${trackId}', 'npm run assets:commercial', 'npm run assets:commercial:apply', 'npm run validate:production', 'npm run build:wx', 'npm run assets:legacy:apply', 'COMMERCIAL_TEMPLATE_ASSET_PACK', 'dist/wechat/', 'wx.shareAppMessage', 'getOpenDataContext', 'Do not commit production-only secrets'], 'WeChat deployment guide release checklist, open data protocol, and commercial asset switch flow', missing);
-requireTokens(productionPlan, ['open data leaderboard protocol', 'open-data-leaderboard-handler.js', 'submitRacerScore', 'showRacerLeaderboard', 'racer.score.${trackId}', 'safe commercial asset pack switch script', 'WeChat services adapter skeleton', 'RacerWechatConfig.ts', 'wechat-deployment-guide.md', 'assets:commercial:apply', '舒适', '标准', '灵敏'], 'production completion plan open data leaderboard, WeChat services, safe switch, and UI docs', missing);
-requireTokens(uiAgentSync, ['open data context message protocol', 'open-data-leaderboard-handler.js', 'submitRacerScore', 'showRacerLeaderboard', 'racer.score.${trackId}', 'WeChat services adapter skeleton', 'RacerWechatConfig.ts', 'wechat-deployment-guide.md', 'safe commercial asset pack switch flow', '舒适', '标准', '灵敏'], 'UI polish multi-agent sync open data leaderboard, WeChat services, config, deployment guide, and UI docs', missing);
+requireTokens(deploymentGuide, ['WeChat Deployment Guide', 'RacerWechatConfig.ts', 'docs/open-data-leaderboard-protocol.md', 'docs/samples/open-data-leaderboard-handler.js', 'docs/samples/open-data-leaderboard-canvas.js', 'renderRacerLeaderboardCanvas', 'submitRacerScore', 'showRacerLeaderboard', 'racer.score.${trackId}', 'sharedCanvas', 'npm run assets:commercial', 'npm run assets:commercial:apply', 'npm run validate:production', 'npm run build:wx', 'npm run assets:legacy:apply', 'COMMERCIAL_TEMPLATE_ASSET_PACK', 'dist/wechat/', 'Do not commit production-only secrets'], 'WeChat deployment guide release checklist, open data canvas sample, and commercial asset switch flow', missing);
+requireTokens(productionPlan, ['sample Canvas renderer', 'open-data-leaderboard-canvas.js', 'render', 'submitRacerScore', 'showRacerLeaderboard', 'racer.score.${trackId}', 'safe commercial asset pack switch script', 'WeChat services adapter skeleton', 'RacerWechatConfig.ts', 'wechat-deployment-guide.md', 'assets:commercial:apply', '舒适', '标准', '灵敏'], 'production completion plan open data canvas leaderboard, WeChat services, safe switch, and UI docs', missing);
+requireTokens(uiAgentSync, ['open-data-leaderboard-canvas.js', 'sharedCanvas renderer', 'Canvas renderer draws', 'submitRacerScore', 'showRacerLeaderboard', 'racer.score.${trackId}', 'WeChat services adapter skeleton', 'RacerWechatConfig.ts', 'wechat-deployment-guide.md', 'safe commercial asset pack switch flow', '舒适', '标准', '灵敏'], 'UI polish multi-agent sync open data canvas leaderboard, WeChat services, config, deployment guide, and UI docs', missing);
 
 for (const file of sourceFilesToCheck) {
   const content = files[file];
