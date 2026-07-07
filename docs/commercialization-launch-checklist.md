@@ -26,6 +26,14 @@ Optional but recommended files:
 - [ ] `assets/packs/default/audio/sfx/crash.mp3`
 - [ ] `assets/packs/default/audio/sfx/menu-confirm.mp3`
 
+Art/audio production checks:
+
+- [ ] Required art/audio follows `docs/commercialization-art-audio-brief.md`.
+- [ ] Sprite atlas frame positions are compatible with `src/racer/SpriteAtlas.ts`, or required code changes are documented.
+- [ ] UI icon atlas order matches `src/racer/RacerUiIconAtlas.ts` if a commercial icon atlas is provided.
+- [ ] Package size impact from new PNG/MP3 files is checked.
+- [ ] Real-device screenshot/video review is scheduled after assets are copied.
+
 Commands:
 
 ```bash
