@@ -4,6 +4,16 @@ This register is the commercial-release source of truth for asset ownership, lic
 
 Commercial release must not ship with unclear or unlicensed assets. Any row marked `P0 blocker` must be resolved before upload or public release.
 
+## Related production brief
+
+Asset production requirements are defined in:
+
+```text
+docs/commercialization-art-audio-brief.md
+```
+
+Use that brief before sourcing, generating, buying, or outsourcing any image/audio asset. Use this register after candidate assets exist to record rights, license proof, QA status, and approval.
+
 ## Status values
 
 - `legacy-risk`: current placeholder / legacy asset is not approved for commercial release.
@@ -32,9 +42,9 @@ These must be `approved` before commercial release:
 
 | Asset | Path | Current status | Required action | Owner |
 |---|---|---:|---|---|
-| Background atlas | `assets/packs/default/images/background.png` | needed | Provide commercial-safe background image and license proof. | Art & Audio Production Agent |
-| Sprite atlas | `assets/packs/default/images/sprites.png` | needed | Provide commercial-safe player car, traffic, road props, and roadside sprites. | Art & Audio Production Agent |
-| Background music | `assets/packs/default/audio/music/racer.mp3` | needed | Provide licensed music with commercial WeChat distribution rights. | Art & Audio Production Agent |
+| Background atlas | `assets/packs/default/images/background.png` | needed | Produce from `docs/commercialization-art-audio-brief.md`, then provide commercial-safe image and license proof. | Art & Audio Production Agent |
+| Sprite atlas | `assets/packs/default/images/sprites.png` | needed | Produce from `docs/commercialization-art-audio-brief.md`, then provide commercial-safe player car, traffic, road props, and roadside sprites. | Art & Audio Production Agent |
+| Background music | `assets/packs/default/audio/music/racer.mp3` | needed | Produce from `docs/commercialization-art-audio-brief.md`, then provide licensed music with commercial WeChat distribution rights. | Art & Audio Production Agent |
 | Asset rights proof | `docs/commercialization-asset-rights-register.md` | needed | Fill owner/source/license/proof fields for all release assets. | Licensing & Compliance Agent |
 
 ## Optional but recommended assets
@@ -43,12 +53,12 @@ These may be `approved` or `fallback-approved` for first release.
 
 | Asset | Path | Current status | Runtime fallback | Required action | Owner |
 |---|---|---:|---|---|---|
-| Brand logo | `assets/packs/default/images/ui/logo.png` | needed | Programmatic logo fallback | Provide commercial logo or approve fallback. | Art & Audio Production Agent |
-| UI icon atlas | `assets/packs/default/images/ui/icons.png` | needed | Programmatic icon fallback | Provide commercial icon atlas or approve fallback. | Art & Audio Production Agent |
-| Engine loop sfx | `assets/packs/default/audio/sfx/engine-loop.mp3` | needed | Silent/no optional sound | Provide licensed engine loop or approve no-sfx fallback. | Art & Audio Production Agent |
-| Crash sfx | `assets/packs/default/audio/sfx/crash.mp3` | needed | Silent/no optional sound | Provide licensed crash sfx or approve no-sfx fallback. | Art & Audio Production Agent |
-| Menu confirm sfx | `assets/packs/default/audio/sfx/menu-confirm.mp3` | needed | Silent/no optional sound | Provide licensed menu sfx or approve no-sfx fallback. | Art & Audio Production Agent |
-| Share image | `release-private/share-card.png` or configured URL | needed | Text-only share | Provide commercial-safe share image or approve text-only sharing. | Growth & Publishing Agent |
+| Brand logo | `assets/packs/default/images/ui/logo.png` | needed | Programmatic logo fallback | Produce from brief or approve fallback. | Art & Audio Production Agent |
+| UI icon atlas | `assets/packs/default/images/ui/icons.png` | needed | Programmatic icon fallback | Produce from brief or approve fallback. | Art & Audio Production Agent |
+| Engine loop sfx | `assets/packs/default/audio/sfx/engine-loop.mp3` | needed | Silent/no optional sound | Produce from brief or approve no-sfx fallback. | Art & Audio Production Agent |
+| Crash sfx | `assets/packs/default/audio/sfx/crash.mp3` | needed | Silent/no optional sound | Produce from brief or approve no-sfx fallback. | Art & Audio Production Agent |
+| Menu confirm sfx | `assets/packs/default/audio/sfx/menu-confirm.mp3` | needed | Silent/no optional sound | Produce from brief or approve no-sfx fallback. | Art & Audio Production Agent |
+| Share image | `release-private/share-card.png` or configured URL | needed | Text-only share | Produce from brief or approve text-only sharing. | Growth & Publishing Agent |
 
 ## Asset register template
 
@@ -99,7 +109,7 @@ Contains AI-generated content: unknown
 AI tool/model and terms, if applicable:
 Attribution required: unknown
 Attribution text, if required:
-QA notes: Must tile or cover landscape gameplay without visible seams. Must not reduce road readability.
+QA notes: Must follow `docs/commercialization-art-audio-brief.md`; must tile or cover landscape gameplay without visible seams. Must not reduce road readability.
 Approval owner: Licensing & Compliance Agent
 Approval date:
 ```
@@ -124,7 +134,7 @@ Contains AI-generated content: unknown
 AI tool/model and terms, if applicable:
 Attribution required: unknown
 Attribution text, if required:
-QA notes: Must include player car, traffic cars, roadside props, and billboard-safe art. Avoid real car brands or trademarked logos.
+QA notes: Must follow `docs/commercialization-art-audio-brief.md`; must include player car, traffic cars, roadside props, and billboard-safe art. Avoid real car brands or trademarked logos.
 Approval owner: Licensing & Compliance Agent
 Approval date:
 ```
@@ -149,7 +159,7 @@ Contains AI-generated content: unknown
 AI tool/model and terms, if applicable:
 Attribution required: unknown
 Attribution text, if required:
-QA notes: Optional. If missing, runtime uses programmatic logo fallback. Fallback still needs release approval.
+QA notes: Optional. Must follow `docs/commercialization-art-audio-brief.md`. If missing, runtime uses programmatic logo fallback. Fallback still needs release approval.
 Approval owner: Licensing & Compliance Agent
 Approval date:
 ```
@@ -174,7 +184,7 @@ Contains AI-generated content: unknown
 AI tool/model and terms, if applicable:
 Attribution required: unknown
 Attribution text, if required:
-QA notes: Optional. Recommended 4-column, 64px-cell transparent PNG matching `RacerUiIconAtlas.ts`. If missing, runtime uses programmatic icons fallback.
+QA notes: Optional. Must follow `docs/commercialization-art-audio-brief.md`. Recommended 4-column, 64px-cell transparent PNG matching `RacerUiIconAtlas.ts`. If missing, runtime uses programmatic icons fallback.
 Approval owner: Licensing & Compliance Agent
 Approval date:
 ```
@@ -199,7 +209,7 @@ Contains AI-generated content: unknown
 AI tool/model and terms, if applicable:
 Attribution required: unknown
 Attribution text, if required:
-QA notes: Must be safe for commercial WeChat mini game distribution. Confirm loop quality and package size.
+QA notes: Must follow `docs/commercialization-art-audio-brief.md`; must be safe for commercial WeChat mini game distribution. Confirm loop quality and package size.
 Approval owner: Licensing & Compliance Agent
 Approval date:
 ```
@@ -224,7 +234,7 @@ Contains AI-generated content: unknown
 AI tool/model and terms, if applicable:
 Attribution required: unknown
 Attribution text, if required:
-QA notes: Optional. If missing, gameplay should continue with no engine-loop sfx.
+QA notes: Optional. Must follow `docs/commercialization-art-audio-brief.md`. If missing, gameplay should continue with no engine-loop sfx.
 Approval owner: Licensing & Compliance Agent
 Approval date:
 ```
@@ -249,7 +259,7 @@ Contains AI-generated content: unknown
 AI tool/model and terms, if applicable:
 Attribution required: unknown
 Attribution text, if required:
-QA notes: Optional. If missing, gameplay should continue with no crash sfx.
+QA notes: Optional. Must follow `docs/commercialization-art-audio-brief.md`. If missing, gameplay should continue with no crash sfx.
 Approval owner: Licensing & Compliance Agent
 Approval date:
 ```
@@ -274,7 +284,7 @@ Contains AI-generated content: unknown
 AI tool/model and terms, if applicable:
 Attribution required: unknown
 Attribution text, if required:
-QA notes: Optional. If missing, gameplay should continue with no menu-confirm sfx.
+QA notes: Optional. Must follow `docs/commercialization-art-audio-brief.md`. If missing, gameplay should continue with no menu-confirm sfx.
 Approval owner: Licensing & Compliance Agent
 Approval date:
 ```
@@ -299,7 +309,7 @@ Contains AI-generated content: unknown
 AI tool/model and terms, if applicable:
 Attribution required: unknown
 Attribution text, if required:
-QA notes: Optional. If missing, share can use text-only copy. If provided, image must not contain unlicensed logos, real brands, or misleading claims.
+QA notes: Optional. Must follow `docs/commercialization-art-audio-brief.md`. If missing, share can use text-only copy. If provided, image must not contain unlicensed logos, real brands, or misleading claims.
 Approval owner: Licensing & Compliance Agent
 Approval date:
 ```
