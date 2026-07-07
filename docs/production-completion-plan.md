@@ -49,6 +49,7 @@ Required:
 - Optional but recommended: engine loop, crash, and menu confirm sounds.
 - Update `SpriteAtlas.ts` if new sprite atlas coordinates differ.
 - Update `RacerUiIconAtlas.ts` if the UI icon atlas grid changes.
+- Use `docs/commercialization-art-audio-brief.md` before sourcing, generating, buying, or outsourcing release assets.
 - Use `npm run assets:commercial` before switching packs.
 - Use `npm run assets:commercial:apply` to safely switch `ACTIVE_RACER_ASSET_PACK` to `COMMERCIAL_TEMPLATE_ASSET_PACK` only after required files exist.
 - Use `npm run assets:legacy:apply` to switch back to `LEGACY_RACER_ASSET_PACK` during QA.
@@ -93,13 +94,14 @@ Source of truth:
 
 ### Gate 6: Commercialization readiness
 
-Status: commercialization plan, multi-agent workstreams, roadmap, asset rights register, risk register, launch checklist, and dedicated commercial agent task cards implemented; commercial assets, asset license proof, live platform values, launch QA, and go/no-go signoff still needed.
+Status: commercialization plan, multi-agent workstreams, roadmap, art/audio production brief, asset rights register, risk register, launch checklist, and dedicated commercial agent task cards implemented; commercial assets, asset license proof, live platform values, launch QA, and go/no-go signoff still needed.
 
 Source of truth:
 
 - `docs/commercialization-plan.md`
 - `docs/commercialization-agent-workstreams.md`
 - `docs/commercialization-roadmap.md`
+- `docs/commercialization-art-audio-brief.md`
 - `docs/commercialization-asset-rights-register.md`
 - `docs/commercialization-risk-register.md`
 - `docs/commercialization-launch-checklist.md`
@@ -114,13 +116,15 @@ Implemented:
 - `docs/commercialization-plan.md` defines product positioning, target audience, commercial pillars, revenue model phases, KPIs, commercial milestones, and go/no-go rules.
 - `docs/commercialization-agent-workstreams.md` assigns Commercialization Director, Licensing & Compliance, Product & Gameplay, Monetization Strategy, Growth & Publishing, LiveOps & Analytics, Art & Audio, Platform Integration, and Commercial QA roles.
 - `docs/commercialization-roadmap.md` defines phases from commercial-safe content pack through soft launch, monetization expansion, and content expansion.
+- `docs/commercialization-art-audio-brief.md` defines production requirements for background, sprite atlas, brand logo, UI icon atlas, music, sfx, share card, source-file handling, and integration QA.
 - `docs/commercialization-asset-rights-register.md` defines the release asset rights register for background, sprites, logo, icon atlas, music, sfx, and share card, including owner/source/license/proof fields and required approval status.
 - `docs/commercialization-risk-register.md` tracks launch blockers around asset rights, trademarks, ads, leaderboard fairness, controls, visibility, WeChat service configuration, package size, policy review, and scope creep.
-- `docs/commercialization-launch-checklist.md` defines the release go/no-go checklist covering source branch, commercial assets, asset rights, licensing, WeChat services, gameplay QA, UI/UX QA, build validation, device validation, soft-launch measurement, and signoff.
+- `docs/commercialization-launch-checklist.md` defines the release go/no-go checklist covering source branch, commercial assets, art/audio production checks, asset rights, licensing, WeChat services, gameplay QA, UI/UX QA, build validation, device validation, soft-launch measurement, and signoff.
 - Commercialization agent task cards define ownership for launch direction, compliance, monetization, growth/publishing, and liveops analytics.
 
 Required before commercial release:
 
+- Complete commercial-safe asset pack from `docs/commercialization-art-audio-brief.md`.
 - Complete commercial-safe asset pack and asset rights register.
 - Mark every required asset in `docs/commercialization-asset-rights-register.md` as `approved`.
 - Mark every optional asset as `approved` or `fallback-approved`.
@@ -131,7 +135,7 @@ Required before commercial release:
 
 ### Gate 7: Quality and validation
 
-Status: scripts, deployment guide, open data samples, commercialization docs, and asset rights register added; full validation requires local environment.
+Status: scripts, deployment guide, open data samples, commercialization docs, art/audio brief, and asset rights register added; full validation requires local environment.
 
 Required commercial switch commands:
 
@@ -173,6 +177,7 @@ Required manual checks:
 - Confirm selected track, per-track best lap, audio preference, minimap preference, operation coach preference, and control sensitivity persist after reload.
 - Confirm no debug-only UI appears in release mode.
 - Confirm commercialization launch checklist has owners and current go/no-go status.
+- Confirm `docs/commercialization-art-audio-brief.md` was used for production asset specifications.
 - Confirm `docs/commercialization-asset-rights-register.md` records owner/source/license/proof for every release asset.
 - Finish the configured target lap count on each selectable track and restart.
 - Check FPS on low-end and mid-range devices.
