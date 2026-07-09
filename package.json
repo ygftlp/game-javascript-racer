@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "audit": "node tools/audit-racer.js",
+    "audit:strict": "node tools/audit-racer.js --strict"
+  },
   "dependencies": {
     "lite-game-engine": "github:ygftlp/game-engine#feat/lightweight-2d-game-engine"
   }
