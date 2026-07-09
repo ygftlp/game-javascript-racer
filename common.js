@@ -25,7 +25,14 @@ var Dom = {
     ele.className = classes.join(' ');
   },
 
-  storage: window.localStorage || {}
+  storage: (function() {
+    try {
+      return window.localStorage || {};
+    }
+    catch(e) {
+      return {};
+    }
+  })()
 
 }
 
@@ -158,19 +165,21 @@ var Game = {  // a modified version of the game loop from my previous boulderdas
 
   setKeyListener: function(keys) {
     var onkey = function(keyCode, mode) {
-      var n, k;
+      var n, k, handled = false;
       for(n = 0 ; n < keys.length ; n++) {
         k = keys[n];
         k.mode = k.mode || 'up';
         if ((k.key == keyCode) || (k.keys && (k.keys.indexOf(keyCode) >= 0))) {
+          handled = true;
           if (k.mode == mode) {
             k.action.call();
           }
         }
       }
+      return handled;
     };
-    Dom.on(document, 'keydown', function(ev) { onkey(ev.keyCode, 'down'); } );
-    Dom.on(document, 'keyup',   function(ev) { onkey(ev.keyCode, 'up');   } );
+    Dom.on(document, 'keydown', function(ev) { if (onkey(ev.keyCode, 'down')) ev.preventDefault(); } );
+    Dom.on(document, 'keyup',   function(ev) { if (onkey(ev.keyCode, 'up'))   ev.preventDefault(); } );
   },
 
   //---------------------------------------------------------------------------
@@ -205,14 +214,30 @@ var Game = {  // a modified version of the game loop from my previous boulderdas
 
   playMusic: function() {
     var music = Dom.get('music');
+    if (!music)
+      return;
+
     music.loop = true;
     music.volume = 0.05; // shhhh! annoying music!
     music.muted = (Dom.storage.muted === "true");
-    music.play();
+
+    var playAttempt = music.play();
+    if (playAttempt && playAttempt.catch) {
+      playAttempt.catch(function() {
+        // Modern browsers can block autoplay until the first user gesture. Keep the game playable and let the mute control remain available.
+      });
+    }
+
     Dom.toggleClassName('mute', 'on', music.muted);
     Dom.on('mute', 'click', function() {
       Dom.storage.muted = music.muted = !music.muted;
       Dom.toggleClassName('mute', 'on', music.muted);
+      if (!music.muted) {
+        var resumeAttempt = music.play();
+        if (resumeAttempt && resumeAttempt.catch) {
+          resumeAttempt.catch(function() {});
+        }
+      }
     });
   }
 
@@ -411,4 +436,3 @@ SPRITES.SCALE = 0.3 * (1/SPRITES.PLAYER_STRAIGHT.w) // the reference sprite widt
 SPRITES.BILLBOARDS = [SPRITES.BILLBOARD01, SPRITES.BILLBOARD02, SPRITES.BILLBOARD03, SPRITES.BILLBOARD04, SPRITES.BILLBOARD05, SPRITES.BILLBOARD06, SPRITES.BILLBOARD07, SPRITES.BILLBOARD08, SPRITES.BILLBOARD09];
 SPRITES.PLANTS     = [SPRITES.TREE1, SPRITES.TREE2, SPRITES.DEAD_TREE1, SPRITES.DEAD_TREE2, SPRITES.PALM_TREE, SPRITES.BUSH1, SPRITES.BUSH2, SPRITES.CACTUS, SPRITES.STUMP, SPRITES.BOULDER1, SPRITES.BOULDER2, SPRITES.BOULDER3];
 SPRITES.CARS       = [SPRITES.CAR01, SPRITES.CAR02, SPRITES.CAR03, SPRITES.CAR04, SPRITES.SEMI, SPRITES.TRUCK];
-
