@@ -138,11 +138,13 @@ class WechatLeaderboardService implements RacerLeaderboardService {
 
   async submitScore(result: RaceResult): Promise<boolean> {
     const payload = raceResultPayload(result);
+    const cloudFunctionName = this.config.cloudFunctionName;
+    const callFunction = this.wx.cloud?.callFunction;
 
-    if (this.config.cloudFunctionName && this.wx.cloud?.callFunction) {
+    if (cloudFunctionName && callFunction) {
       return new Promise((resolve) => {
-        this.wx.cloud?.callFunction?.({
-          name: this.config.cloudFunctionName,
+        callFunction({
+          name: cloudFunctionName,
           data: payload,
           success: () => resolve(true),
           fail: () => resolve(false)
