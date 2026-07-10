@@ -14,8 +14,18 @@ export interface RacerJoystickSnapshot {
   normalizedY: number;
 }
 
+const JOYSTICK_RADIUS_SCALE = 1;
+const JOYSTICK_KNOB_SCALE = 1;
+const JOYSTICK_DEAD_ZONE = 0.03;
+const JOYSTICK_RESPONSE_EXPONENT = 0.78;
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(value, max));
+}
+
+function responseCurve(value: number): number {
+  if (value === 0) return 0;
+  return Math.sign(value) * Math.pow(Math.abs(value), JOYSTICK_RESPONSE_EXPONENT);
 }
 
 export class RacerJoystick {
@@ -30,11 +40,16 @@ export class RacerJoystick {
   private normalizedY = 0;
 
   begin(point: { x: number; y: number }, base: RacerCircle, knobRadius: number): void {
+    if (this.active) {
+      this.update(point);
+      return;
+    }
+
     this.active = true;
     this.centerX = base.x;
     this.centerY = base.y;
-    this.radius = base.r;
-    this.knobRadius = knobRadius;
+    this.radius = base.r * JOYSTICK_RADIUS_SCALE;
+    this.knobRadius = knobRadius * JOYSTICK_KNOB_SCALE;
     this.update(point);
   }
 
@@ -44,17 +59,18 @@ export class RacerJoystick {
     const dx = point.x - this.centerX;
     const dy = point.y - this.centerY;
     const distance = Math.hypot(dx, dy);
-    const maxDistance = Math.max(1, this.radius - this.knobRadius * 0.28);
+    const maxDistance = Math.max(1, this.radius - this.knobRadius * 0.24);
     const limitedDistance = Math.min(distance, maxDistance);
     const angle = distance > 0 ? Math.atan2(dy, dx) : 0;
     const limitedX = Math.cos(angle) * limitedDistance;
     const limitedY = Math.sin(angle) * limitedDistance;
-    const deadZone = 0.06;
+    const rawX = limitedX / maxDistance;
+    const rawY = limitedY / maxDistance;
 
     this.knobX = this.centerX + limitedX;
     this.knobY = this.centerY + limitedY;
-    this.normalizedX = Math.abs(limitedX / maxDistance) < deadZone ? 0 : limitedX / maxDistance;
-    this.normalizedY = Math.abs(limitedY / maxDistance) < deadZone ? 0 : limitedY / maxDistance;
+    this.normalizedX = Math.abs(rawX) < JOYSTICK_DEAD_ZONE ? 0 : responseCurve(rawX);
+    this.normalizedY = Math.abs(rawY) < JOYSTICK_DEAD_ZONE ? 0 : responseCurve(rawY);
   }
 
   end(): void {
@@ -72,8 +88,8 @@ export class RacerJoystick {
   snapshot(fallbackBase: RacerCircle, fallbackKnobRadius: number): RacerJoystickSnapshot {
     const centerX = this.centerX || fallbackBase.x;
     const centerY = this.centerY || fallbackBase.y;
-    const radius = this.radius || fallbackBase.r;
-    const knobRadius = this.knobRadius || fallbackKnobRadius;
+    const radius = this.radius > 1 ? this.radius : fallbackBase.r * JOYSTICK_RADIUS_SCALE;
+    const knobRadius = this.knobRadius > 1 ? this.knobRadius : fallbackKnobRadius * JOYSTICK_KNOB_SCALE;
 
     return {
       active: this.active,
