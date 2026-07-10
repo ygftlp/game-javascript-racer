@@ -2,6 +2,12 @@ import type { RacerControlSensitivityProfile } from './RacerControlSensitivity';
 import { DEFAULT_RACER_CONTROL_SENSITIVITY } from './RacerControlSensitivity';
 import type { RacerCircle } from './RacerUiLayout';
 
+export interface RacerJoystickPoint {
+  id?: number;
+  x: number;
+  y: number;
+}
+
 export interface RacerJoystickSnapshot {
   active: boolean;
   centerX: number;
@@ -29,6 +35,7 @@ function responseCurve(value: number): number {
 
 export class RacerJoystick {
   private active = false;
+  private touchId: number | null = null;
   private centerX = 0;
   private centerY = 0;
   private knobX = 0;
@@ -38,13 +45,14 @@ export class RacerJoystick {
   private normalizedX = 0;
   private normalizedY = 0;
 
-  begin(point: { x: number; y: number }, base: RacerCircle, knobRadius: number): void {
+  begin(point: RacerJoystickPoint, base: RacerCircle, knobRadius: number): void {
     if (this.active) {
-      this.update(point);
+      if (this.isTracking(point)) this.update(point);
       return;
     }
 
     this.active = true;
+    this.touchId = point.id ?? null;
     this.centerX = base.x;
     this.centerY = base.y;
     this.radius = base.r * JOYSTICK_RADIUS_SCALE;
@@ -52,8 +60,8 @@ export class RacerJoystick {
     this.update(point);
   }
 
-  update(point: { x: number; y: number }): void {
-    if (!this.active) return;
+  update(point: RacerJoystickPoint): void {
+    if (!this.active || !this.isTracking(point)) return;
 
     const dx = point.x - this.centerX;
     const dy = point.y - this.centerY;
@@ -74,8 +82,18 @@ export class RacerJoystick {
     this.normalizedY = Math.abs(rawY) < deadZone ? 0 : responseCurve(rawY);
   }
 
+  isActive(): boolean {
+    return this.active;
+  }
+
+  isTracking(point: RacerJoystickPoint): boolean {
+    if (!this.active) return false;
+    return this.touchId === null || point.id === this.touchId;
+  }
+
   end(): void {
     this.active = false;
+    this.touchId = null;
     this.normalizedX = 0;
     this.normalizedY = 0;
     this.knobX = this.centerX;
