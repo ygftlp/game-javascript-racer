@@ -14,7 +14,7 @@ export interface TouchSubscriptionOptions {
   persistent?: boolean;
 }
 
-type TouchHandler = (touches: TouchPoint[]) => void;
+type TouchHandler = (touches: TouchPoint[], changedTouches?: TouchPoint[]) => void;
 
 type AnyWx = {
   createCanvas?: () => CanvasLike;
@@ -30,9 +30,17 @@ type AnyWx = {
   cancelAnimationFrame?: (id: number) => void;
 };
 
+interface RawTouchLike {
+  identifier?: number;
+  clientX?: number;
+  clientY?: number;
+  x?: number;
+  y?: number;
+}
+
 interface TouchEventLike {
-  touches?: Array<{ identifier?: number; clientX?: number; clientY?: number; x?: number; y?: number }>;
-  changedTouches?: Array<{ identifier?: number; clientX?: number; clientY?: number; x?: number; y?: number }>;
+  touches?: RawTouchLike[];
+  changedTouches?: RawTouchLike[];
 }
 
 interface CanvasLike {
@@ -91,9 +99,8 @@ function getWindowSize(): ScreenInfo {
   return { width: 800, height: 450, pixelRatio: 1 };
 }
 
-function normalizeTouches(event: TouchEventLike): TouchPoint[] {
-  const raw = event.touches?.length ? event.touches : event.changedTouches || [];
-  return raw.map((touch, index) => ({
+function normalizeTouchList(raw: RawTouchLike[] | undefined): TouchPoint[] {
+  return (raw || []).map((touch, index) => ({
     id: touch.identifier ?? index,
     x: touch.clientX ?? touch.x ?? 0,
     y: touch.clientY ?? touch.y ?? 0
@@ -221,9 +228,13 @@ export class Input {
   private bindTouchEvents(): void {
     const host = getWx();
     if (host?.onTouchStart) {
-      host.onTouchStart((event) => this.emit(this.startHandlers, normalizeTouches(event)));
-      host.onTouchMove?.((event) => this.emit(this.moveHandlers, normalizeTouches(event)));
-      host.onTouchEnd?.((event) => this.emit(this.endHandlers, normalizeTouches(event)));
+      host.onTouchStart((event) => this.emit(this.startHandlers, normalizeTouchList(event.touches)));
+      host.onTouchMove?.((event) => this.emit(this.moveHandlers, normalizeTouchList(event.touches)));
+      host.onTouchEnd?.((event) => this.emit(
+        this.endHandlers,
+        normalizeTouchList(event.touches),
+        normalizeTouchList(event.changedTouches)
+      ));
       return;
     }
 
@@ -237,12 +248,14 @@ export class Input {
     });
     this.canvas.addEventListener?.('touchend', (event) => {
       const touchEvent = event as TouchEvent;
-      this.emit(this.endHandlers, Array.from(touchEvent.changedTouches).map((touch, index) => ({ id: touch.identifier ?? index, x: touch.clientX, y: touch.clientY })));
+      const active = Array.from(touchEvent.touches).map((touch, index) => ({ id: touch.identifier ?? index, x: touch.clientX, y: touch.clientY }));
+      const changed = Array.from(touchEvent.changedTouches).map((touch, index) => ({ id: touch.identifier ?? index, x: touch.clientX, y: touch.clientY }));
+      this.emit(this.endHandlers, active, changed);
     });
   }
 
-  private emit(handlers: Set<TouchHandler>, touches: TouchPoint[]): void {
-    for (const handler of handlers) handler(touches);
+  private emit(handlers: Set<TouchHandler>, touches: TouchPoint[], changedTouches: TouchPoint[] = []): void {
+    for (const handler of handlers) handler(touches, changedTouches);
   }
 }
 
