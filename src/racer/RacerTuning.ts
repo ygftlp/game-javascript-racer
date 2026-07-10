@@ -4,6 +4,8 @@ export interface RacerTuning {
   profile: RacerPerformanceProfile;
   drawDistance: number;
   totalCars: number;
+  /** Compatibility alias used by the active racer state. */
+  trafficCount: number;
   label: string;
 }
 
@@ -12,18 +14,21 @@ export const RACER_TUNING_PRESETS: Record<RacerPerformanceProfile, RacerTuning> 
     profile: 'low',
     drawDistance: 160,
     totalCars: 45,
+    trafficCount: 45,
     label: 'Low'
   },
   medium: {
     profile: 'medium',
     drawDistance: 220,
     totalCars: 70,
+    trafficCount: 70,
     label: 'Medium'
   },
   high: {
     profile: 'high',
     drawDistance: 280,
     totalCars: 95,
+    trafficCount: 95,
     label: 'High'
   }
 };
