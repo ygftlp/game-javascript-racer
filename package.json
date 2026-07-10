@@ -9,16 +9,17 @@
     "build:wx:gamex": "npm run build:wx",
     "dev:wx": "node scripts/build-wechat.mjs --watch",
     "typecheck": "tsc --noEmit",
-    "validate": "npm run typecheck && npm run validate:assets && npm run validate:production",
+    "validate": "npm run typecheck && npm run validate:assets && npm run validate:production && npm run validate:sprint-a",
     "validate:assets": "node scripts/validate-assets.mjs default",
     "validate:assets:legacy": "node scripts/validate-assets.mjs legacy",
     "validate:production": "node scripts/validate-production.mjs",
+    "validate:sprint-a": "node scripts/validate-sprint-a.mjs",
     "assets:commercial": "node scripts/use-commercial-assets.mjs",
     "assets:commercial:apply": "node scripts/use-commercial-assets.mjs --apply",
     "assets:legacy:apply": "node scripts/use-commercial-assets.mjs --legacy --apply",
     "engine:compat": "node scripts/use-engine-mode.mjs compat",
     "engine:local": "node scripts/use-engine-mode.mjs local-sdk",
-    "prebuild:wx": "npm run typecheck && npm run validate:production"
+    "prebuild:wx": "npm run typecheck && npm run validate:production && npm run validate:sprint-a"
   },
   "dependencies": {},
   "devDependencies": {
