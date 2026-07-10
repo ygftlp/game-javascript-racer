@@ -6,6 +6,7 @@
   "scripts": {
     "build": "npm run build:wx",
     "build:wx": "node scripts/build-wechat.mjs",
+    "build:wx:gamex": "npm run build:wx",
     "dev:wx": "node scripts/build-wechat.mjs --watch",
     "typecheck": "tsc --noEmit",
     "validate": "npm run validate:assets && npm run validate:production",
