@@ -230,8 +230,7 @@ export class Input {
     if (host?.onTouchStart) {
       host.onTouchStart((event) => this.emit(this.startHandlers, normalizeTouchList(event.touches)));
       host.onTouchMove?.((event) => this.emit(this.moveHandlers, normalizeTouchList(event.touches)));
-      host.onTouchEnd?.((event) => this.emit(
-        this.endHandlers,
+      host.onTouchEnd?.((event) => this.dispatchTouchEnd(
         normalizeTouchList(event.touches),
         normalizeTouchList(event.changedTouches)
       ));
@@ -250,8 +249,16 @@ export class Input {
       const touchEvent = event as TouchEvent;
       const active = Array.from(touchEvent.touches).map((touch, index) => ({ id: touch.identifier ?? index, x: touch.clientX, y: touch.clientY }));
       const changed = Array.from(touchEvent.changedTouches).map((touch, index) => ({ id: touch.identifier ?? index, x: touch.clientX, y: touch.clientY }));
-      this.emit(this.endHandlers, active, changed);
+      this.dispatchTouchEnd(active, changed);
     });
+  }
+
+  private dispatchTouchEnd(activeTouches: TouchPoint[], changedTouches: TouchPoint[]): void {
+    if (activeTouches.length > 0) {
+      this.emit(this.moveHandlers, activeTouches, changedTouches);
+      return;
+    }
+    this.emit(this.endHandlers, activeTouches, changedTouches);
   }
 
   private emit(handlers: Set<TouchHandler>, touches: TouchPoint[], changedTouches: TouchPoint[] = []): void {
