@@ -13,26 +13,26 @@ export const RACER_CONTROL_SENSITIVITY_PROFILES: readonly RacerControlSensitivit
   {
     id: 'comfort',
     label: '舒适',
-    description: '更稳，适合新手和小屏幕',
-    joystickGain: 1.14,
-    steerInputLimit: 1.08,
-    steerResponse: 1.95
+    description: '更稳但不迟钝，适合新手和小屏幕',
+    joystickGain: 1.28,
+    steerInputLimit: 1.14,
+    steerResponse: 2.12
   },
   {
     id: 'standard',
     label: '标准',
-    description: '默认街机手感',
-    joystickGain: 1.45,
-    steerInputLimit: 1.35,
-    steerResponse: 2.35
+    description: '更灵敏的默认街机手感',
+    joystickGain: 1.68,
+    steerInputLimit: 1.46,
+    steerResponse: 2.72
   },
   {
     id: 'sensitive',
     label: '灵敏',
-    description: '更快响应，适合熟练玩家',
-    joystickGain: 1.72,
-    steerInputLimit: 1.55,
-    steerResponse: 2.78
+    description: '短行程快速转向，适合熟练玩家',
+    joystickGain: 2.02,
+    steerInputLimit: 1.72,
+    steerResponse: 3.18
   }
 ];
 
