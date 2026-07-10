@@ -48,6 +48,12 @@ export interface Segment {
   powerups: TrackPowerup[];
 }
 
+const MAX_FRAME_DT = 0.15;
+const MAX_PHYSICS_STEP = 1 / 60;
+const POWERUP_LANES = [-0.58, 0, 0.58] as const;
+const TRAFFIC_LANES = [-0.65, -0.35, 0.35, 0.65] as const;
+const POWERUP_SEQUENCE: readonly RacerPowerupType[] = ['boost', 'nitro', 'boost', 'slow'];
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(value, max));
 }
@@ -149,56 +155,11 @@ export class RacerState {
   }
 
   update(dt: number): void {
-    this.updatePowerupTimers(dt);
-
-    const playerSegment = this.findSegment(this.position + this.playerZ);
-    const playerWidth = SPRITE_SCALE * 80;
-    const speedPercent = this.speed / RACER_CONFIG.maxSpeed;
-    const startPosition = this.position;
-    const steerDelta = dt * this.controlSensitivity.steerResponse * speedPercent;
-    const steerInput = clamp(this.input.steer, -this.controlSensitivity.steerInputLimit, this.controlSensitivity.steerInputLimit);
-    const accelerationMultiplier = this.accelerationMultiplier();
-
-    this.totalRaceTime += dt;
-    this.collisionCooldown = Math.max(0, this.collisionCooldown - dt);
-    this.updateTraffic(dt, playerSegment, playerWidth);
-
-    this.position = increase(this.position, dt * this.speed, this.trackLength);
-
-    if (steerInput !== 0) this.playerX += steerDelta * steerInput;
-
-    this.playerX -= steerDelta * speedPercent * playerSegment.curve * RACER_CONFIG.centrifugal;
-
-    if (this.input.brake) {
-      this.speed += RACER_CONFIG.braking * dt;
-    } else if (this.input.accelerate) {
-      this.speed += RACER_CONFIG.acceleration * accelerationMultiplier * dt;
-    } else {
-      this.speed += RACER_CONFIG.deceleration * dt;
-    }
-
-    if (this.playerX < -1 || this.playerX > 1) {
-      if (this.speed > RACER_CONFIG.offRoadLimit) {
-        this.speed += RACER_CONFIG.offRoadDeceleration * dt;
-      }
-      this.checkRoadsideCollision(playerSegment, playerWidth);
-    }
-
-    this.checkTrafficCollision(playerSegment, playerWidth);
-    this.checkPowerupCollision(playerSegment, playerWidth);
-
-    this.playerX = clamp(this.playerX, -3, 3);
-    this.speed = clamp(this.speed, 0, this.speedLimit());
-
-    if (this.position > this.playerZ) {
-      if (this.currentLapTime > 0 && startPosition < this.playerZ) {
-        this.lastLapTime = this.currentLapTime;
-        this.completedLaps += 1;
-        this.bestLapTime = this.bestLapTime === 0 ? this.lastLapTime : Math.min(this.bestLapTime, this.lastLapTime);
-        this.currentLapTime = 0;
-      } else {
-        this.currentLapTime += dt;
-      }
+    let remaining = clamp(dt, 0, MAX_FRAME_DT);
+    while (remaining > 0) {
+      const step = Math.min(remaining, MAX_PHYSICS_STEP);
+      this.updateStep(step);
+      remaining -= step;
     }
   }
 
@@ -227,6 +188,64 @@ export class RacerState {
 
   findSegment(z: number): Segment {
     return this.segments[Math.floor(z / RACER_CONFIG.segmentLength) % this.segments.length];
+  }
+
+  private updateStep(dt: number): void {
+    this.updatePowerupTimers(dt);
+
+    const steeringSegment = this.findSegment(this.position + this.playerZ);
+    const playerWidth = SPRITE_SCALE * 80;
+    const speedPercent = this.speed / RACER_CONFIG.maxSpeed;
+    const startPosition = this.position;
+    const steerDelta = dt * this.controlSensitivity.steerResponse * speedPercent;
+    const steerInput = clamp(this.input.steer, -this.controlSensitivity.steerInputLimit, this.controlSensitivity.steerInputLimit);
+    const accelerationMultiplier = this.accelerationMultiplier();
+
+    this.totalRaceTime += dt;
+    this.collisionCooldown = Math.max(0, this.collisionCooldown - dt);
+    this.updateTraffic(dt, steeringSegment, playerWidth);
+
+    this.position = increase(this.position, dt * this.speed, this.trackLength);
+
+    if (steerInput !== 0) this.playerX += steerDelta * steerInput;
+    this.playerX -= steerDelta * speedPercent * steeringSegment.curve * RACER_CONFIG.centrifugal;
+
+    if (this.input.brake) {
+      this.speed += RACER_CONFIG.braking * dt;
+    } else if (this.input.accelerate) {
+      this.speed += RACER_CONFIG.acceleration * accelerationMultiplier * dt;
+    } else {
+      this.speed += RACER_CONFIG.deceleration * dt;
+    }
+
+    const collisionSegment = this.findSegment(this.position + this.playerZ);
+    if (this.playerX < -1 || this.playerX > 1) {
+      if (this.speed > RACER_CONFIG.offRoadLimit) {
+        this.speed += RACER_CONFIG.offRoadDeceleration * dt;
+      }
+      this.checkRoadsideCollision(collisionSegment, playerWidth);
+    }
+
+    this.checkTrafficCollision(collisionSegment, playerWidth);
+    this.checkPowerupCollision(collisionSegment, playerWidth);
+
+    this.playerX = clamp(this.playerX, -3, 3);
+    this.speed = clamp(this.speed, 0, this.speedLimit());
+    this.updateLapProgress(startPosition, dt);
+  }
+
+  private updateLapProgress(startPosition: number, dt: number): void {
+    if (this.position <= this.playerZ) return;
+
+    if (this.currentLapTime > 0 && startPosition < this.playerZ) {
+      this.lastLapTime = this.currentLapTime;
+      this.completedLaps += 1;
+      this.bestLapTime = this.bestLapTime === 0 ? this.lastLapTime : Math.min(this.bestLapTime, this.lastLapTime);
+      this.currentLapTime = 0;
+      return;
+    }
+
+    this.currentLapTime += dt;
   }
 
   private accelerationMultiplier(): number {
@@ -338,27 +357,50 @@ export class RacerState {
 
   private resetPowerups(): void {
     this.powerups = [];
-    const types: readonly RacerPowerupType[] = ['boost', 'nitro', 'slow'];
-    const offsets = [-0.58, 0, 0.58] as const;
-    const spacing = Math.max(28, Math.floor(this.segments.length / 14));
-    let powerupIndex = 0;
+    const targetCount = clamp(Math.round(this.segments.length / 55), 8, 14);
+    const spacing = Math.max(32, Math.floor(this.segments.length / targetCount));
+    const startSafeSegments = Math.min(Math.floor(this.segments.length * 0.18), Math.ceil(RACER_CONFIG.maxSpeed * 3 / RACER_CONFIG.segmentLength));
+    let lastSlowSegment = -Infinity;
 
-    for (let segmentIndex = 24; segmentIndex < this.segments.length - 20; segmentIndex += spacing) {
-      const segment = this.segments[segmentIndex];
+    for (let powerupIndex = 0; powerupIndex < targetCount; powerupIndex += 1) {
+      const type = POWERUP_SEQUENCE[powerupIndex % POWERUP_SEQUENCE.length];
+      const preferredIndex = Math.min(
+        this.segments.length - 24,
+        Math.max(24, Math.round(startSafeSegments + powerupIndex * spacing))
+      );
+      const segment = this.findSafePowerupSegment(preferredIndex, spacing, type, lastSlowSegment);
       if (!segment) continue;
 
       const powerup: TrackPowerup = {
-        type: types[powerupIndex % types.length],
-        offset: offsets[(powerupIndex * 2) % offsets.length],
-        z: (segmentIndex + 0.5) * RACER_CONFIG.segmentLength,
+        type,
+        offset: POWERUP_LANES[(powerupIndex * 2) % POWERUP_LANES.length],
+        z: (segment.index + 0.5) * RACER_CONFIG.segmentLength,
         percent: 0.5,
         active: true,
         respawnTimer: 0
       };
-      powerupIndex += 1;
+
+      if (type === 'slow') lastSlowSegment = segment.index;
       this.powerups.push(powerup);
       segment.powerups.push(powerup);
     }
+  }
+
+  private findSafePowerupSegment(preferredIndex: number, spacing: number, type: RacerPowerupType, lastSlowSegment: number): Segment | null {
+    const searchRadius = Math.max(8, Math.floor(spacing / 2));
+    for (let distance = 0; distance <= searchRadius; distance += 1) {
+      for (const direction of distance === 0 ? [1] : [1, -1]) {
+        const index = preferredIndex + distance * direction;
+        const segment = this.segments[index];
+        if (!segment || index < 24 || index >= this.segments.length - 20) continue;
+        if (segment.powerups.length > 0) continue;
+        if (type === 'nitro' && Math.abs(segment.curve) > 1.4) continue;
+        if (type === 'slow' && Math.abs(segment.curve) > 1.8) continue;
+        if (type === 'slow' && index - lastSlowSegment < spacing * 2) continue;
+        return segment;
+      }
+    }
+    return null;
   }
 
   private resetTraffic(): void {
@@ -366,15 +408,18 @@ export class RacerState {
     const count = Math.max(10, this.tuning.trafficCount);
 
     for (let i = 0; i < count; i += 1) {
+      const segment = this.segments[Math.floor(Math.random() * this.segments.length)];
+      const availableLanes = TRAFFIC_LANES.filter((lane) => segment.powerups.every((powerup) => Math.abs(powerup.offset - lane) > 0.38));
+      const offset = randomChoice(availableLanes.length > 0 ? availableLanes : TRAFFIC_LANES);
       const car: TrafficCar = {
         frame: randomChoice(CARS),
-        offset: randomChoice([-0.65, -0.35, 0.35, 0.65]),
-        z: Math.floor(Math.random() * this.segments.length) * RACER_CONFIG.segmentLength,
+        offset,
+        z: segment.index * RACER_CONFIG.segmentLength,
         speed: randomInt(RACER_CONFIG.maxSpeed / 4, RACER_CONFIG.maxSpeed / 2),
         percent: 0
       };
       this.cars.push(car);
-      this.findSegment(car.z).cars.push(car);
+      segment.cars.push(car);
     }
   }
 
@@ -407,20 +452,24 @@ export class RacerState {
   }
 
   private checkTrafficCollision(playerSegment: Segment, playerWidth: number): void {
+    if (this.collisionCooldown > 0) return;
     for (const car of playerSegment.cars) {
       if (!overlap(this.playerX, playerWidth, car.offset, SPRITE_SCALE * 80, 0.78)) continue;
       this.speed = Math.min(this.speed, car.speed * 0.65);
       this.collisionCooldown = 0.45;
       this.collisionCount += 1;
+      return;
     }
   }
 
   private checkRoadsideCollision(playerSegment: Segment, playerWidth: number): void {
+    if (this.collisionCooldown > 0) return;
     for (const sprite of playerSegment.sprites) {
       if (!overlap(this.playerX, playerWidth, sprite.offset, SPRITE_SCALE * 120, 0.8)) continue;
       this.speed = Math.min(this.speed, RACER_CONFIG.maxSpeed / 5);
       this.collisionCooldown = 0.6;
       this.collisionCount += 1;
+      return;
     }
   }
 }
