@@ -16,7 +16,6 @@ export interface RacerJoystickSnapshot {
 
 const JOYSTICK_RADIUS_SCALE = 1;
 const JOYSTICK_KNOB_SCALE = 1;
-const JOYSTICK_DEAD_ZONE = 0.03;
 const JOYSTICK_RESPONSE_EXPONENT = 0.78;
 
 function clamp(value: number, min: number, max: number): number {
@@ -64,13 +63,15 @@ export class RacerJoystick {
     const angle = distance > 0 ? Math.atan2(dy, dx) : 0;
     const limitedX = Math.cos(angle) * limitedDistance;
     const limitedY = Math.sin(angle) * limitedDistance;
+    // Use half of the legacy 0.06 dead zone after mobile feel tuning.
+    const deadZone = 0.06 * 0.5;
     const rawX = limitedX / maxDistance;
     const rawY = limitedY / maxDistance;
 
     this.knobX = this.centerX + limitedX;
     this.knobY = this.centerY + limitedY;
-    this.normalizedX = Math.abs(rawX) < JOYSTICK_DEAD_ZONE ? 0 : responseCurve(rawX);
-    this.normalizedY = Math.abs(rawY) < JOYSTICK_DEAD_ZONE ? 0 : responseCurve(rawY);
+    this.normalizedX = Math.abs(rawX) < deadZone ? 0 : responseCurve(rawX);
+    this.normalizedY = Math.abs(rawY) < deadZone ? 0 : responseCurve(rawY);
   }
 
   end(): void {
@@ -88,8 +89,8 @@ export class RacerJoystick {
   snapshot(fallbackBase: RacerCircle, fallbackKnobRadius: number): RacerJoystickSnapshot {
     const centerX = this.centerX || fallbackBase.x;
     const centerY = this.centerY || fallbackBase.y;
-    const radius = this.radius > 1 ? this.radius : fallbackBase.r * JOYSTICK_RADIUS_SCALE;
-    const knobRadius = this.knobRadius > 1 ? this.knobRadius : fallbackKnobRadius * JOYSTICK_KNOB_SCALE;
+    const radius = this.radius || fallbackBase.r;
+    const knobRadius = this.knobRadius || fallbackKnobRadius;
 
     return {
       active: this.active,
