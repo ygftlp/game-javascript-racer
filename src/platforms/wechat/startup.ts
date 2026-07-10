@@ -1,4 +1,5 @@
 import { Engine, WxPlatform } from '../../engine';
+import { installRacerCanvasCompatibility } from '../../racer/RacerCanvasCompat';
 import { RacerScene } from '../../scenes/RacerScene';
 
 interface WeChatLifecycleHost {
@@ -31,6 +32,7 @@ function bindWeChatLifecycle(scene: RacerScene): void {
 
 export function startWeChatRacerGame(): WeChatRacerGame {
   const engine = new Engine(new WxPlatform());
+  installRacerCanvasCompatibility(engine.renderer.ctx);
   const scene = new RacerScene(engine);
 
   bindWeChatLifecycle(scene);
