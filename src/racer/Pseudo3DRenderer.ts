@@ -227,12 +227,17 @@ export class Pseudo3DRenderer {
   }
 
   private drawPowerup(ctx: CanvasRenderingContext2D, type: RacerPowerupType, scale: number, destX: number, destY: number, clipY: number, state: RacerState): void {
+    if (type === 'slow') {
+      this.drawSlowHazard(ctx, scale, destX, destY, clipY, state);
+      return;
+    }
+
     const size = Math.round(clamp(scale * RACER_CONFIG.roadWidth * state.width * 0.018, 10, 58));
     const y = Math.round(destY - size * 1.1);
     if (clipY && y + size > clipY) return;
 
-    const fill = type === 'nitro' ? '#22b8ff' : type === 'boost' ? '#ffd43b' : '#ef476f';
-    const label = type === 'nitro' ? 'N' : type === 'boost' ? '加' : '减';
+    const fill = type === 'nitro' ? '#22b8ff' : '#ffd43b';
+    const label = type === 'nitro' ? 'N' : '≫';
 
     ctx.save();
     ctx.translate(Math.round(destX), y + size / 2);
@@ -250,6 +255,34 @@ export class Pseudo3DRenderer {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(label, 0, 1);
+    ctx.restore();
+  }
+
+  private drawSlowHazard(ctx: CanvasRenderingContext2D, scale: number, destX: number, destY: number, clipY: number, state: RacerState): void {
+    const width = Math.round(clamp(scale * RACER_CONFIG.roadWidth * state.width * 0.032, 18, 92));
+    const height = Math.max(7, Math.round(width * 0.34));
+    const x = Math.round(destX - width / 2);
+    const y = Math.round(destY - height * 0.42);
+    if (clipY && y + height > clipY) return;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(10, 4, 8, 0.78)';
+    ctx.beginPath();
+    ctx.ellipse(destX, y + height / 2, width / 2, height / 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ff365d';
+    ctx.lineWidth = Math.max(2, Math.round(height * 0.16));
+    ctx.stroke();
+    ctx.strokeStyle = '#ffd43b';
+    ctx.lineWidth = Math.max(1, Math.round(height * 0.12));
+    for (let stripe = -1; stripe <= 1; stripe += 1) {
+      const stripeX = destX + stripe * width * 0.22;
+      ctx.beginPath();
+      ctx.moveTo(stripeX - width * 0.1, y + height * 0.2);
+      ctx.lineTo(stripeX + width * 0.08, y + height * 0.5);
+      ctx.lineTo(stripeX - width * 0.1, y + height * 0.8);
+      ctx.stroke();
+    }
     ctx.restore();
   }
 
@@ -337,8 +370,7 @@ export class Pseudo3DRenderer {
     ctx.fillStyle = 'rgba(5, 12, 24, 0.82)';
     ctx.strokeStyle = state.nitroTime > 0 ? '#48dbfb' : state.slowTime > 0 ? '#ef476f' : '#ffd43b';
     ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(x, y, width, 42, 18);
+    this.roundedRectPath(ctx, x, y, width, 42, 18);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = '#ffffff';
@@ -373,6 +405,21 @@ export class Pseudo3DRenderer {
     ctx.lineWidth = Math.max(2, Math.round(w * 0.018));
     this.strokePolygon(ctx, x - w * 0.48 + lean, centerY + h * 0.42, x + w * 0.48 + lean, centerY + h * 0.42, x + w * 0.26 - lean, centerY - h * 0.42, x - w * 0.26 - lean, centerY - h * 0.42);
     ctx.restore();
+  }
+
+  private roundedRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, radius: number): void {
+    const r = Math.min(radius, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
   }
 
   private polygon(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, x4: number, y4: number, color: string): void {
