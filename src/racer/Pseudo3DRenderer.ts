@@ -1,13 +1,12 @@
 import type { Renderer, Texture } from '../engine';
 import { COLORS, RACER_CONFIG } from './config';
 import type { RacerAssets } from './RacerAssets';
-import type { Segment } from './RacerState';
+import type { RacerPowerupType, RacerState, Segment } from './RacerState';
 import type { AtlasFrame } from './SpriteAtlas';
 import { BACKGROUND, SPRITES, SPRITE_SCALE } from './SpriteAtlas';
 import { RACER_UI_FLAGS } from './RacerUiFlags';
 import { buildRacerUiLayout } from './RacerUiLayout';
 import { RacerUiRenderer, type RacerUiPhase, type RacerUiPressedTarget as UiPressedTarget, type RacerUiRenderOptions } from './RacerUiRenderer';
-import type { RacerState } from './RacerState';
 
 export type RacerPhase = RacerUiPhase;
 export type RacerUiPressedTarget = UiPressedTarget;
@@ -100,6 +99,7 @@ export class Pseudo3DRenderer {
     this.drawWorldSprites(ctx, state, projected, assets?.sprites ?? null);
     this.drawPlayer(ctx, state, assets?.sprites ?? null, playerSegment, playerPercent);
     this.ui.render(ctx, state, assets, layout, options);
+    if (options.phase === 'playing') this.drawPowerupFeedback(ctx, state);
   }
 
   private configureCanvas(ctx: CanvasRenderingContext2D): void {
@@ -202,6 +202,14 @@ export class Pseudo3DRenderer {
       const current = projected[n];
       const segment = current.segment;
 
+      for (const powerup of segment.powerups) {
+        if (!powerup.active) continue;
+        const powerupScale = interpolate(current.p1.scale, current.p2.scale, powerup.percent);
+        const powerupX = interpolate(current.p1.x, current.p2.x, powerup.percent) + powerupScale * powerup.offset * RACER_CONFIG.roadWidth * state.width / 2;
+        const powerupY = interpolate(current.p1.y, current.p2.y, powerup.percent);
+        this.drawPowerup(ctx, powerup.type, powerupScale, powerupX, powerupY, current.clipY, state);
+      }
+
       for (const car of segment.cars) {
         const spriteScale = interpolate(current.p1.scale, current.p2.scale, car.percent);
         const spriteX = interpolate(current.p1.x, current.p2.x, car.percent) + spriteScale * car.offset * RACER_CONFIG.roadWidth * state.width / 2;
@@ -216,6 +224,33 @@ export class Pseudo3DRenderer {
         this.drawAtlasSprite(ctx, texture, sprite.frame, spriteScale, spriteX, spriteY, sprite.offset < 0 ? -1 : 0, -1, current.clipY, state, '#0d5f2a');
       }
     }
+  }
+
+  private drawPowerup(ctx: CanvasRenderingContext2D, type: RacerPowerupType, scale: number, destX: number, destY: number, clipY: number, state: RacerState): void {
+    const size = Math.round(clamp(scale * RACER_CONFIG.roadWidth * state.width * 0.018, 10, 58));
+    const y = Math.round(destY - size * 1.1);
+    if (clipY && y + size > clipY) return;
+
+    const fill = type === 'nitro' ? '#22b8ff' : type === 'boost' ? '#ffd43b' : '#ef476f';
+    const label = type === 'nitro' ? 'N' : type === 'boost' ? '加' : '减';
+
+    ctx.save();
+    ctx.translate(Math.round(destX), y + size / 2);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.32)';
+    ctx.fillRect(-size * 0.58 + 3, -size * 0.58 + 5, size * 1.16, size * 1.16);
+    ctx.fillStyle = fill;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = Math.max(1, size * 0.08);
+    ctx.fillRect(-size / 2, -size / 2, size, size);
+    ctx.strokeRect(-size / 2, -size / 2, size, size);
+    ctx.rotate(-Math.PI / 4);
+    ctx.fillStyle = '#07111f';
+    ctx.font = `bold ${Math.max(9, Math.round(size * 0.46))}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, 0, 1);
+    ctx.restore();
   }
 
   private drawAtlasSprite(ctx: CanvasRenderingContext2D, texture: Texture | null, frame: AtlasFrame, scale: number, destX: number, destY: number, offsetX: number, offsetY: number, clipY: number, state: RacerState, fallbackColor: string): void {
@@ -252,6 +287,7 @@ export class Pseudo3DRenderer {
     const carTopY = Math.round(clamp(roadY + bounce, state.height * 0.5, state.height - carH - 24));
     const x = Math.round(state.width / 2);
 
+    if (state.nitroTime > 0) this.drawNitroTrail(ctx, x, carTopY, carW, carH);
     this.drawPlayerFallback(ctx, x, carTopY, carW, carH, state.input.steer);
 
     if (texture?.loaded) {
@@ -264,6 +300,52 @@ export class Pseudo3DRenderer {
     }
 
     if (RACER_UI_FLAGS.showPlayerVisibilityMarker) this.drawPlayerVisibilityMarker(ctx, x, carTopY, carW, carH, state.input.steer);
+  }
+
+  private drawNitroTrail(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
+    ctx.save();
+    ctx.globalAlpha = 0.76;
+    ctx.fillStyle = '#48dbfb';
+    ctx.beginPath();
+    ctx.moveTo(x - w * 0.2, y + h * 0.82);
+    ctx.lineTo(x - w * 0.04, y + h * 0.82);
+    ctx.lineTo(x - w * 0.12, y + h * 1.45);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.04, y + h * 0.82);
+    ctx.lineTo(x + w * 0.2, y + h * 0.82);
+    ctx.lineTo(x + w * 0.12, y + h * 1.45);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  private drawPowerupFeedback(ctx: CanvasRenderingContext2D, state: RacerState): void {
+    const message = state.powerupMessage || state.activePowerupLabel;
+    if (!message) return;
+
+    const activeTime = state.activePowerupTime;
+    const text = activeTime > 0 ? `${message}  ${activeTime.toFixed(1)}s` : message;
+    const y = Math.max(18, state.height * 0.045);
+
+    ctx.save();
+    ctx.font = `bold ${state.width < 760 ? 17 : 20}px sans-serif`;
+    const width = Math.min(state.width * 0.62, Math.max(190, ctx.measureText(text).width + 42));
+    const x = (state.width - width) / 2;
+    ctx.fillStyle = 'rgba(5, 12, 24, 0.82)';
+    ctx.strokeStyle = state.nitroTime > 0 ? '#48dbfb' : state.slowTime > 0 ? '#ef476f' : '#ffd43b';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(x, y, width, 42, 18);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, state.width / 2, y + 21);
+    ctx.restore();
   }
 
   private drawPlayerFallback(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, steer: number): void {
