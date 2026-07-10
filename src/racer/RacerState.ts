@@ -5,6 +5,8 @@ import { ACTIVE_RACER_TRACK, type RacerTrackDefinition } from './RacerTrackDefin
 import { BILLBOARDS, CARS, PLANTS, SPRITE_SCALE, type AtlasFrame } from './SpriteAtlas';
 import { RACER_TUNING_PRESETS, type RacerTuning } from './RacerTuning';
 
+export type RacerPowerupType = 'boost' | 'slow' | 'nitro';
+
 export interface RacerInputState {
   steer: number;
   accelerate: boolean;
@@ -24,6 +26,15 @@ export interface TrafficCar {
   percent: number;
 }
 
+export interface TrackPowerup {
+  type: RacerPowerupType;
+  offset: number;
+  z: number;
+  percent: number;
+  active: boolean;
+  respawnTimer: number;
+}
+
 export interface Segment {
   index: number;
   z1: number;
@@ -34,6 +45,7 @@ export interface Segment {
   color: RoadColor;
   sprites: RoadsideSprite[];
   cars: TrafficCar[];
+  powerups: TrackPowerup[];
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -78,6 +90,7 @@ export class RacerState {
 
   segments: Segment[] = [];
   cars: TrafficCar[] = [];
+  powerups: TrackPowerup[] = [];
   trackLength = 0;
   position = 0;
   speed = 0;
@@ -89,6 +102,12 @@ export class RacerState {
   totalRaceTime = 0;
   collisionCooldown = 0;
   collisionCount = 0;
+  boostTime = 0;
+  nitroTime = 0;
+  slowTime = 0;
+  powerupMessage = '';
+  powerupMessageTime = 0;
+  powerupCount = 0;
   private controlSensitivity: RacerControlSensitivityProfile = DEFAULT_RACER_CONTROL_SENSITIVITY;
 
   constructor(
@@ -109,6 +128,17 @@ export class RacerState {
     return this.track;
   }
 
+  get activePowerupLabel(): string {
+    if (this.nitroTime > 0) return '氮气推进';
+    if (this.boostTime > 0) return '加速增幅';
+    if (this.slowTime > 0) return '减速干扰';
+    return '';
+  }
+
+  get activePowerupTime(): number {
+    return Math.max(this.nitroTime, this.boostTime, this.slowTime);
+  }
+
   setTrack(track: RacerTrackDefinition, bestLapTime = this.bestLapTime): void {
     this.track = track;
     this.resetRace(bestLapTime);
@@ -119,12 +149,15 @@ export class RacerState {
   }
 
   update(dt: number): void {
+    this.updatePowerupTimers(dt);
+
     const playerSegment = this.findSegment(this.position + this.playerZ);
     const playerWidth = SPRITE_SCALE * 80;
     const speedPercent = this.speed / RACER_CONFIG.maxSpeed;
     const startPosition = this.position;
     const steerDelta = dt * this.controlSensitivity.steerResponse * speedPercent;
     const steerInput = clamp(this.input.steer, -this.controlSensitivity.steerInputLimit, this.controlSensitivity.steerInputLimit);
+    const accelerationMultiplier = this.accelerationMultiplier();
 
     this.totalRaceTime += dt;
     this.collisionCooldown = Math.max(0, this.collisionCooldown - dt);
@@ -139,7 +172,7 @@ export class RacerState {
     if (this.input.brake) {
       this.speed += RACER_CONFIG.braking * dt;
     } else if (this.input.accelerate) {
-      this.speed += RACER_CONFIG.acceleration * dt;
+      this.speed += RACER_CONFIG.acceleration * accelerationMultiplier * dt;
     } else {
       this.speed += RACER_CONFIG.deceleration * dt;
     }
@@ -152,9 +185,10 @@ export class RacerState {
     }
 
     this.checkTrafficCollision(playerSegment, playerWidth);
+    this.checkPowerupCollision(playerSegment, playerWidth);
 
     this.playerX = clamp(this.playerX, -3, 3);
-    this.speed = clamp(this.speed, 0, RACER_CONFIG.maxSpeed);
+    this.speed = clamp(this.speed, 0, this.speedLimit());
 
     if (this.position > this.playerZ) {
       if (this.currentLapTime > 0 && startPosition < this.playerZ) {
@@ -179,6 +213,12 @@ export class RacerState {
     this.totalRaceTime = 0;
     this.collisionCooldown = 0;
     this.collisionCount = 0;
+    this.boostTime = 0;
+    this.nitroTime = 0;
+    this.slowTime = 0;
+    this.powerupMessage = '';
+    this.powerupMessageTime = 0;
+    this.powerupCount = 0;
     this.input.steer = 0;
     this.input.accelerate = true;
     this.input.brake = false;
@@ -187,6 +227,60 @@ export class RacerState {
 
   findSegment(z: number): Segment {
     return this.segments[Math.floor(z / RACER_CONFIG.segmentLength) % this.segments.length];
+  }
+
+  private accelerationMultiplier(): number {
+    if (this.nitroTime > 0) return 2.05;
+    if (this.boostTime > 0) return 1.45;
+    if (this.slowTime > 0) return 0.45;
+    return 1;
+  }
+
+  private speedLimit(): number {
+    if (this.nitroTime > 0) return RACER_CONFIG.maxSpeed * 1.28;
+    if (this.boostTime > 0) return RACER_CONFIG.maxSpeed * 1.12;
+    if (this.slowTime > 0) return RACER_CONFIG.maxSpeed * 0.62;
+    return RACER_CONFIG.maxSpeed;
+  }
+
+  private updatePowerupTimers(dt: number): void {
+    this.boostTime = Math.max(0, this.boostTime - dt);
+    this.nitroTime = Math.max(0, this.nitroTime - dt);
+    this.slowTime = Math.max(0, this.slowTime - dt);
+    this.powerupMessageTime = Math.max(0, this.powerupMessageTime - dt);
+    if (this.powerupMessageTime === 0) this.powerupMessage = '';
+
+    for (const powerup of this.powerups) {
+      if (powerup.active || powerup.respawnTimer <= 0) continue;
+      powerup.respawnTimer = Math.max(0, powerup.respawnTimer - dt);
+      if (powerup.respawnTimer === 0) powerup.active = true;
+    }
+  }
+
+  private applyPowerup(powerup: TrackPowerup): void {
+    powerup.active = false;
+    powerup.respawnTimer = 10 + Math.random() * 4;
+    this.powerupCount += 1;
+
+    if (powerup.type === 'boost') {
+      this.slowTime = 0;
+      this.boostTime = Math.max(this.boostTime, 2);
+      this.speed = Math.max(this.speed, RACER_CONFIG.maxSpeed * 0.78);
+      this.powerupMessage = '加速道具：动力提升';
+    } else if (powerup.type === 'nitro') {
+      this.slowTime = 0;
+      this.nitroTime = Math.max(this.nitroTime, 3.4);
+      this.speed = Math.max(this.speed, RACER_CONFIG.maxSpeed * 0.88);
+      this.powerupMessage = '氮气启动：极速推进';
+    } else {
+      this.boostTime = 0;
+      this.nitroTime = 0;
+      this.slowTime = Math.max(this.slowTime, 2.3);
+      this.speed = Math.min(this.speed, RACER_CONFIG.maxSpeed * 0.42);
+      this.powerupMessage = '减速陷阱：动力受限';
+    }
+
+    this.powerupMessageTime = 1.8;
   }
 
   private resetRoad(): void {
@@ -208,7 +302,8 @@ export class RacerState {
           curve: section.curve,
           color: roadColorForSegment(index, this.track.roadTheme),
           sprites: [],
-          cars: []
+          cars: [],
+          powerups: []
         });
         index += 1;
       }
@@ -218,6 +313,7 @@ export class RacerState {
     this.trackLength = this.segments.length * RACER_CONFIG.segmentLength;
     this.decorateStartFinish();
     this.resetRoadsideSprites();
+    this.resetPowerups();
     this.resetTraffic();
   }
 
@@ -237,6 +333,31 @@ export class RacerState {
       const rightFrame = theme === 'coast' ? randomChoice(BILLBOARDS) : randomChoice([...PLANTS, ...BILLBOARDS]);
       this.segments[i].sprites.push({ frame: leftFrame, offset: -1.35 - Math.random() * 1.3 });
       this.segments[i].sprites.push({ frame: rightFrame, offset: 1.2 + Math.random() * 1.6 });
+    }
+  }
+
+  private resetPowerups(): void {
+    this.powerups = [];
+    const types: readonly RacerPowerupType[] = ['boost', 'nitro', 'slow'];
+    const offsets = [-0.58, 0, 0.58] as const;
+    const spacing = Math.max(28, Math.floor(this.segments.length / 14));
+    let powerupIndex = 0;
+
+    for (let segmentIndex = 24; segmentIndex < this.segments.length - 20; segmentIndex += spacing) {
+      const segment = this.segments[segmentIndex];
+      if (!segment) continue;
+
+      const powerup: TrackPowerup = {
+        type: types[powerupIndex % types.length],
+        offset: offsets[(powerupIndex * 2) % offsets.length],
+        z: (segmentIndex + 0.5) * RACER_CONFIG.segmentLength,
+        percent: 0.5,
+        active: true,
+        respawnTimer: 0
+      };
+      powerupIndex += 1;
+      this.powerups.push(powerup);
+      segment.powerups.push(powerup);
     }
   }
 
@@ -275,6 +396,14 @@ export class RacerState {
     if (!overlap(this.playerX, playerWidth, car.offset, SPRITE_SCALE * 80, 1.6)) return 0;
 
     return car.offset > this.playerX ? 0.04 : -0.04;
+  }
+
+  private checkPowerupCollision(playerSegment: Segment, playerWidth: number): void {
+    for (const powerup of playerSegment.powerups) {
+      if (!powerup.active) continue;
+      if (!overlap(this.playerX, playerWidth, powerup.offset, 0.34, 1.15)) continue;
+      this.applyPowerup(powerup);
+    }
   }
 
   private checkTrafficCollision(playerSegment: Segment, playerWidth: number): void {
