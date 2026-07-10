@@ -188,10 +188,10 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   const pauseSafeY = Math.max(96, height * 0.17);
   const pauseButton = circle(width - pauseButtonR - 20, pauseSafeY + pauseButtonR, pauseButtonR);
 
-  const joystickRadius = Math.max(76, Math.min(96, width * 0.085, height * 0.205));
-  const joystickKnobRadius = joystickRadius * 0.43;
-  const joystickBase = circle(joystickRadius + 36, height - joystickRadius - 28, joystickRadius);
-  const joystickTouchArea = rect(0, height * 0.42, Math.min(width * 0.55, joystickBase.x + joystickRadius + 58), height * 0.58);
+  const joystickRadius = Math.max(92, Math.min(126, width * 0.11, height * 0.245));
+  const joystickKnobRadius = joystickRadius * 0.42;
+  const joystickBase = circle(joystickRadius + 28, height - joystickRadius - 20, joystickRadius);
+  const joystickTouchArea = rect(0, height * 0.34, Math.min(width * 0.62, joystickBase.x + joystickRadius + 72), height * 0.66);
 
   const brakeRadius = Math.max(48, Math.min(64, width * 0.058, height * 0.13));
   const brakeButton = circle(width - brakeRadius - 46, height - brakeRadius - 38, brakeRadius);
@@ -239,7 +239,7 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
       titleY: trackPanel.y + (small ? 22 : 30),
       line1Y: trackPanel.y + (small ? 74 : 90),
       line2Y: trackPanel.y + (small ? 96 : 116),
-      line3Y: trackPanel.y + (small ? 0 : 0),
+      line3Y: trackPanel.y,
       trackButtons,
       backButton: centeredButton(width, trackBackY, small ? 210 : 236, buttonH)
     },
@@ -247,8 +247,8 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
       panel: settingsPanel,
       titleY: settingsPanel.y + (small ? 22 : 30),
       line1Y: settingsPanel.y + (small ? 70 : 90),
-      line2Y: settingsPanel.y + (small ? 0 : 0),
-      line3Y: settingsPanel.y + (small ? 0 : 0),
+      line2Y: settingsPanel.y,
+      line3Y: settingsPanel.y,
       audioButton: centeredButton(width, settingsStartY, settingsCardW, settingsCardH),
       miniMapButton: centeredButton(width, settingsStartY + (settingsCardH + settingsGap), settingsCardW, settingsCardH),
       coachButton: centeredButton(width, settingsStartY + (settingsCardH + settingsGap) * 2, settingsCardW, settingsCardH),
@@ -276,7 +276,7 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
       restartButton: rect(finishedStartX, finishedButtonY, finishedButtonW, finishedButtonH),
       shareButton: rect(finishedStartX + finishedButtonW + finishedGap, finishedButtonY, finishedButtonW, finishedButtonH),
       leaderboardButton: rect(finishedStartX + (finishedButtonW + finishedGap) * 2, finishedButtonY, finishedButtonW, finishedButtonH),
-      noteY: finishedPanel.y + (small ? 284 : 314)
+      noteY: finishedButtonY + finishedButtonH + (small ? 18 : 24)
     },
     help: {
       panel: helpPanel,
