@@ -138,7 +138,6 @@ function buildTrackButtons(width: number, trackPanel: RacerRect, small: boolean)
   const buttonH = small ? 58 : 68;
   const gap = small ? 10 : 12;
   const startY = trackPanel.y + (small ? 112 : 132);
-
   return [0, 1, 2].map((index) => centeredButton(width, startY + index * (buttonH + gap), buttonW, buttonH));
 }
 
@@ -166,7 +165,8 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
 
   const trackPanel = panel(width, height, 660, small ? 410 : 470);
   const trackButtons = buildTrackButtons(width, trackPanel, small);
-  const trackBackY = trackButtons[trackButtons.length - 1].y + trackButtons[trackButtons.length - 1].h + (small ? 14 : 18);
+  const lastTrackButton = trackButtons[trackButtons.length - 1];
+  const trackBackY = lastTrackButton.y + lastTrackButton.h + (small ? 14 : 18);
 
   const settingsPanel = panel(width, height, 680, small ? 430 : 520);
   const settingsCardW = Math.min(small ? 450 : 540, settingsPanel.w - 56);
@@ -203,10 +203,16 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   const pauseSafeY = Math.max(96, height * 0.17);
   const pauseButton = circle(width - pauseButtonR - 20, pauseSafeY + pauseButtonR, pauseButtonR);
 
-  const joystickRadius = Math.max(92, Math.min(126, width * 0.11, height * 0.245));
-  const joystickKnobRadius = joystickRadius * 0.42;
-  const joystickBase = circle(joystickRadius + 28, height - joystickRadius - 20, joystickRadius);
-  const joystickTouchArea = rect(0, height * 0.34, Math.min(width * 0.62, joystickBase.x + joystickRadius + 72), height * 0.66);
+  // Keep the visual control compact while preserving a generous invisible touch target.
+  const joystickRadius = Math.max(58, Math.min(86, width * 0.078, height * 0.18));
+  const joystickKnobRadius = joystickRadius * 0.4;
+  const joystickBase = circle(joystickRadius + 24, height - joystickRadius - 18, joystickRadius);
+  const joystickTouchArea = rect(
+    0,
+    height * 0.42,
+    Math.min(width * 0.48, joystickBase.x + joystickRadius + 52),
+    height * 0.58
+  );
 
   const brakeRadius = Math.max(48, Math.min(64, width * 0.058, height * 0.13));
   const brakeButton = circle(width - brakeRadius - 46, height - brakeRadius - 38, brakeRadius);
@@ -233,16 +239,8 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   return {
     small,
     pauseButton,
-    hud: {
-      panel: hudPanel,
-      progressBar,
-      rowHeight: small ? 16 : 18
-    },
-    miniMap: {
-      panel: miniMapPanel,
-      previewBar: miniMapPreviewBar,
-      progressBar: miniMapProgressBar
-    },
+    hud: { panel: hudPanel, progressBar, rowHeight: small ? 16 : 18 },
+    miniMap: { panel: miniMapPanel, previewBar: miniMapPreviewBar, progressBar: miniMapProgressBar },
     controls: {
       joystickBase,
       joystickKnobRadius,
