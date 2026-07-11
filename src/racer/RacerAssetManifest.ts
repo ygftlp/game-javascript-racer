@@ -14,6 +14,10 @@ export interface RacerAudioResources {
   engineLoop?: string;
   crash?: string;
   menuConfirm?: string;
+  boostPickup?: string;
+  nitroPickup?: string;
+  slowHit?: string;
+  nitroLoop?: string;
 }
 
 export interface RacerReplacementCategory {
@@ -95,7 +99,7 @@ export const RACER_REPLACEMENT_CATEGORIES: RacerReplacementCategory[] = [
   {
     id: 'audio.sfx',
     label: '音效',
-    description: '预留引擎声、碰撞、按钮确认音效，目前代码只接入背景音乐。',
+    description: '引擎、碰撞、按钮、加速拾取、氮气拾取、陷阱命中与氮气循环音效。缺失时保持静默回退，不阻断游戏。',
     required: false
   }
 ];
@@ -134,7 +138,11 @@ export const COMMERCIAL_TEMPLATE_ASSET_PACK: RacerAssetPackManifest = {
     music: 'assets/packs/default/audio/music/racer.mp3',
     engineLoop: 'assets/packs/default/audio/sfx/engine-loop.mp3',
     crash: 'assets/packs/default/audio/sfx/crash.mp3',
-    menuConfirm: 'assets/packs/default/audio/sfx/menu-confirm.mp3'
+    menuConfirm: 'assets/packs/default/audio/sfx/menu-confirm.mp3',
+    boostPickup: 'assets/packs/default/audio/sfx/boost-pickup.mp3',
+    nitroPickup: 'assets/packs/default/audio/sfx/nitro-pickup.mp3',
+    slowHit: 'assets/packs/default/audio/sfx/slow-hit.mp3',
+    nitroLoop: 'assets/packs/default/audio/sfx/nitro-loop.mp3'
   }
 };
 
