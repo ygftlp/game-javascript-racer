@@ -26,7 +26,8 @@ function bundleContainsMarker(bundle, marker) {
 
 const bundle = await readFile(outfile, 'utf8');
 const requiredMarkers = [
-  ['frontend runtime marker', 'RUNTIME S2'],
+  ['frontend runtime marker', 'RUNTIME V2 FRONTEND'],
+  ['frontend scene boundary', 'RacerV2FrontendScene'],
   ['manual nitro tutorial', '拾取蓝色 N 后按住氮气'],
   ['nitro control label', '氮气'],
   ['sprint validation marker', 'RacerFeedbackController']
