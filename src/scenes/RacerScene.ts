@@ -33,6 +33,8 @@ export class RacerScene extends Scene {
   private miniMapEnabled = true;
   private controlCoachEnabled = true;
   private lastCollisionCount = 0;
+  private lastPowerupCount = 0;
+  private lastNitroActive = false;
   private wasPlayingBeforeHidden = false;
   private phase: RacerPhase = 'menu';
   private pressedTarget: RacerUiPressedTarget = null;
@@ -57,6 +59,8 @@ export class RacerScene extends Scene {
     this.hasShownControlCoach = !RACER_UI_FLAGS.showFirstRaceCoach || this.settings.hasShownFirstRaceCoach();
     this.assets.setMuted(this.audioMuted);
     this.state.bestLapTime = this.savedBestLapTime;
+    this.lastPowerupCount = this.state.powerupCount;
+    this.lastNitroActive = this.state.nitroActive;
     this.bindTouchControls();
     void this.assets.load(gameEngine);
     this.services.analytics.track('scene_ready', {
@@ -87,10 +91,13 @@ export class RacerScene extends Scene {
     if (!this.touchActive) {
       this.state.input.steer = 0;
       this.state.input.brake = false;
+      this.state.input.nitro = false;
     }
 
     this.state.update(dt);
     this.playCollisionSfxIfNeeded();
+    this.trackPowerupPickupIfNeeded();
+    this.trackNitroStateIfNeeded();
     this.persistBestLapIfNeeded();
 
     if (this.state.completedLaps >= this.targetLaps) {
@@ -378,6 +385,8 @@ export class RacerScene extends Scene {
     this.state.setTrack(this.activeTrack, this.savedBestLapTime);
     this.state.setControlSensitivity(this.controlSensitivity);
     this.lastCollisionCount = this.state.collisionCount;
+    this.lastPowerupCount = this.state.powerupCount;
+    this.lastNitroActive = this.state.nitroActive;
     this.phase = 'menu';
     this.pressedTarget = null;
     this.resetTouchControls();
@@ -396,6 +405,8 @@ export class RacerScene extends Scene {
     this.pressedTarget = null;
     this.resetTouchControls();
     this.lastCollisionCount = this.state.collisionCount;
+    this.lastPowerupCount = this.state.powerupCount;
+    this.lastNitroActive = this.state.nitroActive;
     if (RACER_UI_FLAGS.showFirstRaceCoach && this.controlCoachEnabled && !this.hasShownControlCoach) {
       this.controlCoachTimeLeft = CONTROL_COACH_SECONDS;
       this.hasShownControlCoach = true;
@@ -417,6 +428,8 @@ export class RacerScene extends Scene {
   private restartRace(): void {
     this.state.resetRace(this.savedBestLapTime);
     this.lastCollisionCount = this.state.collisionCount;
+    this.lastPowerupCount = this.state.powerupCount;
+    this.lastNitroActive = this.state.nitroActive;
     this.services.analytics.track('race_restart');
     this.startRace();
   }
@@ -435,6 +448,8 @@ export class RacerScene extends Scene {
     this.pressedTarget = null;
     this.resetTouchControls();
     this.lastCollisionCount = this.state.collisionCount;
+    this.lastPowerupCount = this.state.powerupCount;
+    this.lastNitroActive = this.state.nitroActive;
     this.assets.playMusic();
     this.services.analytics.track('race_resume', { source, audioMuted: this.audioMuted });
   }
@@ -503,15 +518,42 @@ export class RacerScene extends Scene {
     this.services.analytics.track('collision', { collisionCount: this.state.collisionCount });
   }
 
+  private trackPowerupPickupIfNeeded(): void {
+    if (this.state.powerupCount <= this.lastPowerupCount) return;
+    this.lastPowerupCount = this.state.powerupCount;
+    const type = this.state.lastPowerupType ?? 'unknown';
+    const payload = {
+      type,
+      powerupCount: this.state.powerupCount,
+      nitroCharge: Math.round(this.state.nitroCharge),
+      trackId: this.activeTrack.id
+    };
+    this.services.analytics.track('powerup_pickup', payload);
+    if (type === 'slow') this.services.analytics.track('slow_hit', payload);
+  }
+
+  private trackNitroStateIfNeeded(): void {
+    const active = this.state.nitroActive;
+    if (active === this.lastNitroActive) return;
+    this.lastNitroActive = active;
+    this.services.analytics.track(active ? 'nitro_start' : 'nitro_end', {
+      nitroCharge: Math.round(this.state.nitroCharge),
+      speed: Math.round(this.state.speed),
+      trackId: this.activeTrack.id
+    });
+  }
+
   private applyTouches(touches: TouchPoint[]): void {
     const layout = this.getUiLayout();
     const joystickTouch = this.findJoystickTouch(touches);
     const brakeTouch = touches.find((touch) => pointInRect(touch, layout.controls.brakeTouchArea) || pointInCircle(touch, layout.controls.brakeButton, 18));
+    const nitroTouch = touches.find((touch) => pointInRect(touch, layout.controls.nitroTouchArea) || pointInCircle(touch, layout.controls.nitroButton, 16));
 
     this.touchActive = touches.length > 0;
     this.brakeActive = Boolean(brakeTouch);
     this.state.input.accelerate = true;
     this.state.input.brake = this.brakeActive;
+    this.state.input.nitro = Boolean(nitroTouch);
 
     if (joystickTouch) {
       this.joystick.begin(joystickTouch, layout.controls.joystickBase, layout.controls.joystickKnobRadius);
@@ -524,6 +566,8 @@ export class RacerScene extends Scene {
   }
 
   private findJoystickTouch(touches: TouchPoint[]): TouchPoint | undefined {
+    const trackedTouch = touches.find((touch) => this.joystick.isTracking(touch));
+    if (trackedTouch) return trackedTouch;
     const layout = this.getUiLayout();
     return touches.find((touch) => pointInRect(touch, layout.controls.joystickTouchArea) || pointInCircle(touch, layout.controls.joystickBase, 28));
   }
@@ -534,6 +578,8 @@ export class RacerScene extends Scene {
     this.joystick.end();
     this.state.input.steer = 0;
     this.state.input.brake = false;
+    this.state.input.nitro = false;
+    this.state.nitroTime = 0;
   }
 
   private isPauseButton(point: TouchPoint): boolean {
