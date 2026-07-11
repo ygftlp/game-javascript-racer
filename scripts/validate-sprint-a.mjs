@@ -85,8 +85,18 @@ requireTokens(source.layout, [
   'Math.min(86',
   'joystickKnobRadius = joystickRadius * 0.4',
   'height * 0.42',
-  'width * 0.48'
-], 'compact joystick, nitro controls, and V2 shared visual/touch layout', failures);
+  'width * 0.48',
+  'function safePanel',
+  'frontendTopSafe',
+  'frontendBottomSafe',
+  'settingsRows = 6',
+  'settingsRowY(5)',
+  'trackContentHeight',
+  'helpLinesHeight',
+  'settingsHeaderHeight = clamp(settingsPanel.h * 0.24, 90',
+  'trackHeaderHeight = clamp(trackPanel.h * 0.24, 90',
+  'helpHeaderHeight = clamp(helpPanel.h * 0.23, 90'
+], 'safe-area frontend panels, compact joystick, and shared touch layout', failures);
 requireTokens(source.uiRenderer, ['drawNitroButton', 'state.nitroCharge', '黄色 ≫：立即加速', '蓝色 N：补充 50% 氮气', '红黑地面：减速陷阱'], 'nitro HUD and powerup tutorial', failures);
 requireTokens(source.scene, ['state.input.nitro', 'nitroTouchArea', 'powerup_pickup', 'slow_hit', 'nitro_start', 'nitro_end', 'this.getUiLayout().menu.startButton', 'this.getUiLayout().menu.settingsButton'], 'manual nitro, analytics, and shared menu hit targets', failures);
 requireTokens(source.renderer, ['RacerFeedbackController', 'feedback.syncAudio', 'feedback.cameraOffset', 'feedback.drawMotionOverlay', 'ctx.translate(cameraOffset.x, cameraOffset.y)', 'drawSlowHazard', 'roundedRectPath'], 'world motion feedback and powerup visual safety', failures);
@@ -111,6 +121,10 @@ if (source.layout.includes('Math.max(92, Math.min(126')) {
   failures.push('Race joystick must not regress to the oversized 92-126px radius');
 }
 
+if (source.layout.includes('const settingsPanel = panel(') || source.layout.includes('settingsCardH = small ? 44 : 54')) {
+  failures.push('Frontend settings must use safe-area flow layout instead of fixed-height cards');
+}
+
 if (source.renderer.includes('ctx.roundRect(') || source.renderer.includes('.roundRect(')) {
   failures.push('Pseudo3DRenderer must not depend on native Canvas roundRect');
 }
@@ -125,4 +139,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Sprint A gameplay safety, clean V2 frontend, compact joystick, shared touch layout, explicit WeChat main canvas, reliable render loop, manual nitro, audio, and motion feedback validation passed.');
+console.log('Sprint A gameplay safety, safe-area V2 panels, clean frontend, compact joystick, shared touch layout, explicit WeChat main canvas, reliable render loop, manual nitro, audio, and motion feedback validation passed.');
