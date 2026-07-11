@@ -1,5 +1,4 @@
-import type { Engine, Renderer } from '../../engine';
-import type { RacerScene } from '../../scenes/RacerScene';
+import type { Engine, Renderer, Scene } from '../../engine';
 
 interface FrameCanvas {
   width: number;
@@ -48,7 +47,7 @@ function drawRenderFailure(engine: Engine, error: unknown): void {
   }
 }
 
-export function startReliableWeChatRenderLoop(engine: Engine, scene: RacerScene): void {
+export function startReliableWeChatRenderLoop(engine: Engine, scene: Scene): void {
   const canvas = engine.platform.canvas as unknown as FrameCanvas;
   const drawable = scene as unknown as DrawableScene;
   let running = true;
