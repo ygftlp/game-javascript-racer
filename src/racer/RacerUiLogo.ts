@@ -9,10 +9,10 @@ export interface RacerUiLogoOptions {
   texture?: Texture | null;
 }
 
-type DrawableLogoImage = CanvasImageSource & {
+interface DrawableLogoDimensions {
   width?: number;
   height?: number;
-};
+}
 
 export class RacerUiLogo {
   render(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, options: RacerUiLogoOptions): void {
@@ -39,9 +39,10 @@ export class RacerUiLogo {
     const theme = RACER_UI_THEME.brandLogo;
     const maxW = Math.min(options.maxWidth, options.small ? theme.imageSmallMaxWidth : theme.imageMaxWidth);
     const maxH = options.small ? theme.imageSmallMaxHeight : theme.imageMaxHeight;
-    const image = texture.image as DrawableLogoImage;
-    const sourceW = Math.max(1, Number(image.width) || maxW);
-    const sourceH = Math.max(1, Number(image.height) || maxH);
+    const image = texture.image as unknown as CanvasImageSource;
+    const dimensions = texture.image as unknown as DrawableLogoDimensions;
+    const sourceW = Math.max(1, Number(dimensions.width) || maxW);
+    const sourceH = Math.max(1, Number(dimensions.height) || maxH);
     const scale = Math.min(maxW / sourceW, maxH / sourceH);
     const w = Math.max(1, Math.round(sourceW * scale));
     const h = Math.max(1, Math.round(sourceH * scale));
