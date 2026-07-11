@@ -1,7 +1,8 @@
-import { Engine, WxPlatform } from '../../engine';
+import { Engine } from '../../engine';
 import { installRacerCanvasCompatibility } from '../../racer/RacerCanvasCompat';
 import { RacerScene } from '../../scenes/RacerScene';
 import { startReliableWeChatRenderLoop } from './RacerWechatRenderLoop';
+import { RacerWechatPlatform } from './RacerWechatPlatform';
 
 interface WeChatLifecycleHost {
   onHide?: (handler: () => void) => void;
@@ -76,7 +77,7 @@ function renderBootScreen(engine: Engine): void {
 }
 
 export function startWeChatRacerGame(): WeChatRacerGame {
-  const engine = new Engine(new WxPlatform());
+  const engine = new Engine(new RacerWechatPlatform());
   renderBootScreen(engine);
 
   try {
