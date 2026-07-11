@@ -46,10 +46,24 @@ interface MutableUiRenderer {
   drawHud: HudMethod;
 }
 
+type DashCapableContext = CanvasRenderingContext2D & {
+  setLineDash?: (segments: number[]) => void;
+};
+
 let installed = false;
 
 function isFrontendPhase(phase: MenuRenderOptions['phase']): boolean {
   return phase === 'menu' || phase === 'help' || phase === 'trackSelect' || phase === 'settings';
+}
+
+function safeSetLineDash(ctx: CanvasRenderingContext2D, segments: number[]): void {
+  const dash = (ctx as DashCapableContext).setLineDash;
+  if (typeof dash !== 'function') return;
+  try {
+    dash.call(ctx, segments);
+  } catch (error) {
+    console.warn('[racer] setLineDash is unavailable on this WeChat Canvas context', error);
+  }
 }
 
 function drawFrontendBackdrop(ctx: CanvasRenderingContext2D, state: RacerState): void {
@@ -91,12 +105,12 @@ function drawFrontendBackdrop(ctx: CanvasRenderingContext2D, state: RacerState):
 
   ctx.strokeStyle = 'rgba(255, 212, 59, 0.55)';
   ctx.lineWidth = Math.max(2, width * 0.003);
-  ctx.setLineDash([Math.max(12, height * 0.055), Math.max(9, height * 0.04)]);
+  safeSetLineDash(ctx, [Math.max(12, height * 0.055), Math.max(9, height * 0.04)]);
   ctx.beginPath();
   ctx.moveTo(width / 2, height);
   ctx.lineTo(width / 2, horizon);
   ctx.stroke();
-  ctx.setLineDash([]);
+  safeSetLineDash(ctx, []);
 
   const vignette = ctx.createRadialGradient(width / 2, height * 0.46, 0, width / 2, height * 0.46, Math.max(width, height) * 0.72);
   vignette.addColorStop(0, 'rgba(5, 12, 24, 0.08)');
@@ -109,6 +123,22 @@ function drawFrontendBackdrop(ctx: CanvasRenderingContext2D, state: RacerState):
   ctx.textBaseline = 'bottom';
   ctx.fillStyle = 'rgba(255, 255, 255, 0.48)';
   ctx.fillText('RUNTIME S2 · 2026.07.11', width - 14, height - 9);
+  ctx.restore();
+}
+
+function drawFrontendFallback(ctx: CanvasRenderingContext2D, state: RacerState, message: string): void {
+  ctx.save();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#07111f';
+  ctx.fillRect(0, 0, state.width, state.height);
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.max(22, Math.round(state.width / 24))}px sans-serif`;
+  ctx.fillText('极速公路', state.width / 2, state.height * 0.44);
+  ctx.font = `${Math.max(12, Math.round(state.width / 55))}px sans-serif`;
+  ctx.fillStyle = '#ffcc4d';
+  ctx.fillText(message, state.width / 2, state.height * 0.56);
   ctx.restore();
 }
 
@@ -132,11 +162,20 @@ export function installRacerMenuPresentation(): void {
       return;
     }
 
-    drawFrontendBackdrop(ctx, state);
+    try {
+      drawFrontendBackdrop(ctx, state);
+    } catch (error) {
+      console.error('[racer] frontend backdrop render failed', error);
+      drawFrontendFallback(ctx, state, '兼容模式背景');
+    }
+
     const originalDrawHud = this.drawHud;
     this.drawHud = (): void => {};
     try {
       originalRender.call(this, ctx, state, assets, layout, options);
+    } catch (error) {
+      console.error('[racer] frontend UI render failed', error);
+      drawFrontendFallback(ctx, state, '界面渲染失败，请查看控制台');
     } finally {
       this.drawHud = originalDrawHud;
     }
