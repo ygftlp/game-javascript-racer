@@ -13,6 +13,10 @@ export class RacerAssets {
   engineLoop: Audio | null = null;
   crash: Audio | null = null;
   menuConfirm: Audio | null = null;
+  boostPickup: Audio | null = null;
+  nitroPickup: Audio | null = null;
+  slowHit: Audio | null = null;
+  nitroLoop: Audio | null = null;
   status: RacerAssetStatus = 'idle';
   loaded = false;
   failed = false;
@@ -64,6 +68,7 @@ export class RacerAssets {
     if (muted) {
       this.pauseMusic();
       this.stopEngineLoop();
+      this.stopNitroLoop();
     }
   }
 
@@ -81,11 +86,13 @@ export class RacerAssets {
   pauseMusic(): void {
     this.pauseAudio(this.music);
     this.pauseAudio(this.engineLoop);
+    this.pauseAudio(this.nitroLoop);
   }
 
   stopMusic(): void {
     this.stopAudio(this.music);
     this.stopEngineLoop();
+    this.stopNitroLoop();
   }
 
   playEngineLoop(): void {
@@ -103,6 +110,27 @@ export class RacerAssets {
 
   playMenuConfirm(): void {
     this.playSfx(this.menuConfirm, 'menu confirm');
+  }
+
+  playBoostPickup(): void {
+    this.playSfx(this.boostPickup, 'boost pickup');
+  }
+
+  playNitroPickup(): void {
+    this.playSfx(this.nitroPickup, 'nitro pickup');
+  }
+
+  playSlowHit(): void {
+    this.playSfx(this.slowHit, 'slow hit');
+  }
+
+  playNitroLoop(): void {
+    if (this.muted) return;
+    this.playAudio(this.nitroLoop, true, 'nitro loop');
+  }
+
+  stopNitroLoop(): void {
+    this.stopAudio(this.nitroLoop);
   }
 
   private loadOptionalBrandLogo(engine: Engine): void {
@@ -143,11 +171,19 @@ export class RacerAssets {
     this.engineLoop = this.loadOptionalAudio(engine, this.pack.audio.engineLoop, 'engine loop');
     this.crash = this.loadOptionalAudio(engine, this.pack.audio.crash, 'crash');
     this.menuConfirm = this.loadOptionalAudio(engine, this.pack.audio.menuConfirm, 'menu confirm');
+    this.boostPickup = this.loadOptionalAudio(engine, this.pack.audio.boostPickup, 'boost pickup');
+    this.nitroPickup = this.loadOptionalAudio(engine, this.pack.audio.nitroPickup, 'nitro pickup');
+    this.slowHit = this.loadOptionalAudio(engine, this.pack.audio.slowHit, 'slow hit');
+    this.nitroLoop = this.loadOptionalAudio(engine, this.pack.audio.nitroLoop, 'nitro loop');
 
     if (this.music) this.music.volume = 0.05;
     if (this.engineLoop) this.engineLoop.volume = 0.04;
     if (this.crash) this.crash.volume = 0.12;
     if (this.menuConfirm) this.menuConfirm.volume = 0.08;
+    if (this.boostPickup) this.boostPickup.volume = 0.11;
+    if (this.nitroPickup) this.nitroPickup.volume = 0.12;
+    if (this.slowHit) this.slowHit.volume = 0.13;
+    if (this.nitroLoop) this.nitroLoop.volume = 0.08;
   }
 
   private loadOptionalAudio(engine: Engine, path: string | undefined, label: string): Audio | null {
