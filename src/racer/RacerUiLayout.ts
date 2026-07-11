@@ -146,9 +146,7 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   const small = width < 760 || height < 430;
   const buttonW = small ? Math.min(248, width * 0.46) : 268;
   const buttonH = small ? 46 : 54;
-  const menuButtonH = small ? 42 : 50;
   const spacing = small ? 10 : 12;
-  const menuSpacing = small ? 8 : 10;
   const title = small ? 34 : 44;
   const body = small ? 18 : 21;
   const note = small ? 16 : 18;
@@ -156,7 +154,15 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   const hud = small ? 14 : 16;
 
   const menuPanel = panel(width, height, 640, small ? 430 : 520);
-  const menuStartY = menuPanel.y + (small ? 160 : 188);
+  const menuButtonW = Math.max(188, Math.min(small ? 260 : 300, width * (small ? 0.31 : 0.25)));
+  const menuButtonH = Math.max(38, Math.min(small ? 46 : 54, height * 0.11));
+  const menuSpacing = Math.max(6, Math.min(10, height * 0.018));
+  const menuX = Math.max(22, width * 0.09);
+  const menuStartY = Math.max(height * 0.39, small ? 120 : 170);
+  const settingsButtonW = Math.max(82, Math.min(108, width * 0.095));
+  const settingsButtonH = Math.max(36, Math.min(48, height * 0.09));
+  const settingsButtonRight = Math.max(22, width * 0.03);
+  const settingsButtonY = Math.max(18, height * 0.085);
 
   const trackPanel = panel(width, height, 660, small ? 410 : 470);
   const trackButtons = buildTrackButtons(width, trackPanel, small);
@@ -257,11 +263,11 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
       line1Y: menuPanel.y + (small ? 68 : 94),
       line2Y: menuPanel.y + (small ? 98 : 126),
       line3Y: menuPanel.y + (small ? 126 : 158),
-      startButton: centeredButton(width, menuStartY, buttonW, menuButtonH),
-      trackButton: centeredButton(width, menuStartY + (menuButtonH + menuSpacing), buttonW, menuButtonH),
-      leaderboardButton: centeredButton(width, menuStartY + (menuButtonH + menuSpacing) * 2, buttonW, menuButtonH),
-      helpButton: centeredButton(width, menuStartY + (menuButtonH + menuSpacing) * 3, buttonW, menuButtonH),
-      settingsButton: centeredButton(width, menuStartY + (menuButtonH + menuSpacing) * 4, buttonW, menuButtonH)
+      startButton: rect(menuX, menuStartY, menuButtonW, menuButtonH),
+      trackButton: rect(menuX, menuStartY + (menuButtonH + menuSpacing), menuButtonW, menuButtonH),
+      leaderboardButton: rect(menuX, menuStartY + (menuButtonH + menuSpacing) * 2, menuButtonW, menuButtonH),
+      helpButton: rect(menuX, menuStartY + (menuButtonH + menuSpacing) * 3, menuButtonW, menuButtonH),
+      settingsButton: rect(width - settingsButtonRight - settingsButtonW, settingsButtonY, settingsButtonW, settingsButtonH)
     },
     trackSelect: {
       panel: trackPanel,
