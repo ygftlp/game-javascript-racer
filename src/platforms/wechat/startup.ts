@@ -1,5 +1,6 @@
 import { Engine } from '../../engine';
 import { installRacerCanvasCompatibility } from '../../racer/RacerCanvasCompat';
+import { RacerV2FrontendScene } from '../../racer/frontend/RacerV2FrontendScene';
 import { RacerScene } from '../../scenes/RacerScene';
 import { startReliableWeChatRenderLoop } from './RacerWechatRenderLoop';
 import { RacerWechatPlatform } from './RacerWechatPlatform';
@@ -85,11 +86,13 @@ export function startWeChatRacerGame(): WeChatRacerGame {
   try {
     installRacerCanvasCompatibility(engine.renderer.ctx);
     const scene = new RacerScene(engine);
+    const frontendScene = new RacerV2FrontendScene(scene);
 
     bindWeChatLifecycle(scene);
-    engine.setScene(scene);
-    startReliableWeChatRenderLoop(engine, scene);
+    engine.setScene(frontendScene);
+    startReliableWeChatRenderLoop(engine, frontendScene);
 
+    console.log('[racer] RUNTIME V2 FRONTEND');
     return { engine, scene };
   } catch (error) {
     renderStatusScreen(engine, '极速公路启动失败', '请查看调试器 Console 中的首条红色错误', error);
