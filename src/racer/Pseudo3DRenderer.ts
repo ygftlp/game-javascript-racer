@@ -1,6 +1,7 @@
 import type { Renderer, Texture } from '../engine';
 import { COLORS, RACER_CONFIG } from './config';
 import type { RacerAssets } from './RacerAssets';
+import { RacerFeedbackController } from './RacerFeedbackController';
 import type { RacerPowerupType, RacerState, Segment } from './RacerState';
 import type { AtlasFrame } from './SpriteAtlas';
 import { BACKGROUND, SPRITES, SPRITE_SCALE } from './SpriteAtlas';
@@ -45,10 +46,14 @@ function exponentialFog(distance: number, density: number): number {
 
 export class Pseudo3DRenderer {
   private readonly ui = new RacerUiRenderer();
+  private readonly feedback = new RacerFeedbackController();
 
   render(renderer: Renderer, state: RacerState, assets: RacerAssets | undefined, options: RacerRenderOptions): void {
     const ctx = renderer.ctx;
     this.configureCanvas(ctx);
+
+    const playing = options.phase === 'playing';
+    this.feedback.syncAudio(state, assets, playing);
 
     const layout = buildRacerUiLayout(state.width, state.height);
     const projected: ProjectedSegment[] = [];
@@ -57,11 +62,14 @@ export class Pseudo3DRenderer {
     const playerSegment = state.findSegment(state.position + state.playerZ);
     const playerPercent = percentRemaining(state.position + state.playerZ, RACER_CONFIG.segmentLength);
     const playerY = interpolate(playerSegment.y1, playerSegment.y2, playerPercent);
+    const cameraOffset = this.feedback.cameraOffset(state, playing);
 
     let maxY = state.height;
     let x = 0;
     let dx = -(baseSegment.curve * basePercent);
 
+    ctx.save();
+    ctx.translate(cameraOffset.x, cameraOffset.y);
     this.drawBackdrop(ctx, state, assets?.background ?? null, playerY);
 
     for (let n = 0; n < state.tuning.drawDistance; n += 1) {
@@ -98,8 +106,11 @@ export class Pseudo3DRenderer {
 
     this.drawWorldSprites(ctx, state, projected, assets?.sprites ?? null);
     this.drawPlayer(ctx, state, assets?.sprites ?? null, playerSegment, playerPercent);
+    ctx.restore();
+
+    this.feedback.drawMotionOverlay(ctx, state, playing);
     this.ui.render(ctx, state, assets, layout, options);
-    if (options.phase === 'playing') this.drawPowerupFeedback(ctx, state);
+    if (playing) this.drawPowerupFeedback(ctx, state);
   }
 
   private configureCanvas(ctx: CanvasRenderingContext2D): void {
