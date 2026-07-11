@@ -25,6 +25,8 @@ export interface RacerControlLayout {
   joystickTouchArea: RacerRect;
   brakeButton: RacerCircle;
   brakeTouchArea: RacerRect;
+  nitroButton: RacerCircle;
+  nitroTouchArea: RacerRect;
 }
 
 export interface RacerMiniMapLayout {
@@ -79,6 +81,8 @@ export interface RacerFinishedLayout extends RacerPanelLayout {
 
 export interface RacerHelpLayout extends RacerPanelLayout {
   line4Y: number;
+  line5Y: number;
+  line6Y: number;
   startButton: RacerRect;
   backButton: RacerRect;
 }
@@ -167,8 +171,13 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   const pausedPanel = panel(width, height, 620, small ? 414 : 466);
   const pausedStartY = pausedPanel.y + (small ? 132 : 158);
 
-  const helpPanel = panel(width, height, 640, small ? 398 : 448);
-  const helpButtonY = helpPanel.y + (small ? 298 : 336);
+  const helpPanel = panel(width, height, 680, small ? 398 : 470);
+  const helpLineStartY = helpPanel.y + (small ? 56 : 84);
+  const helpLineGap = small ? 23 : 30;
+  const helpButtonH = small ? 38 : buttonH;
+  const helpButtonW = small ? 210 : 246;
+  const helpBackY = helpPanel.y + helpPanel.h - helpButtonH - (small ? 10 : 18);
+  const helpStartY = helpBackY - helpButtonH - (small ? 6 : spacing);
 
   const finishedPanel = panel(width, height, 640, small ? 352 : 398);
   const finishedButtonW = small ? Math.min(144, finishedPanel.w * 0.29) : 164;
@@ -195,7 +204,25 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
 
   const brakeRadius = Math.max(48, Math.min(64, width * 0.058, height * 0.13));
   const brakeButton = circle(width - brakeRadius - 46, height - brakeRadius - 38, brakeRadius);
-  const brakeTouchArea = rect(width * 0.54, height * 0.5, width * 0.46, height * 0.5);
+  const nitroRadius = Math.max(38, Math.min(52, brakeRadius * 0.82));
+  const nitroSafeTop = pauseButton.y + pauseButton.r + nitroRadius + 14;
+  const nitroButtonX = small ? brakeButton.x - brakeRadius - nitroRadius - 18 : brakeButton.x;
+  const nitroButtonY = small
+    ? brakeButton.y - brakeRadius * 0.12
+    : Math.max(nitroSafeTop, brakeButton.y - brakeRadius - nitroRadius - 18);
+  const nitroButton = circle(nitroButtonX, nitroButtonY, nitroRadius);
+  const brakeTouchArea = rect(
+    brakeButton.x - brakeRadius - 8,
+    brakeButton.y - brakeRadius - 8,
+    brakeRadius * 2 + 16,
+    brakeRadius * 2 + 16
+  );
+  const nitroTouchArea = rect(
+    nitroButton.x - nitroRadius - 8,
+    nitroButton.y - nitroRadius - 8,
+    nitroRadius * 2 + 16,
+    nitroRadius * 2 + 16
+  );
 
   return {
     small,
@@ -215,7 +242,9 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
       joystickKnobRadius,
       joystickTouchArea,
       brakeButton,
-      brakeTouchArea
+      brakeTouchArea,
+      nitroButton,
+      nitroTouchArea
     },
     touchZones: {
       left: rect(0, 0, width * 0.42, height),
@@ -280,13 +309,15 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
     },
     help: {
       panel: helpPanel,
-      titleY: helpPanel.y + (small ? 24 : 32),
-      line1Y: helpPanel.y + (small ? 82 : 100),
-      line2Y: helpPanel.y + (small ? 118 : 140),
-      line3Y: helpPanel.y + (small ? 154 : 180),
-      line4Y: helpPanel.y + (small ? 190 : 220),
-      startButton: centeredButton(width, helpButtonY, small ? 226 : 246, buttonH),
-      backButton: centeredButton(width, helpButtonY + buttonH + spacing, small ? 226 : 246, buttonH)
+      titleY: helpPanel.y + (small ? 18 : 28),
+      line1Y: helpLineStartY,
+      line2Y: helpLineStartY + helpLineGap,
+      line3Y: helpLineStartY + helpLineGap * 2,
+      line4Y: helpLineStartY + helpLineGap * 3,
+      line5Y: helpLineStartY + helpLineGap * 4,
+      line6Y: helpLineStartY + helpLineGap * 5,
+      startButton: centeredButton(width, helpStartY, helpButtonW, helpButtonH),
+      backButton: centeredButton(width, helpBackY, helpButtonW, helpButtonH)
     },
     fonts: { title, body, note, button, hud }
   };
