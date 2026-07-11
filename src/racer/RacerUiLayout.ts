@@ -181,7 +181,7 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   const frontendDesiredHeight = shortScreen ? 292 : small ? 350 : 470;
 
   const trackPanel = safePanel(width, height, 660, frontendDesiredHeight, frontendTopSafe, frontendBottomSafe);
-  const trackHeaderHeight = clamp(trackPanel.h * 0.24, shortScreen ? 62 : 72, 100);
+  const trackHeaderHeight = clamp(trackPanel.h * 0.24, 90, 104);
   const trackBottomPadding = shortScreen ? 8 : 12;
   const trackBackHeight = clamp(trackPanel.h * 0.12, shortScreen ? 30 : 34, 46);
   const trackBackGap = clamp(trackPanel.h * 0.02, 5, 9);
@@ -197,7 +197,7 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
 
   const settingsPanel = safePanel(width, height, 680, frontendDesiredHeight, frontendTopSafe, frontendBottomSafe);
   const settingsCardW = Math.min(small ? 450 : 540, settingsPanel.w - 48);
-  const settingsHeaderHeight = clamp(settingsPanel.h * 0.24, shortScreen ? 62 : 72, 100);
+  const settingsHeaderHeight = clamp(settingsPanel.h * 0.24, 90, 104);
   const settingsBottomPadding = shortScreen ? 7 : 12;
   const settingsGap = clamp(settingsPanel.h * 0.018, 4, 8);
   const settingsRows = 6;
@@ -207,7 +207,7 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   const settingsRowY = (index: number): number => settingsStartY + index * (settingsCardH + settingsGap);
 
   const helpPanel = safePanel(width, height, 680, frontendDesiredHeight, frontendTopSafe, frontendBottomSafe);
-  const helpHeaderHeight = clamp(helpPanel.h * 0.23, shortScreen ? 58 : 68, 94);
+  const helpHeaderHeight = clamp(helpPanel.h * 0.23, 90, 104);
   const helpBottomPadding = shortScreen ? 7 : 12;
   const helpButtonH = clamp(helpPanel.h * 0.105, shortScreen ? 28 : 34, 48);
   const helpButtonW = small ? 210 : 246;
@@ -306,17 +306,17 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
     },
     trackSelect: {
       panel: trackPanel,
-      titleY: trackPanel.y + Math.min(22, trackHeaderHeight * 0.24),
-      line1Y: trackPanel.y + trackHeaderHeight * 0.68,
-      line2Y: trackPanel.y + trackHeaderHeight * 0.84,
+      titleY: trackPanel.y + 22,
+      line1Y: trackPanel.y + 70,
+      line2Y: trackPanel.y + 82,
       line3Y: trackPanel.y,
       trackButtons,
       backButton: centeredButton(width, trackBackY, small ? 210 : 236, trackBackHeight)
     },
     settings: {
       panel: settingsPanel,
-      titleY: settingsPanel.y + Math.min(22, settingsHeaderHeight * 0.24),
-      line1Y: settingsPanel.y + settingsHeaderHeight * 0.72,
+      titleY: settingsPanel.y + 22,
+      line1Y: settingsPanel.y + 70,
       line2Y: settingsPanel.y,
       line3Y: settingsPanel.y,
       audioButton: centeredButton(width, settingsRowY(0), settingsCardW, settingsCardH),
@@ -350,7 +350,7 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
     },
     help: {
       panel: helpPanel,
-      titleY: helpPanel.y + Math.min(20, helpHeaderHeight * 0.24),
+      titleY: helpPanel.y + 22,
       line1Y: helpLineStartY,
       line2Y: helpLineStartY + helpLineGap,
       line3Y: helpLineStartY + helpLineGap * 2,
