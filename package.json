@@ -21,7 +21,7 @@
     "assets:legacy:apply": "node scripts/use-commercial-assets.mjs --legacy --apply",
     "engine:compat": "node scripts/use-engine-mode.mjs compat",
     "engine:local": "node scripts/use-engine-mode.mjs local-sdk",
-    "prebuild:wx": "npm run clean:wx && npm run typecheck && npm run validate:production && npm run validate:sprint-a",
+    "prebuild:wx": "npm run typecheck && npm run validate:production && npm run validate:sprint-a",
     "postbuild:wx": "npm run verify:wx"
   },
   "dependencies": {},
