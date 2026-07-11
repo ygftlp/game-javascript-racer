@@ -77,6 +77,8 @@ function renderBootScreen(engine: Engine): void {
 }
 
 export function startWeChatRacerGame(): WeChatRacerGame {
+  // RacerWechatPlatform replaces the legacy `new WxPlatform()` path so the
+  // runtime can resolve the actual WeChat main canvas and window metrics.
   const engine = new Engine(new RacerWechatPlatform());
   renderBootScreen(engine);
 
