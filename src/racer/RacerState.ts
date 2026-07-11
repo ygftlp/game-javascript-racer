@@ -1,5 +1,6 @@
 import { RACER_CONFIG, type RoadColor } from './config';
 import { DEFAULT_RACER_CONTROL_SENSITIVITY, type RacerControlSensitivityProfile } from './RacerControlSensitivity';
+import { RACER_POWERUP_CONFIG, RACER_POWERUP_LANES, RACER_POWERUP_SEQUENCE } from './RacerPowerupConfig';
 import { roadColorForSegment } from './RacerRoadTheme';
 import { ACTIVE_RACER_TRACK, type RacerTrackDefinition } from './RacerTrackDefinition';
 import { BILLBOARDS, CARS, PLANTS, SPRITE_SCALE, type AtlasFrame } from './SpriteAtlas';
@@ -11,6 +12,7 @@ export interface RacerInputState {
   steer: number;
   accelerate: boolean;
   brake: boolean;
+  nitro: boolean;
 }
 
 export interface RoadsideSprite {
@@ -50,9 +52,7 @@ export interface Segment {
 
 const MAX_FRAME_DT = 0.15;
 const MAX_PHYSICS_STEP = 1 / 60;
-const POWERUP_LANES = [-0.58, 0, 0.58] as const;
 const TRAFFIC_LANES = [-0.65, -0.35, 0.35, 0.65] as const;
-const POWERUP_SEQUENCE: readonly RacerPowerupType[] = ['boost', 'nitro', 'boost', 'slow'];
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(value, max));
@@ -92,7 +92,7 @@ export class RacerState {
   readonly cameraDepth: number;
   readonly playerZ: number;
   readonly resolution: number;
-  readonly input: RacerInputState = { steer: 0, accelerate: true, brake: false };
+  readonly input: RacerInputState = { steer: 0, accelerate: true, brake: false, nitro: false };
 
   segments: Segment[] = [];
   cars: TrafficCar[] = [];
@@ -110,10 +110,12 @@ export class RacerState {
   collisionCount = 0;
   boostTime = 0;
   nitroTime = 0;
+  nitroReserve = 0;
   slowTime = 0;
   powerupMessage = '';
   powerupMessageTime = 0;
   powerupCount = 0;
+  lastPowerupType: RacerPowerupType | null = null;
   private controlSensitivity: RacerControlSensitivityProfile = DEFAULT_RACER_CONTROL_SENSITIVITY;
 
   constructor(
@@ -134,15 +136,25 @@ export class RacerState {
     return this.track;
   }
 
+  get nitroCharge(): number {
+    return this.nitroReserve;
+  }
+
+  get nitroActive(): boolean {
+    return this.nitroTime > 0;
+  }
+
   get activePowerupLabel(): string {
-    if (this.nitroTime > 0) return '氮气推进';
+    if (this.nitroActive) return '氮气推进';
     if (this.boostTime > 0) return '加速增幅';
     if (this.slowTime > 0) return '减速干扰';
     return '';
   }
 
   get activePowerupTime(): number {
-    return Math.max(this.nitroTime, this.boostTime, this.slowTime);
+    if (this.powerupMessage) return 0;
+    if (this.nitroActive) return this.nitroReserve / RACER_POWERUP_CONFIG.nitro.drainPerSecond;
+    return Math.max(this.boostTime, this.slowTime);
   }
 
   setTrack(track: RacerTrackDefinition, bestLapTime = this.bestLapTime): void {
@@ -176,13 +188,16 @@ export class RacerState {
     this.collisionCount = 0;
     this.boostTime = 0;
     this.nitroTime = 0;
+    this.nitroReserve = 0;
     this.slowTime = 0;
     this.powerupMessage = '';
     this.powerupMessageTime = 0;
     this.powerupCount = 0;
+    this.lastPowerupType = null;
     this.input.steer = 0;
     this.input.accelerate = true;
     this.input.brake = false;
+    this.input.nitro = false;
     this.resetRoad();
   }
 
@@ -249,23 +264,30 @@ export class RacerState {
   }
 
   private accelerationMultiplier(): number {
-    if (this.nitroTime > 0) return 2.05;
-    if (this.boostTime > 0) return 1.45;
-    if (this.slowTime > 0) return 0.45;
+    if (this.nitroActive) return RACER_POWERUP_CONFIG.nitro.accelerationMultiplier;
+    if (this.boostTime > 0) return RACER_POWERUP_CONFIG.boost.accelerationMultiplier;
+    if (this.slowTime > 0) return RACER_POWERUP_CONFIG.slow.accelerationMultiplier;
     return 1;
   }
 
   private speedLimit(): number {
-    if (this.nitroTime > 0) return RACER_CONFIG.maxSpeed * 1.28;
-    if (this.boostTime > 0) return RACER_CONFIG.maxSpeed * 1.12;
-    if (this.slowTime > 0) return RACER_CONFIG.maxSpeed * 0.62;
+    if (this.nitroActive) return RACER_CONFIG.maxSpeed * RACER_POWERUP_CONFIG.nitro.speedLimitMultiplier;
+    if (this.boostTime > 0) return RACER_CONFIG.maxSpeed * RACER_POWERUP_CONFIG.boost.speedLimitMultiplier;
+    if (this.slowTime > 0) return RACER_CONFIG.maxSpeed * RACER_POWERUP_CONFIG.slow.speedLimitMultiplier;
     return RACER_CONFIG.maxSpeed;
   }
 
   private updatePowerupTimers(dt: number): void {
     this.boostTime = Math.max(0, this.boostTime - dt);
-    this.nitroTime = Math.max(0, this.nitroTime - dt);
     this.slowTime = Math.max(0, this.slowTime - dt);
+    this.nitroTime = 0;
+
+    if (this.input.nitro && this.nitroReserve > 0 && this.slowTime <= 0) {
+      const drain = Math.min(this.nitroReserve, RACER_POWERUP_CONFIG.nitro.drainPerSecond * dt);
+      this.nitroReserve = Math.max(0, this.nitroReserve - drain);
+      this.nitroTime = dt + MAX_PHYSICS_STEP;
+    }
+
     this.powerupMessageTime = Math.max(0, this.powerupMessageTime - dt);
     if (this.powerupMessageTime === 0) this.powerupMessage = '';
 
@@ -278,24 +300,27 @@ export class RacerState {
 
   private applyPowerup(powerup: TrackPowerup): void {
     powerup.active = false;
-    powerup.respawnTimer = 10 + Math.random() * 4;
+    powerup.respawnTimer = RACER_POWERUP_CONFIG.respawn.minSeconds
+      + Math.random() * (RACER_POWERUP_CONFIG.respawn.maxSeconds - RACER_POWERUP_CONFIG.respawn.minSeconds);
     this.powerupCount += 1;
+    this.lastPowerupType = powerup.type;
 
     if (powerup.type === 'boost') {
       this.slowTime = 0;
-      this.boostTime = Math.max(this.boostTime, 2);
-      this.speed = Math.max(this.speed, RACER_CONFIG.maxSpeed * 0.78);
+      this.boostTime = Math.max(this.boostTime, RACER_POWERUP_CONFIG.boost.duration);
+      this.speed = Math.max(this.speed, RACER_CONFIG.maxSpeed * RACER_POWERUP_CONFIG.boost.minPickupSpeedMultiplier);
       this.powerupMessage = '加速道具：动力提升';
     } else if (powerup.type === 'nitro') {
-      this.slowTime = 0;
-      this.nitroTime = Math.max(this.nitroTime, 3.4);
-      this.speed = Math.max(this.speed, RACER_CONFIG.maxSpeed * 0.88);
-      this.powerupMessage = '氮气启动：极速推进';
+      this.nitroReserve = Math.min(
+        RACER_POWERUP_CONFIG.nitro.maxCharge,
+        this.nitroReserve + RACER_POWERUP_CONFIG.nitro.pickupCharge
+      );
+      this.powerupMessage = `氮气已储存：${Math.round(this.nitroReserve)}%`;
     } else {
       this.boostTime = 0;
       this.nitroTime = 0;
-      this.slowTime = Math.max(this.slowTime, 2.3);
-      this.speed = Math.min(this.speed, RACER_CONFIG.maxSpeed * 0.42);
+      this.slowTime = Math.max(this.slowTime, RACER_POWERUP_CONFIG.slow.duration);
+      this.speed = Math.min(this.speed, RACER_CONFIG.maxSpeed * RACER_POWERUP_CONFIG.slow.maxHitSpeedMultiplier);
       this.powerupMessage = '减速陷阱：动力受限';
     }
 
@@ -363,7 +388,7 @@ export class RacerState {
     let lastSlowSegment = -Infinity;
 
     for (let powerupIndex = 0; powerupIndex < targetCount; powerupIndex += 1) {
-      const type = POWERUP_SEQUENCE[powerupIndex % POWERUP_SEQUENCE.length];
+      const type = RACER_POWERUP_SEQUENCE[powerupIndex % RACER_POWERUP_SEQUENCE.length];
       const preferredIndex = Math.min(
         this.segments.length - 24,
         Math.max(24, Math.round(startSafeSegments + powerupIndex * spacing))
@@ -373,7 +398,7 @@ export class RacerState {
 
       const powerup: TrackPowerup = {
         type,
-        offset: POWERUP_LANES[(powerupIndex * 2) % POWERUP_LANES.length],
+        offset: RACER_POWERUP_LANES[(powerupIndex * 2) % RACER_POWERUP_LANES.length],
         z: (segment.index + 0.5) * RACER_CONFIG.segmentLength,
         percent: 0.5,
         active: true,
