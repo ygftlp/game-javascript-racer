@@ -103,6 +103,12 @@ function drawFrontendBackdrop(ctx: CanvasRenderingContext2D, state: RacerState):
   vignette.addColorStop(1, 'rgba(5, 12, 24, 0.72)');
   ctx.fillStyle = vignette;
   ctx.fillRect(0, 0, width, height);
+
+  ctx.font = `${Math.max(10, Math.round(width / 100))}px sans-serif`;
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'bottom';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.48)';
+  ctx.fillText('RUNTIME S2 · 2026.07.11', width - 14, height - 9);
   ctx.restore();
 }
 
