@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 const files = {
   main: 'src/main.wx.ts',
   canvasCompat: 'src/racer/RacerCanvasCompat.ts',
-  menuPresentation: 'src/racer/RacerMenuPresentation.ts',
+  frontendScene: 'src/racer/frontend/RacerV2FrontendScene.ts',
   startup: 'src/platforms/wechat/startup.ts',
   wechatMainCanvas: 'src/platforms/wechat/RacerWechatMainCanvas.ts',
   wechatPlatform: 'src/platforms/wechat/RacerWechatPlatform.ts',
@@ -37,10 +37,10 @@ const source = Object.fromEntries(
 );
 const failures = [];
 
-requireTokens(source.main, ['ensureWeChatMainCanvas', 'installRacerMenuPresentation', 'startWeChatRacerGame'], 'wechat runtime entry', failures);
-requireTokens(source.menuPresentation, ['isFrontendPhase', 'drawFrontendBackdrop', 'RUNTIME S2 · 2026.07.11', 'stable frontend renderer'], 'stable frontend presentation marker', failures);
+requireTokens(source.main, ['ensureWeChatMainCanvas', 'startWeChatRacerGame'], 'wechat runtime entry', failures);
+requireTokens(source.frontendScene, ['class RacerV2FrontendScene', "runtime.phase !== 'menu'", 'drawBackdrop', 'drawStatusCard', 'drawBrandBanner', 'drawVehicleShowcase', 'drawMenuButtons', '拾取蓝色 N 后按住氮气'], 'V2 frontend scene boundary and menu renderer', failures);
 requireTokens(source.canvasCompat, ['installRacerCanvasCompatibility', 'roundRectFallback', 'quadraticCurveTo'], 'canvas compatibility', failures);
-requireTokens(source.startup, ['installRacerCanvasCompatibility', 'renderBootScreen', 'RacerWechatPlatform', 'startReliableWeChatRenderLoop', '极速公路启动失败'], 'wechat startup and reliable render loop binding', failures);
+requireTokens(source.startup, ['installRacerCanvasCompatibility', 'renderBootScreen', 'RacerWechatPlatform', 'RacerV2FrontendScene', 'startReliableWeChatRenderLoop', 'RUNTIME V2 FRONTEND', '极速公路启动失败'], 'wechat startup, V2 frontend, and reliable render loop binding', failures);
 requireTokens(source.wechatMainCanvas, ['ensureWeChatMainCanvas', 'main_canvas_bootstrap', 'GameGlobal.canvas', 'root.canvas = mainCanvas', 'wx.createCanvas'], 'explicit visible WeChat main canvas bootstrap', failures);
 requireTokens(source.wechatPlatform, ['resolveExistingMainCanvas', "typeof canvas !== 'undefined'", "typeof GameGlobal !== 'undefined'", 'windowWidth', 'windowHeight', 'wechat_canvas_ready', 'hasCanvasRaf'], 'wechat main canvas and window metrics', failures);
 requireTokens(source.wechatRenderLoop, ['canvas.requestAnimationFrame', 'first_frame_rendered', 'frame_render_failed', 'Draw synchronously'], 'reliable first frame and canvas scheduler', failures);
@@ -56,8 +56,12 @@ requireTokens(source.uiRenderer, ['drawNitroButton', 'state.nitroCharge', '黄�
 requireTokens(source.scene, ['state.input.nitro', 'nitroTouchArea', 'powerup_pickup', 'slow_hit', 'nitro_start', 'nitro_end'], 'manual nitro input and analytics', failures);
 requireTokens(source.renderer, ['RacerFeedbackController', 'feedback.syncAudio', 'feedback.cameraOffset', 'feedback.drawMotionOverlay', 'ctx.translate(cameraOffset.x, cameraOffset.y)', 'drawSlowHazard', 'roundedRectPath'], 'world motion feedback and powerup visual safety', failures);
 
-if (source.menuPresentation.includes('prototype.render =') || source.menuPresentation.includes('this.drawHud = (): void => {}')) {
-  failures.push('Frontend presentation must not replace RacerUiRenderer prototype methods at runtime');
+if (source.main.includes('installRacerMenuPresentation')) {
+  failures.push('WeChat entry must not install the legacy menu presentation prototype patch');
+}
+
+if (source.frontendScene.includes('prototype.render =') || source.frontendScene.includes('prototype.draw =')) {
+  failures.push('V2 frontend must use a scene boundary instead of replacing renderer prototypes');
 }
 
 if (source.renderer.includes('ctx.roundRect(') || source.renderer.includes('.roundRect(')) {
@@ -74,4 +78,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Sprint A gameplay safety, explicit WeChat main canvas, reliable render loop, manual nitro, audio, and motion feedback validation passed.');
+console.log('Sprint A gameplay safety, V2 frontend scene boundary, explicit WeChat main canvas, reliable render loop, manual nitro, audio, and motion feedback validation passed.');
