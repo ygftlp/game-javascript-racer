@@ -6,6 +6,7 @@ const files = {
   canvasCompat: 'src/racer/RacerCanvasCompat.ts',
   menuPresentation: 'src/racer/RacerMenuPresentation.ts',
   startup: 'src/platforms/wechat/startup.ts',
+  wechatMainCanvas: 'src/platforms/wechat/RacerWechatMainCanvas.ts',
   wechatPlatform: 'src/platforms/wechat/RacerWechatPlatform.ts',
   wechatRenderLoop: 'src/platforms/wechat/RacerWechatRenderLoop.ts',
   engine: 'src/engine/local-lite-game-engine.ts',
@@ -36,11 +37,12 @@ const source = Object.fromEntries(
 );
 const failures = [];
 
-requireTokens(source.main, ['installRacerMenuPresentation', 'startWeChatRacerGame'], 'wechat runtime entry', failures);
+requireTokens(source.main, ['ensureWeChatMainCanvas', 'installRacerMenuPresentation', 'startWeChatRacerGame'], 'wechat runtime entry', failures);
 requireTokens(source.menuPresentation, ['isFrontendPhase', 'drawFrontendBackdrop', 'RUNTIME S2 · 2026.07.11', 'stable frontend renderer'], 'stable frontend presentation marker', failures);
 requireTokens(source.canvasCompat, ['installRacerCanvasCompatibility', 'roundRectFallback', 'quadraticCurveTo'], 'canvas compatibility', failures);
 requireTokens(source.startup, ['installRacerCanvasCompatibility', 'renderBootScreen', 'RacerWechatPlatform', 'startReliableWeChatRenderLoop', '极速公路启动失败'], 'wechat startup and reliable render loop binding', failures);
-requireTokens(source.wechatPlatform, ['resolveExistingMainCanvas', 'windowWidth', 'windowHeight', 'wechat_canvas_ready', 'hasCanvasRaf'], 'wechat main canvas and window metrics', failures);
+requireTokens(source.wechatMainCanvas, ['ensureWeChatMainCanvas', 'main_canvas_bootstrap', 'GameGlobal.canvas', 'root.canvas = mainCanvas', 'wx.createCanvas'], 'explicit visible WeChat main canvas bootstrap', failures);
+requireTokens(source.wechatPlatform, ['resolveExistingMainCanvas', "typeof canvas !== 'undefined'", "typeof GameGlobal !== 'undefined'", 'windowWidth', 'windowHeight', 'wechat_canvas_ready', 'hasCanvasRaf'], 'wechat main canvas and window metrics', failures);
 requireTokens(source.wechatRenderLoop, ['canvas.requestAnimationFrame', 'first_frame_rendered', 'frame_render_failed', 'Draw synchronously'], 'reliable first frame and canvas scheduler', failures);
 requireTokens(source.engine, ['changedTouches?: TouchPoint[]', 'dispatchTouchEnd', 'this.emit(this.moveHandlers, activeTouches'], 'multi-touch lifecycle', failures);
 requireTokens(source.joystick, ['private touchId', 'isTracking(point', 'this.touchId = point.id ?? null'], 'joystick touch ownership', failures);
@@ -72,4 +74,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Sprint A gameplay safety, reliable WeChat canvas runtime, manual nitro, audio, and motion feedback validation passed.');
+console.log('Sprint A gameplay safety, explicit WeChat main canvas, reliable render loop, manual nitro, audio, and motion feedback validation passed.');
