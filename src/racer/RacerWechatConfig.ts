@@ -3,6 +3,7 @@ import type { WechatRacerServicesConfig } from './RacerWechatServices';
 /**
  * WeChat platform service configuration.
  *
+ * Do not commit production-only secrets.
  * Keep secrets and production-only identifiers out of public source. This file is
  * intentionally a safe default template: share image, cloud function name, and
  * ad unit IDs are optional and should be filled through a private release patch
