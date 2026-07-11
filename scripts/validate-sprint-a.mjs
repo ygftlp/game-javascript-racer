@@ -38,7 +38,24 @@ const source = Object.fromEntries(
 const failures = [];
 
 requireTokens(source.main, ['ensureWeChatMainCanvas', 'startWeChatRacerGame'], 'wechat runtime entry', failures);
-requireTokens(source.frontendScene, ['class RacerV2FrontendScene', "runtime.phase !== 'menu'", 'drawBackdrop', 'drawStatusCard', 'drawBrandBanner', 'drawVehicleShowcase', 'drawMenuButtons', '拾取蓝色 N 后按住氮气'], 'V2 frontend scene boundary and menu renderer', failures);
+requireTokens(source.frontendScene, [
+  'class RacerV2FrontendScene',
+  'isFrontendPhase',
+  "runtime.phase === 'menu'",
+  "runtime.phase === 'trackSelect'",
+  "runtime.phase === 'settings'",
+  'drawBackdrop',
+  'drawStatusCard',
+  'drawBrandBanner',
+  'drawSystemBar',
+  'drawVehicleShowcase',
+  'drawMenuButtons',
+  'drawTrackSelect',
+  'drawSettings',
+  'drawHelp',
+  'frontendTime',
+  '拾取蓝色 N 后按住氮气'
+], 'V2 responsive frontend pages and scene boundary', failures);
 requireTokens(source.canvasCompat, ['installRacerCanvasCompatibility', 'roundRectFallback', 'quadraticCurveTo'], 'canvas compatibility', failures);
 requireTokens(source.startup, ['installRacerCanvasCompatibility', 'renderBootScreen', 'RacerWechatPlatform', 'RacerV2FrontendScene', 'startReliableWeChatRenderLoop', 'RUNTIME V2 FRONTEND', '极速公路启动失败'], 'wechat startup, V2 frontend, and reliable render loop binding', failures);
 requireTokens(source.wechatMainCanvas, ['ensureWeChatMainCanvas', 'main_canvas_bootstrap', 'GameGlobal.canvas', 'root.canvas = mainCanvas', 'wx.createCanvas'], 'explicit visible WeChat main canvas bootstrap', failures);
@@ -51,9 +68,19 @@ requireTokens(source.assets, ['playBoostPickup', 'playNitroPickup', 'playSlowHit
 requireTokens(source.feedback, ['class RacerFeedbackController', 'syncAudio', 'cameraOffset', 'drawNitroSpeedLines', 'drawImpactVignette', 'assets.stopNitroLoop()'], 'gameplay audio and motion feedback controller', failures);
 requireTokens(source.powerupConfig, ['pickupCharge: 50', 'maxCharge: 100', 'drainPerSecond: 22', 'RACER_POWERUP_SEQUENCE'], 'powerup balance config', failures);
 requireTokens(source.state, ['MAX_PHYSICS_STEP = 1 / 60', 'private updateStep', 'findSafePowerupSegment', 'collisionCooldown > 0', 'nitroReserve', 'input.nitro', 'get nitroCharge', '氮气已储存'], 'physics, powerup safety, and manual nitro state', failures);
-requireTokens(source.layout, ['nitroButton', 'nitroTouchArea', 'line6Y'], 'nitro and tutorial layout', failures);
+requireTokens(source.layout, [
+  'nitroButton',
+  'nitroTouchArea',
+  'line6Y',
+  'menuButtonW',
+  'menuStartY',
+  'menuX',
+  'settingsButtonRight',
+  'startButton: rect(menuX',
+  'settingsButton: rect(width - settingsButtonRight'
+], 'nitro controls and V2 shared visual/touch layout', failures);
 requireTokens(source.uiRenderer, ['drawNitroButton', 'state.nitroCharge', '黄色 ≫：立即加速', '蓝色 N：补充 50% 氮气', '红黑地面：减速陷阱'], 'nitro HUD and powerup tutorial', failures);
-requireTokens(source.scene, ['state.input.nitro', 'nitroTouchArea', 'powerup_pickup', 'slow_hit', 'nitro_start', 'nitro_end'], 'manual nitro input and analytics', failures);
+requireTokens(source.scene, ['state.input.nitro', 'nitroTouchArea', 'powerup_pickup', 'slow_hit', 'nitro_start', 'nitro_end', 'this.getUiLayout().menu.startButton', 'this.getUiLayout().menu.settingsButton'], 'manual nitro, analytics, and shared menu hit targets', failures);
 requireTokens(source.renderer, ['RacerFeedbackController', 'feedback.syncAudio', 'feedback.cameraOffset', 'feedback.drawMotionOverlay', 'ctx.translate(cameraOffset.x, cameraOffset.y)', 'drawSlowHazard', 'roundedRectPath'], 'world motion feedback and powerup visual safety', failures);
 
 if (source.main.includes('installRacerMenuPresentation')) {
@@ -62,6 +89,10 @@ if (source.main.includes('installRacerMenuPresentation')) {
 
 if (source.frontendScene.includes('prototype.render =') || source.frontendScene.includes('prototype.draw =')) {
   failures.push('V2 frontend must use a scene boundary instead of replacing renderer prototypes');
+}
+
+if (source.frontendScene.includes("{ target: 'menu-settings', rect: layout.menu.settingsButton, label: '设置'")) {
+  failures.push('V2 settings entry must live in the top-right system bar, not a fifth left-side button');
 }
 
 if (source.renderer.includes('ctx.roundRect(') || source.renderer.includes('.roundRect(')) {
@@ -78,4 +109,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Sprint A gameplay safety, V2 frontend scene boundary, explicit WeChat main canvas, reliable render loop, manual nitro, audio, and motion feedback validation passed.');
+console.log('Sprint A gameplay safety, V2 responsive frontend pages, shared touch layout, explicit WeChat main canvas, reliable render loop, manual nitro, audio, and motion feedback validation passed.');
