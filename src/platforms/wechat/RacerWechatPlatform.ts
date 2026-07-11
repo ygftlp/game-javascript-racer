@@ -21,6 +21,13 @@ interface WeChatRuntimeHost {
   getSystemInfoSync?: () => WeChatWindowInfo;
 }
 
+interface WeChatGameGlobal {
+  canvas?: WeChatCanvasLike;
+}
+
+declare const canvas: WeChatCanvasLike | undefined;
+declare const GameGlobal: WeChatGameGlobal | undefined;
+
 function runtimeHost(): WeChatRuntimeHost | null {
   try {
     const root = globalThis as unknown as { wx?: WeChatRuntimeHost };
@@ -30,14 +37,35 @@ function runtimeHost(): WeChatRuntimeHost | null {
   }
 }
 
+function isCanvas(value: unknown): value is WeChatCanvasLike {
+  return Boolean(value) && typeof (value as WeChatCanvasLike).getContext === 'function';
+}
+
 function resolveExistingMainCanvas(): WeChatCanvasLike | null {
+  // WeChat's screen canvas is commonly exposed as a free global rather than a
+  // normal globalThis property. Check those bindings before creating a canvas,
+  // otherwise wx.createCanvas() can return a secondary/offscreen surface.
+  try {
+    if (typeof canvas !== 'undefined' && isCanvas(canvas)) return canvas;
+  } catch {
+    // Continue through the remaining runtime shapes.
+  }
+
+  try {
+    if (typeof GameGlobal !== 'undefined' && isCanvas(GameGlobal?.canvas)) {
+      return GameGlobal.canvas;
+    }
+  } catch {
+    // Continue through the remaining runtime shapes.
+  }
+
   try {
     const root = globalThis as unknown as {
       canvas?: WeChatCanvasLike;
-      GameGlobal?: { canvas?: WeChatCanvasLike };
+      GameGlobal?: WeChatGameGlobal;
     };
     const candidate = root.canvas ?? root.GameGlobal?.canvas;
-    return candidate && typeof candidate.getContext === 'function' ? candidate : null;
+    return isCanvas(candidate) ? candidate : null;
   } catch {
     return null;
   }
@@ -70,11 +98,11 @@ export class RacerWechatPlatform extends WxPlatform {
     super();
 
     const screen = resolveWindowInfo(super.getScreenInfo());
-    const canvas = existingMainCanvas ?? (this.canvas as unknown as WeChatCanvasLike);
+    const canvasTarget = existingMainCanvas ?? (this.canvas as unknown as WeChatCanvasLike);
     const pixelRatio = Math.max(1, screen.pixelRatio || 1);
 
-    canvas.width = Math.round(screen.width * pixelRatio);
-    canvas.height = Math.round(screen.height * pixelRatio);
+    canvasTarget.width = Math.round(screen.width * pixelRatio);
+    canvasTarget.height = Math.round(screen.height * pixelRatio);
 
     Object.defineProperty(this, 'screen', {
       configurable: true,
@@ -84,7 +112,7 @@ export class RacerWechatPlatform extends WxPlatform {
     Object.defineProperty(this, 'canvas', {
       configurable: true,
       enumerable: true,
-      value: canvas
+      value: canvasTarget
     });
 
     console.log('[racer] wechat_canvas_ready', {
@@ -92,9 +120,9 @@ export class RacerWechatPlatform extends WxPlatform {
       width: screen.width,
       height: screen.height,
       pixelRatio,
-      canvasWidth: canvas.width,
-      canvasHeight: canvas.height,
-      hasCanvasRaf: typeof canvas.requestAnimationFrame === 'function'
+      canvasWidth: canvasTarget.width,
+      canvasHeight: canvasTarget.height,
+      hasCanvasRaf: typeof canvasTarget.requestAnimationFrame === 'function'
     });
   }
 }
