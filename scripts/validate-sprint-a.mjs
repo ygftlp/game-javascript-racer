@@ -51,6 +51,7 @@ requireTokens(source.frontendScene, [
   'drawStatusCard',
   'drawBrandBanner',
   'drawSystemBar',
+  "ctx.fillText('⚙'",
   'drawVehicleShowcase',
   'drawMenuButtons',
   'drawTrackSelect',
@@ -58,7 +59,7 @@ requireTokens(source.frontendScene, [
   'drawHelp',
   'frontendTime',
   '拾取蓝色 N 后按住氮气'
-], 'V2 clean responsive frontend pages and scene boundary', failures);
+], 'V2 clean responsive frontend pages and capsule-safe settings entry', failures);
 requireTokens(source.canvasCompat, ['installRacerCanvasCompatibility', 'roundRectFallback', 'quadraticCurveTo'], 'canvas compatibility', failures);
 requireTokens(source.startup, ['installRacerCanvasCompatibility', 'renderBootScreen', 'RacerWechatPlatform', 'RacerV2FrontendScene', 'startReliableWeChatRenderLoop', 'RUNTIME V2 FRONTEND', '极速公路启动失败'], 'wechat startup, V2 frontend, and reliable render loop binding', failures);
 requireTokens(source.wechatMainCanvas, ['ensureWeChatMainCanvas', 'main_canvas_bootstrap', 'GameGlobal.canvas', 'root.canvas = mainCanvas', 'wx.createCanvas'], 'explicit visible WeChat main canvas bootstrap', failures);
@@ -78,9 +79,11 @@ requireTokens(source.layout, [
   'menuButtonW',
   'menuStartY',
   'menuX',
-  'settingsButtonRight',
+  'settingsButtonSize = clamp(height * 0.105, 40, 46)',
+  'settingsButtonRight = clamp(width * 0.035, 24, 34)',
+  'settingsButtonY = clamp(height * 0.19, 68, 84)',
   'startButton: rect(menuX',
-  'settingsButton: rect(width - settingsButtonRight',
+  'width - settingsButtonRight - settingsButtonSize',
   'joystickRadius = Math.max(58',
   'Math.min(86',
   'joystickKnobRadius = joystickRadius * 0.4',
@@ -96,7 +99,7 @@ requireTokens(source.layout, [
   'settingsHeaderHeight = clamp(settingsPanel.h * 0.24, 90',
   'trackHeaderHeight = clamp(trackPanel.h * 0.24, 90',
   'helpHeaderHeight = clamp(helpPanel.h * 0.23, 90'
-], 'safe-area frontend panels, compact joystick, and shared touch layout', failures);
+], 'safe-area frontend panels, capsule-safe settings control, compact joystick, and shared touch layout', failures);
 requireTokens(source.uiRenderer, ['drawNitroButton', 'state.nitroCharge', '黄色 ≫：立即加速', '蓝色 N：补充 50% 氮气', '红黑地面：减速陷阱'], 'nitro HUD and powerup tutorial', failures);
 requireTokens(source.scene, ['state.input.nitro', 'nitroTouchArea', 'powerup_pickup', 'slow_hit', 'nitro_start', 'nitro_end', 'this.getUiLayout().menu.startButton', 'this.getUiLayout().menu.settingsButton'], 'manual nitro, analytics, and shared menu hit targets', failures);
 requireTokens(source.renderer, ['RacerFeedbackController', 'feedback.syncAudio', 'feedback.cameraOffset', 'feedback.drawMotionOverlay', 'ctx.translate(cameraOffset.x, cameraOffset.y)', 'drawSlowHazard', 'roundedRectPath'], 'world motion feedback and powerup visual safety', failures);
@@ -110,7 +113,11 @@ if (source.frontendScene.includes('prototype.render =') || source.frontendScene.
 }
 
 if (source.frontendScene.includes("{ target: 'menu-settings', rect: layout.menu.settingsButton, label: '设置'")) {
-  failures.push('V2 settings entry must live in the top-right system bar, not a fifth left-side button');
+  failures.push('V2 settings entry must live outside the left-side primary action list');
+}
+
+if (source.frontendScene.includes("ctx.fillText('•••'")) {
+  failures.push('V2 settings entry must not imitate the native WeChat capsule with duplicate ellipsis controls');
 }
 
 if (source.frontendScene.includes('skylineDark') || source.frontendScene.includes('skylineLight') || source.frontendScene.includes('roadTop')) {
@@ -139,4 +146,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Sprint A gameplay safety, safe-area V2 panels, clean frontend, compact joystick, shared touch layout, explicit WeChat main canvas, reliable render loop, manual nitro, audio, and motion feedback validation passed.');
+console.log('Sprint A gameplay safety, safe-area V2 panels, capsule-safe settings entry, clean frontend, compact joystick, shared touch layout, explicit WeChat main canvas, reliable render loop, manual nitro, audio, and motion feedback validation passed.');
