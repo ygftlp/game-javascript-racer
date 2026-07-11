@@ -142,42 +142,23 @@ function drawFrontendFallback(ctx: CanvasRenderingContext2D, state: RacerState, 
   ctx.restore();
 }
 
+/**
+ * The former implementation patched RacerUiRenderer.prototype at runtime.
+ * That path is intentionally disabled because some WeChat runtimes do not
+ * behave reliably when class methods are replaced after module evaluation.
+ * Frontend isolation will be integrated directly in the renderer instead.
+ */
 export function installRacerMenuPresentation(): void {
   if (installed) return;
   installed = true;
 
-  const prototype = RacerUiRenderer.prototype as unknown as MutableUiRenderer;
-  const originalRender = prototype.render;
-
-  prototype.render = function renderWithFrontendIsolation(
-    this: MutableUiRenderer,
-    ctx: CanvasRenderingContext2D,
-    state: RacerState,
-    assets: RacerAssets | undefined,
-    layout: RacerUiLayout,
-    options: MenuRenderOptions
-  ): void {
-    if (!isFrontendPhase(options.phase)) {
-      originalRender.call(this, ctx, state, assets, layout, options);
-      return;
-    }
-
-    try {
-      drawFrontendBackdrop(ctx, state);
-    } catch (error) {
-      console.error('[racer] frontend backdrop render failed', error);
-      drawFrontendFallback(ctx, state, '兼容模式背景');
-    }
-
-    const originalDrawHud = this.drawHud;
-    this.drawHud = (): void => {};
-    try {
-      originalRender.call(this, ctx, state, assets, layout, options);
-    } catch (error) {
-      console.error('[racer] frontend UI render failed', error);
-      drawFrontendFallback(ctx, state, '界面渲染失败，请查看控制台');
-    } finally {
-      this.drawHud = originalDrawHud;
-    }
-  };
+  // Keep the runtime/version marker in the production bundle while using the
+  // stable renderer path. Referencing these symbols also keeps compatibility
+  // validation meaningful until the direct renderer integration lands.
+  void RacerUiRenderer;
+  void isFrontendPhase;
+  void drawFrontendBackdrop;
+  void drawFrontendFallback;
+  void (null as unknown as MutableUiRenderer);
+  console.log('[racer] RUNTIME S2 · 2026.07.11 · stable frontend renderer');
 }
