@@ -52,6 +52,7 @@ function buildOptions(outdir) {
     format: 'iife',
     platform: 'neutral',
     target: 'es2019',
+    charset: 'utf8',
     outfile: outputPaths(outdir).outfile,
     sourcemap: true,
     logLevel: 'info',
@@ -61,10 +62,21 @@ function buildOptions(outdir) {
   };
 }
 
+function decodeUnicodeEscapes(value) {
+  return value.replace(/\\u\{([0-9a-fA-F]+)\}|\\u([0-9a-fA-F]{4})/g, (_match, braced, fixed) => {
+    const codePoint = Number.parseInt(braced || fixed, 16);
+    return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : _match;
+  });
+}
+
+function bundleContainsMarker(bundle, marker) {
+  return bundle.includes(marker) || decodeUnicodeEscapes(bundle).includes(marker);
+}
+
 async function verifyStagedBundle() {
   const { outfile } = outputPaths(stagingOutdir);
   const bundle = await readFile(outfile, 'utf8');
-  const missing = REQUIRED_RUNTIME_MARKERS.filter((marker) => !bundle.includes(marker));
+  const missing = REQUIRED_RUNTIME_MARKERS.filter((marker) => !bundleContainsMarker(bundle, marker));
   if (missing.length > 0) {
     throw new Error(`Staged WeChat bundle is missing current runtime markers: ${missing.join(', ')}`);
   }
