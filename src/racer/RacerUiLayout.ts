@@ -170,10 +170,13 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   const menuSpacing = Math.max(6, Math.min(10, height * 0.018));
   const menuX = Math.max(22, width * 0.09);
   const menuStartY = Math.max(height * 0.39, small ? 120 : 170);
-  const settingsButtonW = Math.max(82, Math.min(108, width * 0.095));
-  const settingsButtonH = Math.max(36, Math.min(48, height * 0.09));
-  const settingsButtonRight = Math.max(22, width * 0.03);
-  const settingsButtonY = Math.max(18, height * 0.085);
+
+  // WeChat already renders its own capsule in the top-right corner. Keep the
+  // game settings entry compact and clearly below it instead of drawing a
+  // second capsule beside/under the system control.
+  const settingsButtonSize = clamp(height * 0.105, 40, 46);
+  const settingsButtonRight = clamp(width * 0.035, 24, 34);
+  const settingsButtonY = clamp(height * 0.19, 68, 84);
 
   // Frontend panels must stay above the gesture bar and below the top capsule area.
   const frontendTopSafe = clamp(height * 0.05, 16, 26);
@@ -302,7 +305,12 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
       trackButton: rect(menuX, menuStartY + (menuButtonH + menuSpacing), menuButtonW, menuButtonH),
       leaderboardButton: rect(menuX, menuStartY + (menuButtonH + menuSpacing) * 2, menuButtonW, menuButtonH),
       helpButton: rect(menuX, menuStartY + (menuButtonH + menuSpacing) * 3, menuButtonW, menuButtonH),
-      settingsButton: rect(width - settingsButtonRight - settingsButtonW, settingsButtonY, settingsButtonW, settingsButtonH)
+      settingsButton: rect(
+        width - settingsButtonRight - settingsButtonSize,
+        settingsButtonY,
+        settingsButtonSize,
+        settingsButtonSize
+      )
     },
     trackSelect: {
       panel: trackPanel,
