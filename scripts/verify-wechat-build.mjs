@@ -13,6 +13,17 @@ function currentCommit() {
   }
 }
 
+function decodeUnicodeEscapes(value) {
+  return value.replace(/\\u\{([0-9a-fA-F]+)\}|\\u([0-9a-fA-F]{4})/g, (_match, braced, fixed) => {
+    const codePoint = Number.parseInt(braced || fixed, 16);
+    return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : _match;
+  });
+}
+
+function bundleContainsMarker(bundle, marker) {
+  return bundle.includes(marker) || decodeUnicodeEscapes(bundle).includes(marker);
+}
+
 const bundle = await readFile(outfile, 'utf8');
 const requiredMarkers = [
   ['frontend runtime marker', 'RUNTIME S2'],
@@ -22,7 +33,7 @@ const requiredMarkers = [
 ];
 
 const missing = requiredMarkers
-  .filter(([, marker]) => !bundle.includes(marker))
+  .filter(([, marker]) => !bundleContainsMarker(bundle, marker))
   .map(([label, marker]) => `${label}: ${marker}`);
 
 if (missing.length) {
