@@ -1,7 +1,8 @@
 import { Scene, type Renderer } from '../../engine';
 import type { RacerScene } from '../../scenes/RacerScene';
 import type { RacerState } from '../RacerState';
-import type { RacerUiPressedTarget } from '../RacerUiRenderer';
+import { RACER_TRACKS } from '../RacerTrackDefinition';
+import type { RacerUiPhase, RacerUiPressedTarget } from '../RacerUiRenderer';
 import { buildRacerUiLayout, type RacerRect, type RacerUiLayout } from '../RacerUiLayout';
 
 interface DrawableRacerScene {
@@ -9,14 +10,22 @@ interface DrawableRacerScene {
 }
 
 interface RacerSceneRuntimeView {
-  phase: string;
+  phase: RacerUiPhase;
   state: RacerState;
   savedBestLapTime: number;
   audioMuted: boolean;
+  miniMapEnabled: boolean;
+  controlCoachEnabled: boolean;
+  hasShownControlCoach: boolean;
   pressedTarget: RacerUiPressedTarget;
   targetLaps: number;
   activeTrack: {
+    id: string;
     name: string;
+  };
+  controlSensitivity: {
+    label: string;
+    description: string;
   };
 }
 
@@ -37,14 +46,19 @@ const THEME = {
   roadBottom: '#3d4441',
   lane: '#eef0e9',
   panel: 'rgba(24, 36, 42, 0.94)',
+  panelStrong: 'rgba(17, 31, 37, 0.97)',
   panelBorder: '#789099',
   primary: '#ffd452',
   primaryPressed: '#efbd34',
+  primarySoft: 'rgba(255, 212, 82, 0.19)',
   secondary: '#263139',
   secondaryPressed: '#313e47',
   secondaryBorder: '#65757f',
   text: '#ffffff',
-  textMuted: '#afbec2'
+  textBody: '#d5e0e2',
+  textMuted: '#afbec2',
+  danger: '#ff6b7d',
+  nitro: '#48dbfb'
 } as const;
 
 function clamp(value: number, min: number, max: number): number {
@@ -56,6 +70,10 @@ function formatSeconds(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
   const remaining = seconds - minutes * 60;
   return `${minutes}:${remaining.toFixed(1).padStart(4, '0')}`;
+}
+
+function isFrontendPhase(phase: RacerUiPhase): boolean {
+  return phase === 'menu' || phase === 'trackSelect' || phase === 'settings' || phase === 'help';
 }
 
 function roundedRectPath(
@@ -98,26 +116,29 @@ function fillRoundedRect(
 }
 
 export class RacerV2FrontendScene extends Scene {
+  private frontendTime = 0;
+
   constructor(private readonly inner: RacerScene) {
     super();
   }
 
   update(dt: number): void {
+    this.frontendTime += dt;
     this.inner.update(dt);
   }
 
   protected draw(renderer: Renderer): void {
     const runtime = this.inner as unknown as RacerSceneRuntimeView;
-    if (runtime.phase !== 'menu') {
+    if (!isFrontendPhase(runtime.phase)) {
       (this.inner as unknown as DrawableRacerScene).draw(renderer);
       return;
     }
 
     const layout = buildRacerUiLayout(runtime.state.width, runtime.state.height);
-    this.drawMenu(renderer.ctx, runtime, layout);
+    this.drawFrontend(renderer.ctx, runtime, layout);
   }
 
-  private drawMenu(ctx: CanvasRenderingContext2D, runtime: RacerSceneRuntimeView, layout: RacerUiLayout): void {
+  private drawFrontend(ctx: CanvasRenderingContext2D, runtime: RacerSceneRuntimeView, layout: RacerUiLayout): void {
     const width = runtime.state.width;
     const height = runtime.state.height;
 
@@ -127,13 +148,22 @@ export class RacerV2FrontendScene extends Scene {
     ctx.textBaseline = 'top';
 
     this.drawBackdrop(ctx, width, height);
-    this.drawStatusCard(ctx, runtime, width, height);
-    this.drawBrandBanner(ctx, width, height);
-    this.drawSystemBar(ctx, runtime, width, height);
-    this.drawVehicleShowcase(ctx, width, height);
-    this.drawMenuButtons(ctx, layout, runtime.pressedTarget);
-    this.drawFooter(ctx, width, height);
 
+    if (runtime.phase === 'menu') {
+      this.drawStatusCard(ctx, runtime, width, height);
+      this.drawBrandBanner(ctx, width, height);
+      this.drawSystemBar(ctx, layout.menu.settingsButton, runtime.pressedTarget === 'menu-settings');
+      this.drawVehicleShowcase(ctx, width, height);
+      this.drawMenuButtons(ctx, layout, runtime.pressedTarget);
+    } else if (runtime.phase === 'trackSelect') {
+      this.drawTrackSelect(ctx, runtime, layout);
+    } else if (runtime.phase === 'settings') {
+      this.drawSettings(ctx, runtime, layout);
+    } else {
+      this.drawHelp(ctx, runtime, layout);
+    }
+
+    this.drawFooter(ctx, width, height);
     ctx.restore();
   }
 
@@ -162,9 +192,6 @@ export class RacerV2FrontendScene extends Scene {
       const top = height * (0.39 + (index % 2) * 0.035);
       ctx.fillRect(x, top, blockW * 0.58, roadTop - top);
     }
-
-    ctx.fillStyle = THEME.roadTop;
-    ctx.fillRect(0, roadTop, width, height - roadTop);
 
     const roadGradient = ctx.createLinearGradient(0, roadTop, 0, height);
     roadGradient.addColorStop(0, THEME.roadTop);
@@ -249,20 +276,16 @@ export class RacerV2FrontendScene extends Scene {
     ctx.fillRect(banner.x + banner.w - 30, banner.y, 7, banner.h);
   }
 
-  private drawSystemBar(ctx: CanvasRenderingContext2D, runtime: RacerSceneRuntimeView, width: number, height: number): void {
-    const rect: RacerRect = {
-      x: width - clamp(width * 0.13, 96, 132),
-      y: height * 0.085,
-      w: clamp(width * 0.095, 82, 108),
-      h: clamp(height * 0.09, 36, 48)
-    };
-    fillRoundedRect(ctx, rect, rect.h / 2, 'rgba(32, 55, 62, 0.9)', '#7f979e');
+  private drawSystemBar(ctx: CanvasRenderingContext2D, rect: RacerRect, pressed: boolean): void {
+    const y = rect.y + (pressed ? 2 : 0);
+    const target = { ...rect, y };
+    fillRoundedRect(ctx, target, target.h / 2, pressed ? THEME.secondaryPressed : 'rgba(32, 55, 62, 0.92)', '#7f979e');
     ctx.fillStyle = THEME.text;
-    ctx.font = `bold ${clamp(width / 55, 14, 18)}px sans-serif`;
+    ctx.font = `bold ${clamp(target.w / 6, 14, 18)}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('•••', rect.x + rect.w * 0.35, rect.y + rect.h / 2 - 2);
-    ctx.fillText(runtime.audioMuted ? '○' : '◉', rect.x + rect.w * 0.75, rect.y + rect.h / 2);
+    ctx.fillText('•••', target.x + target.w * 0.34, target.y + target.h / 2 - 2);
+    ctx.fillText('⚙', target.x + target.w * 0.76, target.y + target.h / 2);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
   }
@@ -272,30 +295,29 @@ export class RacerV2FrontendScene extends Scene {
       { target: 'menu-start', rect: layout.menu.startButton, label: '开始比赛', icon: '▶', primary: true },
       { target: 'menu-track', rect: layout.menu.trackButton, label: '选择赛道', icon: '⌁' },
       { target: 'menu-leaderboard', rect: layout.menu.leaderboardButton, label: '排行榜', icon: '▥' },
-      { target: 'menu-help', rect: layout.menu.helpButton, label: '操作说明', icon: '?' },
-      { target: 'menu-settings', rect: layout.menu.settingsButton, label: '设置', icon: '⚙' }
+      { target: 'menu-help', rect: layout.menu.helpButton, label: '操作说明', icon: '?' }
     ];
 
-    for (const button of buttons) {
-      const isPressed = pressed === button.target;
-      const offsetY = isPressed ? 2 : 0;
-      const rect = { ...button.rect, y: button.rect.y + offsetY };
-      const fill = button.primary
-        ? isPressed ? THEME.primaryPressed : THEME.primary
-        : isPressed ? THEME.secondaryPressed : THEME.secondary;
-      const stroke = button.primary ? '#fff1a8' : THEME.secondaryBorder;
+    for (const button of buttons) this.drawActionButton(ctx, button, pressed === button.target);
+  }
 
-      fillRoundedRect(ctx, rect, 8, fill, stroke);
-      ctx.fillStyle = button.primary ? '#1d2a30' : THEME.text;
-      ctx.font = `bold ${clamp(rect.h * 0.42, 15, 21)}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(button.label, rect.x + rect.w / 2 + 8, rect.y + rect.h / 2);
-      ctx.fillStyle = button.primary ? '#43616a' : THEME.primary;
-      ctx.font = `bold ${clamp(rect.h * 0.34, 13, 18)}px sans-serif`;
-      ctx.fillText(button.icon, rect.x + rect.w * 0.12, rect.y + rect.h / 2);
-    }
+  private drawActionButton(ctx: CanvasRenderingContext2D, button: MenuButtonSpec, pressed: boolean): void {
+    const offsetY = pressed ? 2 : 0;
+    const rect = { ...button.rect, y: button.rect.y + offsetY };
+    const fill = button.primary
+      ? pressed ? THEME.primaryPressed : THEME.primary
+      : pressed ? THEME.secondaryPressed : THEME.secondary;
+    const stroke = button.primary ? '#fff1a8' : THEME.secondaryBorder;
 
+    fillRoundedRect(ctx, rect, 8, fill, stroke);
+    ctx.fillStyle = button.primary ? '#1d2a30' : THEME.text;
+    ctx.font = `bold ${clamp(rect.h * 0.42, 15, 21)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(button.label, rect.x + rect.w / 2 + 8, rect.y + rect.h / 2);
+    ctx.fillStyle = button.primary ? '#43616a' : THEME.primary;
+    ctx.font = `bold ${clamp(rect.h * 0.34, 13, 18)}px sans-serif`;
+    ctx.fillText(button.icon, rect.x + rect.w * 0.12, rect.y + rect.h / 2);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
   }
@@ -304,19 +326,19 @@ export class RacerV2FrontendScene extends Scene {
     const carW = clamp(width * 0.32, 220, 360);
     const carH = carW * 0.42;
     const x = width * 0.69;
-    const y = height * 0.67;
+    const floatY = Math.sin(this.frontendTime * 1.8) * 1.5;
+    const y = height * 0.67 + floatY;
+    const shadowScale = 1 - Math.sin(this.frontendTime * 1.8) * 0.015;
 
     ctx.save();
     ctx.globalAlpha = 0.32;
     ctx.fillStyle = '#111817';
     ctx.beginPath();
-    ctx.ellipse(x, y + carH * 0.62, carW * 0.52, carH * 0.14, 0, 0, Math.PI * 2);
+    ctx.ellipse(x, y + carH * 0.62, carW * 0.52 * shadowScale, carH * 0.14, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
-    ctx.fillStyle = '#58735f';
     fillRoundedRect(ctx, { x: x - carW / 2, y: y - carH * 0.35, w: carW, h: carH * 0.58 }, 12, '#58735f');
-    ctx.fillStyle = '#778d7d';
     fillRoundedRect(ctx, { x: x - carW * 0.25, y: y - carH * 0.72, w: carW * 0.5, h: carH * 0.42 }, 8, '#778d7d');
     ctx.fillStyle = '#bde6ea';
     ctx.fillRect(x - carW * 0.18, y - carH * 0.64, carW * 0.36, carH * 0.23);
@@ -346,6 +368,149 @@ export class RacerV2FrontendScene extends Scene {
 
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
+  }
+
+  private drawTrackSelect(ctx: CanvasRenderingContext2D, runtime: RacerSceneRuntimeView, layout: RacerUiLayout): void {
+    const page = layout.trackSelect;
+    this.drawPagePanel(ctx, page.panel, '选择赛道', '选择后立即保存，并返回首页');
+
+    for (let index = 0; index < Math.min(page.trackButtons.length, RACER_TRACKS.length); index += 1) {
+      const track = RACER_TRACKS[index];
+      const rect = page.trackButtons[index];
+      const selected = track.id === runtime.activeTrack.id;
+      const pressed = runtime.pressedTarget === `track-select-${index}`;
+      const yOffset = pressed ? 2 : 0;
+      const target = { ...rect, y: rect.y + yOffset };
+      fillRoundedRect(ctx, target, 10, selected ? THEME.primarySoft : pressed ? THEME.secondaryPressed : THEME.secondary, selected ? THEME.primary : THEME.secondaryBorder);
+
+      ctx.fillStyle = selected ? THEME.primary : THEME.text;
+      ctx.font = `bold ${clamp(target.h * 0.3, 16, 22)}px sans-serif`;
+      ctx.fillText(`${index + 1}. ${track.name}`, target.x + 18, target.y + 10);
+      ctx.fillStyle = THEME.textMuted;
+      ctx.font = `${clamp(target.h * 0.2, 12, 16)}px sans-serif`;
+      ctx.fillText(track.description, target.x + 18, target.y + target.h * 0.55);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = selected ? THEME.primary : THEME.textBody;
+      ctx.fillText(selected ? '已选择' : `${track.targetLaps} 圈`, target.x + target.w - 18, target.y + target.h * 0.36);
+      ctx.textAlign = 'left';
+    }
+
+    this.drawActionButton(ctx, {
+      target: 'track-back',
+      rect: page.backButton,
+      label: '返回菜单',
+      icon: '‹',
+      primary: true
+    }, runtime.pressedTarget === 'track-back');
+  }
+
+  private drawSettings(ctx: CanvasRenderingContext2D, runtime: RacerSceneRuntimeView, layout: RacerUiLayout): void {
+    const page = layout.settings;
+    this.drawPagePanel(ctx, page.panel, '设置', '驾驶、显示与引导选项');
+
+    this.drawSettingRow(ctx, page.audioButton, '音乐与音效', runtime.audioMuted ? '关闭' : '开启', 'settings-audio', runtime.pressedTarget, !runtime.audioMuted);
+    this.drawSettingRow(ctx, page.miniMapButton, '赛道雷达', runtime.miniMapEnabled ? '开启' : '关闭', 'settings-minimap', runtime.pressedTarget, runtime.miniMapEnabled);
+    this.drawSettingRow(ctx, page.coachButton, '操作引导', runtime.controlCoachEnabled ? '开启' : '关闭', 'settings-coach', runtime.pressedTarget, runtime.controlCoachEnabled);
+    this.drawSettingRow(ctx, page.sensitivityButton, '控制手感', runtime.controlSensitivity.label, 'settings-sensitivity', runtime.pressedTarget, true, runtime.controlSensitivity.description);
+    this.drawSettingRow(ctx, page.resetCoachButton, '重看教学', runtime.hasShownControlCoach ? '点击重置' : '已准备', 'settings-reset-coach', runtime.pressedTarget, !runtime.hasShownControlCoach);
+
+    this.drawActionButton(ctx, {
+      target: 'settings-back',
+      rect: page.backButton,
+      label: '返回菜单',
+      icon: '‹',
+      primary: true
+    }, runtime.pressedTarget === 'settings-back');
+  }
+
+  private drawSettingRow(
+    ctx: CanvasRenderingContext2D,
+    rect: RacerRect,
+    title: string,
+    value: string,
+    target: RacerUiPressedTarget,
+    pressedTarget: RacerUiPressedTarget,
+    enabled: boolean,
+    description = ''
+  ): void {
+    const pressed = target === pressedTarget;
+    const targetRect = { ...rect, y: rect.y + (pressed ? 2 : 0) };
+    fillRoundedRect(ctx, targetRect, 9, pressed ? THEME.secondaryPressed : THEME.secondary, enabled ? THEME.primary : THEME.secondaryBorder);
+
+    ctx.fillStyle = THEME.text;
+    ctx.font = `bold ${clamp(targetRect.h * 0.3, 14, 19)}px sans-serif`;
+    ctx.fillText(title, targetRect.x + 18, targetRect.y + 8);
+    if (description) {
+      ctx.fillStyle = THEME.textMuted;
+      ctx.font = `${clamp(targetRect.h * 0.2, 10, 13)}px sans-serif`;
+      ctx.fillText(description, targetRect.x + 18, targetRect.y + targetRect.h * 0.58);
+    }
+
+    const pillW = clamp(targetRect.w * 0.24, 86, 132);
+    const pill: RacerRect = {
+      x: targetRect.x + targetRect.w - pillW - 14,
+      y: targetRect.y + 7,
+      w: pillW,
+      h: targetRect.h - 14
+    };
+    fillRoundedRect(ctx, pill, pill.h / 2, enabled ? THEME.primarySoft : 'rgba(7, 17, 23, 0.7)', enabled ? THEME.primary : THEME.secondaryBorder);
+    ctx.fillStyle = enabled ? THEME.primary : THEME.textMuted;
+    ctx.font = `bold ${clamp(pill.h * 0.36, 11, 15)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(value, pill.x + pill.w / 2, pill.y + pill.h / 2);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+  }
+
+  private drawHelp(ctx: CanvasRenderingContext2D, runtime: RacerSceneRuntimeView, layout: RacerUiLayout): void {
+    const page = layout.help;
+    this.drawPagePanel(ctx, page.panel, '操作与道具', `完成 ${runtime.targetLaps} 圈，刷新最佳成绩`);
+
+    const lines = [
+      { y: page.line1Y, text: '左下摇杆：控制方向', color: THEME.textBody },
+      { y: page.line2Y, text: '右下刹车 · 氮气按钮：按住释放', color: THEME.textBody },
+      { y: page.line3Y, text: '黄色 ≫：立即加速', color: THEME.primary },
+      { y: page.line4Y, text: '蓝色 N：补充 50% 氮气，最多 100%', color: THEME.nitro },
+      { y: page.line5Y, text: '红黑地面：减速陷阱，需要躲避', color: THEME.danger },
+      { y: page.line6Y, text: '氮气在减速期间会暂时失效', color: THEME.textMuted }
+    ];
+
+    ctx.textAlign = 'center';
+    ctx.font = `${layout.small ? 15 : layout.fonts.body}px sans-serif`;
+    for (const line of lines) {
+      ctx.fillStyle = line.color;
+      ctx.fillText(line.text, runtime.state.width / 2, line.y);
+    }
+    ctx.textAlign = 'left';
+
+    this.drawActionButton(ctx, {
+      target: 'help-start',
+      rect: page.startButton,
+      label: '开始比赛',
+      icon: '▶',
+      primary: true
+    }, runtime.pressedTarget === 'help-start');
+    this.drawActionButton(ctx, {
+      target: 'help-back',
+      rect: page.backButton,
+      label: '返回菜单',
+      icon: '‹'
+    }, runtime.pressedTarget === 'help-back');
+  }
+
+  private drawPagePanel(ctx: CanvasRenderingContext2D, panel: RacerRect, title: string, subtitle: string): void {
+    fillRoundedRect(ctx, panel, 16, THEME.panelStrong, THEME.panelBorder);
+    ctx.fillStyle = THEME.primary;
+    ctx.fillRect(panel.x + 20, panel.y + 16, Math.min(118, panel.w * 0.22), 4);
+    ctx.fillStyle = THEME.text;
+    ctx.font = `bold ${clamp(panel.w / 16, 26, 40)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(title, panel.x + panel.w / 2, panel.y + 22);
+    ctx.fillStyle = THEME.textMuted;
+    ctx.font = `${clamp(panel.w / 34, 13, 18)}px sans-serif`;
+    ctx.fillText(subtitle, panel.x + panel.w / 2, panel.y + 70);
+    ctx.textAlign = 'left';
   }
 
   private drawFooter(ctx: CanvasRenderingContext2D, width: number, height: number): void {
