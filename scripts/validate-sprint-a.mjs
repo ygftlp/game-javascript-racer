@@ -2,7 +2,9 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 const files = {
+  main: 'src/main.wx.ts',
   canvasCompat: 'src/racer/RacerCanvasCompat.ts',
+  menuPresentation: 'src/racer/RacerMenuPresentation.ts',
   startup: 'src/platforms/wechat/startup.ts',
   engine: 'src/engine/local-lite-game-engine.ts',
   joystick: 'src/racer/RacerJoystick.ts',
@@ -32,6 +34,8 @@ const source = Object.fromEntries(
 );
 const failures = [];
 
+requireTokens(source.main, ['installRacerMenuPresentation', 'startWeChatRacerGame'], 'wechat runtime entry', failures);
+requireTokens(source.menuPresentation, ['isFrontendPhase', 'drawFrontendBackdrop', 'this.drawHud = (): void => {}', 'RUNTIME S2 · 2026.07.11'], 'frontend and race presentation isolation', failures);
 requireTokens(source.canvasCompat, ['installRacerCanvasCompatibility', 'roundRectFallback', 'quadraticCurveTo'], 'canvas compatibility', failures);
 requireTokens(source.startup, ['installRacerCanvasCompatibility', 'engine.renderer.ctx'], 'startup canvas compatibility install', failures);
 requireTokens(source.engine, ['changedTouches?: TouchPoint[]', 'dispatchTouchEnd', 'this.emit(this.moveHandlers, activeTouches'], 'multi-touch lifecycle', failures);
@@ -60,4 +64,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Sprint A gameplay safety, manual nitro, audio, and motion feedback validation passed.');
+console.log('Sprint A gameplay safety, frontend isolation, manual nitro, audio, and motion feedback validation passed.');
