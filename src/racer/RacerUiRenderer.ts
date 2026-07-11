@@ -97,7 +97,7 @@ export class RacerUiRenderer {
 
     if (options.phase === 'playing') {
       if (RACER_UI_FLAGS.showMiniMap && options.miniMapEnabled) this.miniMap.render(ctx, state, layout);
-      this.drawInRaceControls(ctx, layout, options.joystick, options.brakeActive);
+      this.drawInRaceControls(ctx, state, layout, options.joystick, options.brakeActive);
       this.drawPauseButton(ctx, layout.pauseButton, options.pressedTarget === 'pause');
       if (options.controlCoachTimeLeft > 0) this.drawControlCoach(ctx, state, layout, options.controlCoachTimeLeft);
     }
@@ -130,8 +130,9 @@ export class RacerUiRenderer {
     this.roundedPanel(ctx, bar.x, bar.y, Math.max(6, bar.w * progress), bar.h, RACER_UI_THEME.accent.goldBar);
   }
 
-  private drawInRaceControls(ctx: CanvasRenderingContext2D, layout: RacerUiLayout, joystick: RacerJoystickSnapshot, brakeActive: boolean): void {
+  private drawInRaceControls(ctx: CanvasRenderingContext2D, state: RacerState, layout: RacerUiLayout, joystick: RacerJoystickSnapshot, brakeActive: boolean): void {
     this.drawJoystick(ctx, layout, joystick);
+    this.drawNitroButton(ctx, layout.controls.nitroButton, state);
     this.drawBrakeButton(ctx, layout.controls.brakeButton, brakeActive);
   }
 
@@ -151,6 +152,34 @@ export class RacerUiRenderer {
       ctx.fillStyle = RACER_UI_THEME.text.muted;
       ctx.fillText('STEER', base.x, base.y + base.r + 10);
     }
+    ctx.restore();
+  }
+
+  private drawNitroButton(ctx: CanvasRenderingContext2D, button: RacerCircle, state: RacerState): void {
+    const charge = clamp(state.nitroCharge / 100, 0, 1);
+    const active = state.nitroActive;
+    const enabled = charge > 0;
+
+    ctx.save();
+    ctx.globalAlpha = enabled || active ? 1 : 0.58;
+    this.drawCircle(ctx, { x: button.x, y: button.y, r: button.r + (active ? 10 : 7) }, active ? 'rgba(72, 219, 251, 0.5)' : RACER_UI_THEME.controls.shadow);
+    this.drawCircle(ctx, button, active ? '#118ab2' : enabled ? '#0b4f6c' : '#243447', '#d9f2ff', 2);
+
+    ctx.beginPath();
+    ctx.arc(button.x, button.y, button.r - 5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * charge);
+    ctx.strokeStyle = active ? '#ffffff' : '#48dbfb';
+    ctx.lineWidth = Math.max(4, button.r * 0.12);
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold ${Math.max(13, Math.round(button.r * 0.38))}px sans-serif`;
+    ctx.fillText('氮气', button.x, button.y - 6);
+    ctx.font = `bold ${Math.max(10, Math.round(button.r * 0.25))}px sans-serif`;
+    ctx.fillStyle = active ? '#ffffff' : '#a8e8ff';
+    ctx.fillText(`${Math.round(state.nitroCharge)}%`, button.x, button.y + 13);
     ctx.restore();
   }
 
@@ -182,7 +211,7 @@ export class RacerUiRenderer {
 
   private drawControlCoach(ctx: CanvasRenderingContext2D, state: RacerState, layout: RacerUiLayout, secondsLeft: number): void {
     const alpha = clamp(secondsLeft / 1.4, 0, 1);
-    const w = Math.min(460, state.width * 0.72);
+    const w = Math.min(540, state.width * 0.8);
     const h = layout.small ? 58 : 66;
     const x = (state.width - w) / 2;
     const y = state.height * 0.18;
@@ -190,11 +219,11 @@ export class RacerUiRenderer {
     ctx.save();
     ctx.globalAlpha = alpha;
     this.roundedPanel(ctx, x, y, w, h, RACER_UI_THEME.panel.modal, RACER_UI_THEME.accent.gold);
-    ctx.font = `bold ${layout.fonts.body}px sans-serif`;
+    ctx.font = `bold ${layout.small ? layout.fonts.note : layout.fonts.body}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = RACER_UI_THEME.text.primary;
-    ctx.fillText('左下摇杆控制方向 · 右下按钮刹车', state.width / 2, y + h / 2);
+    ctx.fillText('左下摇杆 · 右下刹车 · 拾取蓝色 N 后按住氮气', state.width / 2, y + h / 2);
     ctx.restore();
   }
 
@@ -379,13 +408,19 @@ export class RacerUiRenderer {
   private drawHelp(ctx: CanvasRenderingContext2D, state: RacerState, targetLaps: number, layout: RacerUiLayout, pressedTarget: RacerUiPressedTarget): void {
     ctx.font = `bold ${layout.fonts.title}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.primary;
-    ctx.fillText('操作说明', state.width / 2, layout.help.titleY);
-    ctx.font = `${layout.fonts.body}px sans-serif`;
+    ctx.fillText('操作与道具', state.width / 2, layout.help.titleY);
+    ctx.font = `${layout.small ? 15 : layout.fonts.body}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.bodyStrong;
-    ctx.fillText('左下摇杆：控制赛车方向', state.width / 2, layout.help.line1Y);
-    ctx.fillText('右下刹车：过弯和避让时减速', state.width / 2, layout.help.line2Y);
-    ctx.fillText('右侧暂停：暂停、重开或返回菜单', state.width / 2, layout.help.line3Y);
-    ctx.fillText(`目标：完成 ${targetLaps} 圈，刷新最佳圈速`, state.width / 2, layout.help.line4Y);
+    ctx.fillText('左下摇杆：控制方向', state.width / 2, layout.help.line1Y);
+    ctx.fillText('右下刹车 · 右上氮气：按住释放', state.width / 2, layout.help.line2Y);
+    ctx.fillStyle = '#ffd43b';
+    ctx.fillText('黄色 ≫：立即加速', state.width / 2, layout.help.line3Y);
+    ctx.fillStyle = '#48dbfb';
+    ctx.fillText('蓝色 N：补充 50% 氮气，最多储存 100%', state.width / 2, layout.help.line4Y);
+    ctx.fillStyle = '#ff6b7d';
+    ctx.fillText('红黑地面：减速陷阱，请主动躲避', state.width / 2, layout.help.line5Y);
+    ctx.fillStyle = RACER_UI_THEME.text.bodyStrong;
+    ctx.fillText(`目标：完成 ${targetLaps} 圈并刷新最佳圈速`, state.width / 2, layout.help.line6Y);
     this.drawButton(ctx, layout.help.startButton, '开始比赛', layout, true, pressedTarget === 'help-start', 'play');
     this.drawButton(ctx, layout.help.backButton, '返回菜单', layout, false, pressedTarget === 'help-back', 'back');
   }
