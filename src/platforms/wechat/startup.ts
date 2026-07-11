@@ -1,14 +1,11 @@
-import { Engine, WxPlatform, type Renderer } from '../../engine';
+import { Engine, WxPlatform } from '../../engine';
 import { installRacerCanvasCompatibility } from '../../racer/RacerCanvasCompat';
 import { RacerScene } from '../../scenes/RacerScene';
+import { startReliableWeChatRenderLoop } from './RacerWechatRenderLoop';
 
 interface WeChatLifecycleHost {
   onHide?: (handler: () => void) => void;
   onShow?: (handler: () => void) => void;
-}
-
-interface DrawableScene {
-  draw?: (renderer: Renderer) => void;
 }
 
 declare const wx: WeChatLifecycleHost | undefined;
@@ -38,22 +35,19 @@ function renderStatusScreen(engine: Engine, title: string, detail: string, error
   if (error !== undefined) console.error(`[racer] ${title}`, error);
 
   const ctx = engine.renderer.ctx;
-  const width = engine.width;
-  const height = engine.height;
-
   try {
     ctx.save();
     ctx.globalAlpha = 1;
     ctx.fillStyle = '#160b12';
-    ctx.fillRect(0, 0, width, height);
+    ctx.fillRect(0, 0, engine.width, engine.height);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${Math.max(22, Math.round(width / 24))}px sans-serif`;
-    ctx.fillText(title, width / 2, height * 0.45);
+    ctx.font = `bold ${Math.max(22, Math.round(engine.width / 24))}px sans-serif`;
+    ctx.fillText(title, engine.width / 2, engine.height * 0.45);
     ctx.fillStyle = '#ffcc4d';
-    ctx.font = `${Math.max(12, Math.round(width / 55))}px sans-serif`;
-    ctx.fillText(detail, width / 2, height * 0.56);
+    ctx.font = `${Math.max(12, Math.round(engine.width / 55))}px sans-serif`;
+    ctx.fillText(detail, engine.width / 2, engine.height * 0.56);
     ctx.restore();
   } catch (renderError) {
     console.error('[racer] Failed to render runtime status screen', renderError);
@@ -81,34 +75,6 @@ function renderBootScreen(engine: Engine): void {
   }
 }
 
-function installFirstFrameGuard(engine: Engine, scene: RacerScene): void {
-  const drawable = scene as unknown as DrawableScene;
-  const originalDraw = drawable.draw;
-  if (typeof originalDraw !== 'function') {
-    throw new Error('RacerScene.draw is unavailable at runtime');
-  }
-
-  let firstFrameRendered = false;
-  drawable.draw = (renderer: Renderer): void => {
-    try {
-      originalDraw.call(scene, renderer);
-      if (!firstFrameRendered) {
-        firstFrameRendered = true;
-        console.log('[racer] first_frame_rendered', {
-          width: engine.width,
-          height: engine.height,
-          canvasWidth: engine.platform.canvas.width,
-          canvasHeight: engine.platform.canvas.height,
-          pixelRatio: engine.platform.getScreenInfo().pixelRatio
-        });
-      }
-    } catch (error) {
-      engine.stop();
-      renderStatusScreen(engine, '极速公路渲染失败', '请查看 Console 中 [racer] 的首条错误', error);
-    }
-  };
-}
-
 export function startWeChatRacerGame(): WeChatRacerGame {
   const engine = new Engine(new WxPlatform());
   renderBootScreen(engine);
@@ -116,11 +82,10 @@ export function startWeChatRacerGame(): WeChatRacerGame {
   try {
     installRacerCanvasCompatibility(engine.renderer.ctx);
     const scene = new RacerScene(engine);
-    installFirstFrameGuard(engine, scene);
 
     bindWeChatLifecycle(scene);
     engine.setScene(scene);
-    engine.start();
+    startReliableWeChatRenderLoop(engine, scene);
 
     return { engine, scene };
   } catch (error) {
