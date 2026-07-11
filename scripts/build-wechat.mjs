@@ -8,7 +8,8 @@ const stagingOutdir = resolve('dist/.wechat-staging');
 const gameJsonSource = resolve('src/platforms/wechat/game.json');
 
 const REQUIRED_RUNTIME_MARKERS = [
-  'RUNTIME S2',
+  'RUNTIME V2 FRONTEND',
+  'RacerV2FrontendScene',
   '拾取蓝色 N 后按住氮气',
   '氮气',
   'RacerFeedbackController'
