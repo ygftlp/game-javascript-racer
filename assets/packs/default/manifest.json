@@ -11,7 +11,11 @@
     "music": "assets/packs/default/audio/music/racer.mp3",
     "engineLoop": "assets/packs/default/audio/sfx/engine-loop.mp3",
     "crash": "assets/packs/default/audio/sfx/crash.mp3",
-    "menuConfirm": "assets/packs/default/audio/sfx/menu-confirm.mp3"
+    "menuConfirm": "assets/packs/default/audio/sfx/menu-confirm.mp3",
+    "boostPickup": "assets/packs/default/audio/sfx/boost-pickup.mp3",
+    "nitroPickup": "assets/packs/default/audio/sfx/nitro-pickup.mp3",
+    "slowHit": "assets/packs/default/audio/sfx/slow-hit.mp3",
+    "nitroLoop": "assets/packs/default/audio/sfx/nitro-loop.mp3"
   },
   "categories": [
     "background.sky-hills-trees",
@@ -26,6 +30,7 @@
   "notes": [
     "Replace placeholder files in this folder with commercial-safe assets.",
     "Keep atlas frame names stable or update src/racer/SpriteAtlas.ts together with the new atlas export.",
+    "Gameplay sound effects are optional at runtime and fall back to silence until approved files are supplied.",
     "This manifest is documentation-facing today; runtime selection is controlled by src/racer/RacerAssetManifest.ts."
   ]
 }
