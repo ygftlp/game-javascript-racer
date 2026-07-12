@@ -13,11 +13,14 @@ const files = {
   joystick: 'src/racer/RacerJoystick.ts',
   assetManifest: 'src/racer/RacerAssetManifest.ts',
   assets: 'src/racer/RacerAssets.ts',
+  backgroundTheme: 'src/racer/RacerBackgroundTheme.ts',
   feedback: 'src/racer/RacerFeedbackController.ts',
+  miniMap: 'src/racer/RacerMiniMap.ts',
   powerupConfig: 'src/racer/RacerPowerupConfig.ts',
   state: 'src/racer/RacerState.ts',
   layout: 'src/racer/RacerUiLayout.ts',
   uiRenderer: 'src/racer/RacerUiRenderer.ts',
+  uiTheme: 'src/racer/RacerUiTheme.ts',
   renderer: 'src/racer/Pseudo3DRenderer.ts',
   scene: 'src/scenes/RacerScene.ts'
 };
@@ -69,7 +72,19 @@ requireTokens(source.engine, ['changedTouches?: TouchPoint[]', 'dispatchTouchEnd
 requireTokens(source.joystick, ['private touchId', 'isTracking(point', 'this.touchId = point.id ?? null'], 'joystick touch ownership', failures);
 requireTokens(source.assetManifest, ['boostPickup?: string', 'nitroPickup?: string', 'slowHit?: string', 'nitroLoop?: string', 'boost-pickup.mp3', 'nitro-loop.mp3'], 'optional gameplay feedback audio manifest', failures);
 requireTokens(source.assets, ['playBoostPickup', 'playNitroPickup', 'playSlowHit', 'playNitroLoop', 'stopNitroLoop', 'this.pack.audio.nitroLoop'], 'optional gameplay feedback audio loading and playback', failures);
+requireTokens(source.backgroundTheme, [
+  'interface RacerBackgroundTheme',
+  'legacy:',
+  'coast:',
+  'night:',
+  'atlasTint',
+  'racerBackgroundTheme'
+], 'restrained per-track race background themes', failures);
 requireTokens(source.feedback, ['class RacerFeedbackController', 'syncAudio', 'cameraOffset', 'drawNitroSpeedLines', 'drawImpactVignette', 'assets.stopNitroLoop()'], 'gameplay audio and motion feedback controller', failures);
+requireTokens(source.miniMap, [
+  'layout.small || state.height < 430',
+  'full radar competes with the joystick'
+], 'short-screen radar suppression', failures);
 requireTokens(source.powerupConfig, ['pickupCharge: 50', 'maxCharge: 100', 'drainPerSecond: 22', 'RACER_POWERUP_SEQUENCE'], 'powerup balance config', failures);
 requireTokens(source.state, ['MAX_PHYSICS_STEP = 1 / 60', 'private updateStep', 'findSafePowerupSegment', 'collisionCooldown > 0', 'nitroReserve', 'input.nitro', 'get nitroCharge', '氮气已储存'], 'physics, powerup safety, and manual nitro state', failures);
 requireTokens(source.layout, [
@@ -101,8 +116,26 @@ requireTokens(source.layout, [
   'helpHeaderHeight = clamp(helpPanel.h * 0.23, 90'
 ], 'safe-area frontend panels, capsule-safe settings control, compact joystick, and shared touch layout', failures);
 requireTokens(source.uiRenderer, ['drawNitroButton', 'state.nitroCharge', '黄色 ≫：立即加速', '蓝色 N：补充 50% 氮气', '红黑地面：减速陷阱'], 'nitro HUD and powerup tutorial', failures);
+requireTokens(source.uiTheme, [
+  "baseIdle: 'rgba(255,255,255,0.1)'",
+  "knobIdle: 'rgba(255,255,255,0.34)'",
+  "brake: 'rgba(230, 84, 58, 0.46)'",
+  "hud: 'rgba(12, 18, 24, 0.44)'"
+], 'low-weight idle race controls and HUD', failures);
 requireTokens(source.scene, ['state.input.nitro', 'nitroTouchArea', 'powerup_pickup', 'slow_hit', 'nitro_start', 'nitro_end', 'this.getUiLayout().menu.startButton', 'this.getUiLayout().menu.settingsButton'], 'manual nitro, analytics, and shared menu hit targets', failures);
-requireTokens(source.renderer, ['RacerFeedbackController', 'feedback.syncAudio', 'feedback.cameraOffset', 'feedback.drawMotionOverlay', 'ctx.translate(cameraOffset.x, cameraOffset.y)', 'drawSlowHazard', 'roundedRectPath'], 'world motion feedback and powerup visual safety', failures);
+requireTokens(source.renderer, [
+  'RacerFeedbackController',
+  'racerBackgroundTheme',
+  'progressRotation',
+  'state.height * 0.43',
+  'state.height * 0.29',
+  'feedback.syncAudio',
+  'feedback.cameraOffset',
+  'feedback.drawMotionOverlay',
+  'ctx.translate(cameraOffset.x, cameraOffset.y)',
+  'drawSlowHazard',
+  'roundedRectPath'
+], 'layered race background, world motion feedback, and powerup visual safety', failures);
 
 if (source.main.includes('installRacerMenuPresentation')) {
   failures.push('WeChat entry must not install the legacy menu presentation prototype patch');
@@ -132,6 +165,14 @@ if (source.layout.includes('const settingsPanel = panel(') || source.layout.incl
   failures.push('Frontend settings must use safe-area flow layout instead of fixed-height cards');
 }
 
+if (source.renderer.includes('BACKGROUND.SKY')) {
+  failures.push('Race renderer must not stretch the legacy sky atlas across the full screen');
+}
+
+if (source.renderer.includes('destW, state.height') || source.renderer.includes('state.width - destW, state.height')) {
+  failures.push('Race background atlas layers must use bounded destination heights');
+}
+
 if (source.renderer.includes('ctx.roundRect(') || source.renderer.includes('.roundRect(')) {
   failures.push('Pseudo3DRenderer must not depend on native Canvas roundRect');
 }
@@ -146,4 +187,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Sprint A gameplay safety, safe-area V2 panels, capsule-safe settings entry, clean frontend, compact joystick, shared touch layout, explicit WeChat main canvas, reliable render loop, manual nitro, audio, and motion feedback validation passed.');
+console.log('Sprint A gameplay safety, layered per-track race background, short-screen radar cleanup, low-weight controls, safe-area V2 panels, capsule-safe settings entry, explicit WeChat main canvas, reliable render loop, manual nitro, audio, and motion feedback validation passed.');
