@@ -16,6 +16,7 @@ const files = {
   backgroundTheme: 'src/racer/RacerBackgroundTheme.ts',
   feedback: 'src/racer/RacerFeedbackController.ts',
   miniMap: 'src/racer/RacerMiniMap.ts',
+  trackOutline: 'src/racer/RacerTrackOutline.ts',
   powerupConfig: 'src/racer/RacerPowerupConfig.ts',
   state: 'src/racer/RacerState.ts',
   layout: 'src/racer/RacerUiLayout.ts',
@@ -83,20 +84,30 @@ requireTokens(source.backgroundTheme, [
 requireTokens(source.feedback, ['class RacerFeedbackController', 'syncAudio', 'cameraOffset', 'drawNitroSpeedLines', 'drawImpactVignette', 'assets.stopNitroLoop()'], 'gameplay audio and motion feedback controller', failures);
 requireTokens(source.miniMap, [
   'layout.small || state.height < 430',
-  'full radar competes with the joystick'
-], 'short-screen radar suppression', failures);
+  'Contour card still competes with joystick',
+  'drawOutline',
+  'drawDrivenArc',
+  'ensureOutline'
+], 'short-screen contour minimap suppression', failures);
+requireTokens(source.trackOutline, [
+  'buildTrackOutline',
+  'fitOutlineToBounds',
+  'sampleOutlineAt',
+  'curvesFromSegments'
+], 'track outline pure builder', failures);
 requireTokens(source.powerupConfig, ['pickupCharge: 50', 'maxCharge: 100', 'drainPerSecond: 22', 'RACER_POWERUP_SEQUENCE'], 'powerup balance config', failures);
 requireTokens(source.state, ['MAX_PHYSICS_STEP = 1 / 60', 'private updateStep', 'findSafePowerupSegment', 'collisionCooldown > 0', 'nitroReserve', 'input.nitro', 'get nitroCharge', '氮气已储存'], 'physics, powerup safety, and manual nitro state', failures);
 requireTokens(source.layout, [
   'nitroButton',
   'nitroTouchArea',
   'line6Y',
-  'menuButtonW',
+  'menuPrimarySize',
+  'menuLeftSafe',
   'menuStartY',
   'menuX',
-  'settingsButtonSize = clamp(height * 0.105, 40, 46)',
+  'settingsButtonSize = clamp(height * 0.1, 38, 44)',
   'settingsButtonRight = clamp(width * 0.035, 24, 34)',
-  'settingsButtonY = clamp(height * 0.19, 68, 84)',
+  'settingsButtonY = clamp(height * 0.215, 78, 96)',
   'startButton: rect(menuX',
   'width - settingsButtonRight - settingsButtonSize',
   'joystickRadius = Math.max(58',
@@ -111,11 +122,15 @@ requireTokens(source.layout, [
   'settingsRowY(5)',
   'trackContentHeight',
   'helpLinesHeight',
-  'settingsHeaderHeight = clamp(settingsPanel.h * 0.24, 90',
-  'trackHeaderHeight = clamp(trackPanel.h * 0.24, 90',
-  'helpHeaderHeight = clamp(helpPanel.h * 0.23, 90'
-], 'safe-area frontend panels, capsule-safe settings control, compact joystick, and shared touch layout', failures);
-requireTokens(source.uiRenderer, ['drawNitroButton', 'state.nitroCharge', '黄色 ≫：立即加速', '蓝色 N：补充 50% 氮气', '红黑地面：减速陷阱'], 'nitro HUD and powerup tutorial', failures);
+  'settingsHeaderHeight = clamp(settingsPanel.h * 0.16, 58',
+  'trackHeaderHeight = clamp(trackPanel.h * 0.18, 64',
+  'helpHeaderHeight = clamp(helpPanel.h * 0.16, 58',
+'closeButton',
+  'pathBounds',
+  'miniMapSize = clamp',
+  'miniMapGapBelowPause'
+  ], 'safe-area frontend panels, capsule-safe settings control, compact joystick, and shared touch layout', failures);
+requireTokens(source.uiRenderer, ['drawNitroButton', 'state.nitroCharge', '黄色 ≫ 立即加速', '蓝色 N 补充 50% 氮气', '红黑地面是减速陷阱', 'drawCloseButton'], 'nitro HUD and powerup tutorial', failures);
 requireTokens(source.uiTheme, [
   "baseIdle: 'rgba(255,255,255,0.1)'",
   "knobIdle: 'rgba(255,255,255,0.34)'",

@@ -110,19 +110,41 @@ export class RacerUiRenderer {
     const hud = layout.hud.panel;
     const row = layout.hud.rowHeight;
     const progress = Math.min(1, (state.completedLaps + state.position / Math.max(1, state.trackLength)) / targetLaps);
+    const panelH = RACER_UI_FLAGS.showDebugHud ? hud.h : hud.h - row;
 
-    this.roundedPanel(ctx, hud.x, hud.y, hud.w, RACER_UI_FLAGS.showDebugHud ? hud.h : hud.h - row, RACER_UI_THEME.panel.hud, RACER_UI_THEME.panel.border);
-    ctx.font = `${layout.fonts.hud}px sans-serif`;
+    this.roundedPanel(ctx, hud.x, hud.y, hud.w, panelH, RACER_UI_THEME.panel.hud, RACER_UI_THEME.panel.border);
+    // Gold accent strip keeps the HUD readable as a product card.
+    this.roundedPanel(ctx, hud.x, hud.y, 4, panelH, RACER_UI_THEME.accent.gold);
+
+    const labelX = hud.x + 14;
+    const valueX = hud.x + hud.w - 12;
+    const font = layout.fonts.hud;
+
+    const rows: Array<{ label: string; value: string; accent?: boolean }> = [
+      { label: '速度', value: `${mph}`, accent: true },
+      { label: '圈数', value: `${state.completedLaps}/${targetLaps}` },
+      { label: '时间', value: formatSeconds(state.currentLapTime) },
+      { label: '最佳', value: formatSeconds(state.bestLapTime) }
+    ];
+
     ctx.textBaseline = 'top';
+    for (let i = 0; i < rows.length; i += 1) {
+      const y = hud.y + 8 + row * i;
+      ctx.font = `${font}px sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.fillStyle = RACER_UI_THEME.text.note;
+      ctx.fillText(rows[i].label, labelX, y);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = rows[i].accent ? RACER_UI_THEME.accent.gold : RACER_UI_THEME.text.primary;
+      ctx.font = `bold ${font + (rows[i].accent ? 1 : 0)}px sans-serif`;
+      ctx.fillText(rows[i].value, valueX, y);
+    }
     ctx.textAlign = 'left';
-    ctx.fillStyle = RACER_UI_THEME.text.primary;
-    ctx.fillText(`${mph} mph`, hud.x + 12, hud.y + 8);
-    ctx.fillText(`圈数 ${state.completedLaps}/${targetLaps}`, hud.x + 12, hud.y + 8 + row);
-    ctx.fillText(`时间 ${formatSeconds(state.currentLapTime)}`, hud.x + 12, hud.y + 8 + row * 2);
-    ctx.fillText(`最佳 ${formatSeconds(state.bestLapTime)}`, hud.x + 12, hud.y + 8 + row * 3);
 
     if (RACER_UI_FLAGS.showDebugHud || RACER_UI_FLAGS.showAssetStatus) {
-      ctx.fillText(`${assets?.statusLabel ?? 'Assets idle'} · ${audioMuted ? 'Music off' : 'Music on'}`, hud.x + 12, hud.y + 8 + row * 4);
+      ctx.font = `${font}px sans-serif`;
+      ctx.fillStyle = RACER_UI_THEME.text.muted;
+      ctx.fillText(`${assets?.statusLabel ?? 'Assets idle'} · ${audioMuted ? 'Music off' : 'Music on'}`, labelX, hud.y + 8 + row * 4);
     }
 
     const bar = layout.hud.progressBar;
@@ -162,22 +184,23 @@ export class RacerUiRenderer {
 
     ctx.save();
     ctx.globalAlpha = enabled || active ? 1 : 0.58;
-    this.drawCircle(ctx, { x: button.x, y: button.y, r: button.r + (active ? 10 : 7) }, active ? 'rgba(72, 219, 251, 0.5)' : RACER_UI_THEME.controls.shadow);
-    this.drawCircle(ctx, button, active ? '#118ab2' : enabled ? '#0b4f6c' : '#243447', '#d9f2ff', 2);
+    this.drawCircle(ctx, { x: button.x, y: button.y, r: button.r + (active ? 12 : 8) }, active ? 'rgba(72, 219, 251, 0.55)' : RACER_UI_THEME.controls.shadow);
+    this.drawCircle(ctx, button, active ? '#1496c4' : enabled ? '#0c5878' : '#243447', active ? '#ffffff' : '#c8f0ff', 2.5);
 
+    // Charge ring
     ctx.beginPath();
     ctx.arc(button.x, button.y, button.r - 5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * charge);
     ctx.strokeStyle = active ? '#ffffff' : '#48dbfb';
-    ctx.lineWidth = Math.max(4, button.r * 0.12);
+    ctx.lineWidth = Math.max(4, button.r * 0.13);
     ctx.lineCap = 'round';
     ctx.stroke();
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${Math.max(13, Math.round(button.r * 0.38))}px sans-serif`;
+    ctx.font = `bold ${Math.max(13, Math.round(button.r * 0.36))}px sans-serif`;
     ctx.fillText('氮气', button.x, button.y - 6);
-    ctx.font = `bold ${Math.max(10, Math.round(button.r * 0.25))}px sans-serif`;
+    ctx.font = `bold ${Math.max(10, Math.round(button.r * 0.24))}px sans-serif`;
     ctx.fillStyle = active ? '#ffffff' : '#a8e8ff';
     ctx.fillText(`${Math.round(state.nitroCharge)}%`, button.x, button.y + 13);
     ctx.restore();
@@ -185,10 +208,10 @@ export class RacerUiRenderer {
 
   private drawBrakeButton(ctx: CanvasRenderingContext2D, button: RacerCircle, active: boolean): void {
     const fill = active ? RACER_UI_THEME.accent.brakeActive : RACER_UI_THEME.accent.brake;
-    this.drawCircle(ctx, { x: button.x, y: button.y, r: button.r + (active ? 11 : 8) }, active ? RACER_UI_THEME.controls.brakeGlow : RACER_UI_THEME.controls.shadow);
-    this.drawCircle(ctx, button, fill, RACER_UI_THEME.controls.stroke, 2);
+    this.drawCircle(ctx, { x: button.x, y: button.y, r: button.r + (active ? 12 : 8) }, active ? RACER_UI_THEME.controls.brakeGlow : RACER_UI_THEME.controls.shadow);
+    this.drawCircle(ctx, button, fill, active ? '#ffffff' : RACER_UI_THEME.controls.stroke, 2.5);
     ctx.save();
-    ctx.font = 'bold 18px sans-serif';
+    ctx.font = `bold ${Math.max(16, Math.round(button.r * 0.42))}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = RACER_UI_THEME.text.primary;
@@ -288,13 +311,15 @@ export class RacerUiRenderer {
 
   private drawTrackSelect(ctx: CanvasRenderingContext2D, state: RacerState, options: RacerUiRenderOptions, layout: RacerUiLayout): void {
     const select = layout.trackSelect;
-    ctx.font = `bold ${layout.fonts.title}px sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.font = `bold ${Math.min(layout.fonts.title, 28)}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.primary;
-    ctx.fillText('选择赛道', state.width / 2, select.titleY);
+    ctx.fillText('选择赛道', select.panel.x + 36, select.titleY);
     ctx.font = `${layout.fonts.note}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.note;
-    ctx.fillText('选择后会保存，下次进入自动恢复', state.width / 2, select.line1Y);
-    ctx.fillText(`当前 ${options.trackIndex + 1}/${options.trackCount} · ${options.trackName}`, state.width / 2, select.line2Y);
+    ctx.fillText('点选后自动保存', select.panel.x + 36, select.line1Y);
+    this.drawCloseButton(ctx, select.closeButton, options.pressedTarget === 'track-back');
+    ctx.textAlign = 'center';
 
     const visibleTracks = options.tracks.slice(0, select.trackButtons.length);
     for (let index = 0; index < visibleTracks.length; index += 1) {
@@ -305,7 +330,7 @@ export class RacerUiRenderer {
       this.drawTrackCard(ctx, target, track, index, selected, pressed, layout);
     }
 
-    this.drawButton(ctx, select.backButton, '返回菜单', layout, false, options.pressedTarget === 'track-back', 'back');
+    this.drawButton(ctx, select.backButton, '返回', layout, false, options.pressedTarget === 'track-back', 'back');
   }
 
   private drawTrackCard(ctx: CanvasRenderingContext2D, target: RacerRect, track: RacerUiTrackOption, index: number, selected: boolean, pressed: boolean, layout: RacerUiLayout): void {
@@ -341,19 +366,22 @@ export class RacerUiRenderer {
 
   private drawSettings(ctx: CanvasRenderingContext2D, state: RacerState, options: RacerUiRenderOptions, layout: RacerUiLayout): void {
     const settings = layout.settings;
-    ctx.font = `bold ${layout.fonts.title}px sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.font = `bold ${Math.min(layout.fonts.title, 28)}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.primary;
-    ctx.fillText('设置', state.width / 2, settings.titleY);
-    ctx.font = `${layout.small ? 14 : layout.fonts.note}px sans-serif`;
+    ctx.fillText('设置', settings.panel.x + 36, settings.titleY);
+    ctx.font = `${layout.small ? 13 : layout.fonts.note}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.note;
-    ctx.fillText('调整驾驶、显示和新手引导', state.width / 2, settings.line1Y);
+    ctx.fillText('驾驶与显示', settings.panel.x + 36, settings.line1Y);
+    this.drawCloseButton(ctx, settings.closeButton, options.pressedTarget === 'settings-back');
+    ctx.textAlign = 'center';
 
     this.drawSettingCard(ctx, settings.audioButton, '音乐', options.audioMuted ? '关闭' : '开启', '背景音乐和音效', !options.audioMuted, options.pressedTarget === 'settings-audio', layout, 'music');
-    this.drawSettingCard(ctx, settings.miniMapButton, '赛道雷达', options.miniMapEnabled ? '开启' : '关闭', '弯道预告和车辆提示', options.miniMapEnabled, options.pressedTarget === 'settings-minimap', layout, 'minimap');
+    this.drawSettingCard(ctx, settings.miniMapButton, '赛道小地图', options.miniMapEnabled ? '开启' : '关闭', '整圈轮廓与车位', options.miniMapEnabled, options.pressedTarget === 'settings-minimap', layout, 'minimap');
     this.drawSettingCard(ctx, settings.coachButton, '操作引导', options.controlCoachEnabled ? '开启' : '关闭', '首次比赛显示驾驶提示', options.controlCoachEnabled, options.pressedTarget === 'settings-coach', layout, 'coach');
     this.drawSettingCard(ctx, settings.sensitivityButton, '控制手感', options.controlSensitivityLabel, options.controlSensitivityDescription, true, options.pressedTarget === 'settings-sensitivity', layout, 'sensitivity');
     this.drawSettingCard(ctx, settings.resetCoachButton, '重看引导', options.controlCoachSeen ? '可重置' : '已准备', options.controlCoachSeen ? '下局重新显示教学' : '下局会显示教学', !options.controlCoachSeen, options.pressedTarget === 'settings-reset-coach', layout, 'reset');
-    this.drawButton(ctx, settings.backButton, '返回菜单', layout, true, options.pressedTarget === 'settings-back', 'back');
+    this.drawButton(ctx, settings.backButton, '返回', layout, false, options.pressedTarget === 'settings-back', 'back');
   }
 
   private drawSettingCard(ctx: CanvasRenderingContext2D, target: RacerRect, title: string, value: string, description: string, enabled: boolean, pressed: boolean, layout: RacerUiLayout, icon: RacerUiIconName): void {
@@ -406,54 +434,110 @@ export class RacerUiRenderer {
   }
 
   private drawHelp(ctx: CanvasRenderingContext2D, state: RacerState, targetLaps: number, layout: RacerUiLayout, pressedTarget: RacerUiPressedTarget): void {
-    ctx.font = `bold ${layout.fonts.title}px sans-serif`;
+    const help = layout.help;
+    ctx.textAlign = 'left';
+    ctx.font = `bold ${Math.min(layout.fonts.title, 28)}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.primary;
-    ctx.fillText('操作与道具', state.width / 2, layout.help.titleY);
-    ctx.font = `${layout.small ? 15 : layout.fonts.body}px sans-serif`;
-    ctx.fillStyle = RACER_UI_THEME.text.bodyStrong;
-    ctx.fillText('左下摇杆：控制方向', state.width / 2, layout.help.line1Y);
-    ctx.fillText('右下刹车 · 右上氮气：按住释放', state.width / 2, layout.help.line2Y);
-    ctx.fillStyle = '#ffd43b';
-    ctx.fillText('黄色 ≫：立即加速', state.width / 2, layout.help.line3Y);
-    ctx.fillStyle = '#48dbfb';
-    ctx.fillText('蓝色 N：补充 50% 氮气，最多储存 100%', state.width / 2, layout.help.line4Y);
-    ctx.fillStyle = '#ff6b7d';
-    ctx.fillText('红黑地面：减速陷阱，请主动躲避', state.width / 2, layout.help.line5Y);
-    ctx.fillStyle = RACER_UI_THEME.text.bodyStrong;
-    ctx.fillText(`目标：完成 ${targetLaps} 圈并刷新最佳圈速`, state.width / 2, layout.help.line6Y);
-    this.drawButton(ctx, layout.help.startButton, '开始比赛', layout, true, pressedTarget === 'help-start', 'play');
-    this.drawButton(ctx, layout.help.backButton, '返回菜单', layout, false, pressedTarget === 'help-back', 'back');
+    ctx.fillText('操作说明', help.panel.x + 36, help.titleY);
+    ctx.font = `${layout.small ? 13 : layout.fonts.note}px sans-serif`;
+    ctx.fillStyle = RACER_UI_THEME.text.note;
+    ctx.fillText(`目标 ${targetLaps} 圈 · 刷新最佳成绩`, help.panel.x + 36, help.line1Y - (help.line2Y - help.line1Y));
+    this.drawCloseButton(ctx, help.closeButton, pressedTarget === 'help-back');
+
+    ctx.font = `${layout.small ? 15 : 17}px sans-serif`;
+    const lines: Array<{ y: number; text: string; color: string }> = [
+      { y: help.line1Y, text: '左下摇杆控制方向', color: RACER_UI_THEME.text.bodyStrong },
+      { y: help.line2Y, text: '右下刹车 · 氮气按钮按住释放', color: RACER_UI_THEME.text.bodyStrong },
+      { y: help.line3Y, text: '黄色 ≫ 立即加速', color: '#ffd43b' },
+      { y: help.line4Y, text: '蓝色 N 补充 50% 氮气', color: '#48dbfb' },
+      { y: help.line5Y, text: '红黑地面是减速陷阱', color: '#ff6b7d' },
+      { y: help.line6Y, text: '减速期间氮气暂时失效', color: RACER_UI_THEME.text.note }
+    ];
+    const rowW = Math.min(help.panel.w - 64, 480);
+    const rowX = state.width / 2 - rowW / 2;
+    for (const line of lines) {
+      this.roundedPanel(ctx, rowX, line.y - 2, rowW, layout.small ? 28 : 32, 'rgba(255,255,255,0.04)');
+      ctx.beginPath();
+      ctx.arc(rowX + 18, line.y + 13, 4, 0, Math.PI * 2);
+      ctx.fillStyle = line.color;
+      ctx.fill();
+      ctx.fillStyle = line.color;
+      ctx.textBaseline = 'middle';
+      ctx.fillText(line.text, rowX + 34, line.y + 13);
+    }
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'center';
+    this.drawButton(ctx, help.startButton, '开始比赛', layout, true, pressedTarget === 'help-start', 'play');
+    this.drawButton(ctx, help.backButton, '返回', layout, false, pressedTarget === 'help-back', 'back');
   }
 
   private drawPaused(ctx: CanvasRenderingContext2D, state: RacerState, audioMuted: boolean, layout: RacerUiLayout, pressedTarget: RacerUiPressedTarget): void {
-    ctx.font = `bold ${layout.fonts.title}px sans-serif`;
+    const paused = layout.paused;
+    ctx.textAlign = 'left';
+    ctx.font = `bold ${Math.min(layout.fonts.title, 28)}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.primary;
-    ctx.fillText('比赛暂停', state.width / 2, layout.paused.titleY);
-    ctx.font = `${layout.fonts.body}px sans-serif`;
-    ctx.fillStyle = RACER_UI_THEME.text.body;
-    ctx.fillText('调整状态后继续冲刺', state.width / 2, layout.paused.line1Y);
-    this.drawButton(ctx, layout.paused.resumeButton, '继续比赛', layout, true, pressedTarget === 'paused-resume', 'play');
-    this.drawButton(ctx, layout.paused.restartButton, '重新开始', layout, false, pressedTarget === 'paused-restart', 'reset');
-    this.drawButton(ctx, layout.paused.audioButton, audioMuted ? '开启音乐' : '关闭音乐', layout, false, pressedTarget === 'paused-audio', 'music');
-    this.drawButton(ctx, layout.paused.menuButton, '返回菜单', layout, false, pressedTarget === 'paused-menu', 'back');
+    ctx.fillText('比赛暂停', paused.panel.x + 36, paused.titleY);
+    ctx.font = `${layout.fonts.note}px sans-serif`;
+    ctx.fillStyle = RACER_UI_THEME.text.note;
+    ctx.fillText('调整后继续冲刺', paused.panel.x + 36, paused.line1Y);
+    this.drawCloseButton(ctx, paused.closeButton, pressedTarget === 'paused-resume');
+    ctx.textAlign = 'center';
+    this.drawButton(ctx, paused.resumeButton, '继续比赛', layout, true, pressedTarget === 'paused-resume', 'play');
+    this.drawButton(ctx, paused.restartButton, '重新开始', layout, false, pressedTarget === 'paused-restart', 'reset');
+    this.drawButton(ctx, paused.audioButton, audioMuted ? '开启音乐' : '关闭音乐', layout, false, pressedTarget === 'paused-audio', 'music');
+    this.drawButton(ctx, paused.menuButton, '返回菜单', layout, false, pressedTarget === 'paused-menu', 'back');
   }
 
   private drawFinished(ctx: CanvasRenderingContext2D, state: RacerState, targetLaps: number, layout: RacerUiLayout, pressedTarget: RacerUiPressedTarget): void {
+    const finished = layout.finished;
     const grade = this.raceGrade(state);
-    ctx.font = `bold ${layout.fonts.title}px sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.font = `bold ${Math.min(layout.fonts.title, 28)}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.primary;
-    ctx.fillText('比赛完成', state.width / 2, layout.finished.titleY);
+    ctx.fillText('比赛完成', finished.panel.x + 36, finished.titleY);
+    this.drawCloseButton(ctx, finished.closeButton, false);
+    ctx.textAlign = 'center';
+
+    const summary = `评级 ${grade} · 完成 ${state.completedLaps}/${targetLaps} 圈`;
+    ctx.font = `bold ${layout.fonts.body}px sans-serif`;
+    ctx.fillStyle = grade === 'S' || grade === 'A' ? RACER_UI_THEME.accent.gold : RACER_UI_THEME.text.bodyStrong;
+    ctx.fillText(summary, state.width / 2, finished.line1Y);
+
     ctx.font = `${layout.fonts.body}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.bodyStrong;
-    ctx.fillText(`完成圈数 ${state.completedLaps}/${targetLaps}`, state.width / 2, layout.finished.line1Y);
-    ctx.fillText(`总用时 ${formatSeconds(state.totalRaceTime)} · 评级 ${grade}`, state.width / 2, layout.finished.line2Y);
-    ctx.fillText(`最佳圈速 ${formatSeconds(state.bestLapTime)}`, state.width / 2, layout.finished.line3Y);
-    this.drawButton(ctx, layout.finished.restartButton, '再来一局', layout, true, pressedTarget === 'finished-restart', 'reset');
-    this.drawButton(ctx, layout.finished.shareButton, '分享', layout, false, pressedTarget === 'finished-share', 'share');
-    this.drawButton(ctx, layout.finished.leaderboardButton, '排行榜', layout, false, pressedTarget === 'finished-leaderboard', 'leaderboard');
+    ctx.fillText(`总用时 ${formatSeconds(state.totalRaceTime)}`, state.width / 2, finished.line2Y);
+    ctx.fillStyle = RACER_UI_THEME.accent.gold;
+    ctx.fillText(`最佳圈速 ${formatSeconds(state.bestLapTime)}`, state.width / 2, finished.line3Y);
+
+    this.drawButton(ctx, finished.restartButton, '再来一局', layout, true, pressedTarget === 'finished-restart', 'reset');
+    this.drawButton(ctx, finished.shareButton, '分享', layout, false, pressedTarget === 'finished-share', 'share');
+    this.drawButton(ctx, finished.leaderboardButton, '排行榜', layout, false, pressedTarget === 'finished-leaderboard', 'leaderboard');
     ctx.font = `${layout.fonts.note}px sans-serif`;
     ctx.fillStyle = RACER_UI_THEME.text.note;
-    ctx.fillText('刷新成绩，冲击排行榜', state.width / 2, layout.finished.noteY);
+    ctx.fillText('刷新成绩，冲击排行榜', state.width / 2, finished.noteY);
+  }
+
+  private drawCloseButton(ctx: CanvasRenderingContext2D, target: RacerRect, pressed: boolean): void {
+    const cx = target.x + target.w / 2;
+    const cy = target.y + target.h / 2;
+    const r = Math.min(target.w, target.h) / 2 - 1;
+    this.drawCircle(
+      ctx,
+      { x: cx, y: cy, r },
+      pressed ? RACER_UI_THEME.button.secondaryPressed : 'rgba(18, 28, 40, 0.92)',
+      pressed ? RACER_UI_THEME.accent.gold : 'rgba(255,255,255,0.22)',
+      1.5
+    );
+    const arm = r * 0.38;
+    ctx.strokeStyle = RACER_UI_THEME.text.body;
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx - arm, cy - arm);
+    ctx.lineTo(cx + arm, cy + arm);
+    ctx.moveTo(cx + arm, cy - arm);
+    ctx.lineTo(cx - arm, cy + arm);
+    ctx.stroke();
   }
 
   private raceGrade(state: RacerState): string {
@@ -503,11 +587,11 @@ export class RacerUiRenderer {
   }
 
   private drawModalPanel(ctx: CanvasRenderingContext2D, target: RacerRect): void {
-    this.roundedPanel(ctx, target.x + 10, target.y + 12, target.w, target.h, RACER_UI_THEME.panel.modalShadow);
-    this.roundedPanel(ctx, target.x - 2, target.y - 2, target.w + 4, target.h + 4, RACER_UI_THEME.panel.modalOuterGlow);
+    this.roundedPanel(ctx, target.x + 10, target.y + 14, target.w, target.h, RACER_UI_THEME.panel.modalShadow);
+    this.roundedPanel(ctx, target.x - 3, target.y - 3, target.w + 6, target.h + 6, RACER_UI_THEME.panel.modalOuterGlow);
     this.roundedPanel(ctx, target.x, target.y, target.w, target.h, RACER_UI_THEME.panel.modal, RACER_UI_THEME.panel.modalBorder);
-    this.roundedPanel(ctx, target.x + 22, target.y + 18, target.w - 44, 6, RACER_UI_THEME.accent.gold);
-    this.roundedPanel(ctx, target.x + 22, target.y + target.h - 24, target.w - 44, 2, RACER_UI_THEME.panel.divider);
+    // Slim left accent — leaves room for a top-right close X.
+    this.roundedPanel(ctx, target.x + 22, target.y + 22, 4, 28, RACER_UI_THEME.accent.gold);
   }
 
   private drawCircle(ctx: CanvasRenderingContext2D, target: RacerCircle, fill: string, stroke?: string, lineWidth = 1): void {

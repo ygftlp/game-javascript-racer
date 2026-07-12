@@ -188,10 +188,10 @@ if (scene.includes('const TARGET_LAPS')) missing.push('RacerScene must not hardc
 if (scene.includes('cycleTrack()')) missing.push('RacerScene should use dedicated track selection screen instead of cycleTrack');
 requireTokens(renderer, ['RacerUiRenderer', 'this.ui.render(ctx, state, assets, layout, options)', 'state.activeTrack.roadTheme.fog', 'ctx.imageSmoothingEnabled = false', 'drawPlayerFallback'], 'Pseudo3DRenderer world/UI integration', missing);
 requireTokens(uiTheme, ['RACER_UI_THEME', 'brandLogo', 'buttonIcon', 'trackCard', 'settingCard', 'statusPill', 'minimap', 'controls'], 'centralized UI theme tokens', missing);
-requireTokens(uiLayout, ['RacerMiniMapLayout', 'RacerTrackSelectLayout', 'RacerSettingsLayout', 'miniMapButton', 'sensitivityButton', 'joystickTouchArea'], 'RacerUiLayout publish layout, track select, and settings card layout', missing);
+requireTokens(uiLayout, ['RacerMiniMapLayout', 'RacerTrackSelectLayout', 'RacerSettingsLayout', 'miniMapButton', 'sensitivityButton', 'joystickTouchArea', 'pathBounds', 'miniMapSize', 'miniMapGapBelowPause'], 'RacerUiLayout publish layout, track select, and settings card layout', missing);
 requireTokens(joystick, ['class RacerJoystick', 'deadZone = 0.06', 'profile.joystickGain', 'profile.steerInputLimit'], 'configurable virtual joystick model', missing);
-requireTokens(uiRenderer, ['RacerMiniMap', 'RacerUiIcons', 'RacerUiLogo', 'drawTrackSelect', 'drawSettings', '选择赛道', '设置', '控制手感'], 'RacerUiRenderer commercial UI, track select, settings, and sensitivity display', missing);
-requireTokens(miniMap, ['class RacerMiniMap', 'drawCurvePreview', 'drawTrafficDots', '赛道雷达', 'RACER_UI_THEME'], 'independent minimap component', missing);
+requireTokens(uiRenderer, ['RacerMiniMap', 'RacerUiIcons', 'RacerUiLogo', 'drawTrackSelect', 'drawSettings', '选择赛道', '设置', '控制手感', '赛道小地图', '整圈轮廓与车位'], 'RacerUiRenderer commercial UI, track select, settings, and sensitivity display', missing);
+requireTokens(miniMap, ['class RacerMiniMap', 'drawOutline', 'drawDrivenArc', 'drawTraffic', 'drawPlayer', 'ensureOutline', 'RACER_UI_THEME'], 'independent contour minimap component', missing);
 requireTokens(startup, ['startWeChatRacerGame', 'new WxPlatform', 'onHide', 'onShow'], 'WeChat startup module lifecycle binding', missing);
 
 requireTokens(assetGuide, ['npm run assets:commercial', 'npm run assets:commercial:apply', 'npm run assets:legacy:apply', 'required files', 'assets/packs/default/images/ui/logo.png', 'assets/packs/default/images/ui/icons.png'], 'asset replacement guide safe switch and optional UI asset docs', missing);
