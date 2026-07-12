@@ -293,9 +293,32 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   const progressW = clamp(width * 0.32, 220, 340);
   const progressBar = rect((width - progressW) / 2, small ? 16 : 18, progressW, 6);
 
+  // Contour minimap owns the top-right HUD slot under the WeChat capsule.
+  // Pause sits left of the map so the outline stays the readable hero card.
+  const miniMapSize = clamp(Math.min(width, height) * 0.14, small ? 72 : 88, small ? 96 : 120);
+  const miniMapRightInset = small ? 12 : 18;
+  const miniMapTop = clamp(height * 0.12, small ? 52 : 58, small ? 72 : 84);
+  const miniMapPanel = rect(
+    width - miniMapRightInset - miniMapSize,
+    miniMapTop,
+    miniMapSize,
+    miniMapSize
+  );
+  const miniMapInset = Math.max(7, Math.round(miniMapPanel.w * 0.1));
+  const miniMapPathBounds = rect(
+    miniMapPanel.x + miniMapInset,
+    miniMapPanel.y + miniMapInset,
+    miniMapPanel.w - miniMapInset * 2,
+    miniMapPanel.h - miniMapInset * 2
+  );
+
   const pauseButtonR = small ? 24 : 28;
-  const pauseSafeY = Math.max(96, height * 0.17);
-  const pauseButton = circle(width - pauseButtonR - 20, pauseSafeY + pauseButtonR, pauseButtonR);
+  const pauseGap = small ? 10 : 12;
+  const pauseButton = circle(
+    miniMapPanel.x - pauseGap - pauseButtonR,
+    miniMapPanel.y + miniMapPanel.h * 0.5,
+    pauseButtonR
+  );
 
   // Keep the visual control compact while preserving a generous invisible touch target.
   const joystickRadius = Math.max(58, Math.min(86, width * 0.078, height * 0.18));
@@ -311,47 +334,13 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   const brakeRadius = Math.max(48, Math.min(64, width * 0.058, height * 0.13));
   const brakeButton = circle(width - brakeRadius - 46, height - brakeRadius - 38, brakeRadius);
   const nitroRadius = Math.max(38, Math.min(52, brakeRadius * 0.82));
-  const nitroSafeTop = pauseButton.y + pauseButton.r + nitroRadius + 14;
+  // Keep nitro below the minimap card; do not let it climb into the map slot.
+  const nitroSafeTop = miniMapPanel.y + miniMapPanel.h + nitroRadius + 14;
   const nitroButtonX = small ? brakeButton.x - brakeRadius - nitroRadius - 18 : brakeButton.x;
   const nitroButtonY = small
     ? brakeButton.y - brakeRadius * 0.12
     : Math.max(nitroSafeTop, brakeButton.y - brakeRadius - nitroRadius - 18);
   const nitroButton = circle(nitroButtonX, nitroButtonY, nitroRadius);
-
-  // Contour minimap: prefer under pause; if that hits nitro, sit left of pause
-  // (optionally more compact). Compact base size keeps ~844x390 WeChat frames
-  // visible without a hard height gate.
-  const miniMapSize = clamp(Math.min(width, height) * 0.14, small ? 72 : 88, small ? 96 : 120);
-  const miniMapGapBelowPause = small ? 8 : 12;
-  const miniMapRightInset = small ? 12 : 18;
-  const miniMapCandidates: RacerRect[] = [
-    rect(
-      width - miniMapRightInset - miniMapSize,
-      pauseButton.y + pauseButton.r + miniMapGapBelowPause,
-      miniMapSize,
-      miniMapSize
-    )
-  ];
-  for (const size of [miniMapSize, Math.max(64, miniMapSize - 16), 64]) {
-    miniMapCandidates.push(
-      rect(
-        pauseButton.x - pauseButton.r - miniMapGapBelowPause - size,
-        clamp(pauseButton.y - size * 0.55, 10, Math.max(10, height - size - 10)),
-        size,
-        size
-      )
-    );
-  }
-  const miniMapPanel =
-    miniMapCandidates.find((candidate) => !circleHitsRect(nitroButton, candidate, 8)) ??
-    miniMapCandidates[0];
-  const miniMapInset = Math.max(7, Math.round(miniMapPanel.w * 0.1));
-  const miniMapPathBounds = rect(
-    miniMapPanel.x + miniMapInset,
-    miniMapPanel.y + miniMapInset,
-    miniMapPanel.w - miniMapInset * 2,
-    miniMapPanel.h - miniMapInset * 2
-  );
   const brakeTouchArea = rect(
     brakeButton.x - brakeRadius - 8,
     brakeButton.y - brakeRadius - 8,

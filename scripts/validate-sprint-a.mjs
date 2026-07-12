@@ -128,7 +128,8 @@ requireTokens(source.layout, [
 'closeButton',
   'pathBounds',
   'miniMapSize = clamp',
-  'miniMapGapBelowPause'
+  'miniMapTop',
+  'pauseGap'
   ], 'safe-area frontend panels, capsule-safe settings control, compact joystick, and shared touch layout', failures);
 requireTokens(source.uiRenderer, ['drawNitroButton', 'state.nitroCharge', '黄色 ≫ 立即加速', '蓝色 N 补充 50% 氮气', '红黑地面是减速陷阱', 'drawCloseButton'], 'nitro HUD and powerup tutorial', failures);
 requireTokens(source.uiTheme, [
