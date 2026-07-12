@@ -1,6 +1,7 @@
 import type { Renderer, Texture } from '../engine';
-import { COLORS, RACER_CONFIG } from './config';
+import { RACER_CONFIG } from './config';
 import type { RacerAssets } from './RacerAssets';
+import { racerBackgroundTheme } from './RacerBackgroundTheme';
 import { RacerFeedbackController } from './RacerFeedbackController';
 import type { RacerPowerupType, RacerState, Segment } from './RacerState';
 import type { AtlasFrame } from './SpriteAtlas';
@@ -135,47 +136,105 @@ export class Pseudo3DRenderer {
   }
 
   private drawBackdrop(ctx: CanvasRenderingContext2D, state: RacerState, texture: Texture | null, playerY: number): void {
-    if (texture?.loaded) {
-      const image = texture.image as unknown as CanvasImageSource;
-      const skyOffset = state.resolution * 0.001 * playerY;
-      const hillOffset = state.resolution * 0.002 * playerY;
-      const treeOffset = state.resolution * 0.003 * playerY;
-      this.drawBackgroundLayer(ctx, image, state, BACKGROUND.SKY, 0, skyOffset);
-      this.drawBackgroundLayer(ctx, image, state, BACKGROUND.HILLS, 0, hillOffset);
-      this.drawBackgroundLayer(ctx, image, state, BACKGROUND.TREES, 0, treeOffset);
-      return;
-    }
-
-    ctx.fillStyle = COLORS.sky;
+    const theme = racerBackgroundTheme(state.activeTrack.roadsideTheme);
+    const horizonY = state.height * 0.52;
+    const sky = ctx.createLinearGradient(0, 0, 0, horizonY);
+    sky.addColorStop(0, theme.skyTop);
+    sky.addColorStop(1, theme.skyBottom);
+    ctx.fillStyle = sky;
     ctx.fillRect(0, 0, state.width, state.height);
 
-    ctx.fillStyle = COLORS.farHill;
+    ctx.save();
+    ctx.globalAlpha = 0.72;
+    ctx.fillStyle = theme.sun;
     ctx.beginPath();
-    ctx.moveTo(0, state.height * 0.42);
-    ctx.lineTo(state.width * 0.18, state.height * 0.28);
-    ctx.lineTo(state.width * 0.38, state.height * 0.42);
-    ctx.lineTo(state.width * 0.58, state.height * 0.24);
-    ctx.lineTo(state.width * 0.82, state.height * 0.43);
-    ctx.lineTo(state.width, state.height * 0.32);
-    ctx.lineTo(state.width, state.height);
-    ctx.lineTo(0, state.height);
-    ctx.closePath();
+    ctx.arc(state.width * 0.76, state.height * 0.18, Math.max(28, state.height * 0.09), 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
 
-    ctx.fillStyle = COLORS.nearHill;
-    ctx.fillRect(0, state.height * 0.42, state.width, state.height * 0.12);
+    const progressRotation = state.trackLength > 0 ? (state.position / state.trackLength) % 1 : 0;
+    const hillOffset = clamp(state.resolution * 0.0007 * playerY, -8, 8);
+    const treeOffset = clamp(state.resolution * 0.0011 * playerY, -11, 11);
+
+    if (texture?.loaded) {
+      const image = texture.image as unknown as CanvasImageSource;
+      this.drawBackgroundLayer(
+        ctx,
+        image,
+        state,
+        BACKGROUND.HILLS,
+        progressRotation * 0.18,
+        state.height * 0.17 + hillOffset,
+        state.height * 0.43,
+        0.58,
+        theme.atlasTint
+      );
+      this.drawBackgroundLayer(
+        ctx,
+        image,
+        state,
+        BACKGROUND.TREES,
+        progressRotation * 0.34,
+        state.height * 0.37 + treeOffset,
+        state.height * 0.29,
+        0.72,
+        theme.atlasTint
+      );
+    } else {
+      ctx.fillStyle = theme.fallbackFar;
+      ctx.beginPath();
+      ctx.moveTo(0, state.height * 0.48);
+      ctx.lineTo(state.width * 0.16, state.height * 0.3);
+      ctx.lineTo(state.width * 0.34, state.height * 0.46);
+      ctx.lineTo(state.width * 0.56, state.height * 0.27);
+      ctx.lineTo(state.width * 0.8, state.height * 0.47);
+      ctx.lineTo(state.width, state.height * 0.34);
+      ctx.lineTo(state.width, state.height * 0.63);
+      ctx.lineTo(0, state.height * 0.63);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = theme.fallbackNear;
+      ctx.fillRect(0, state.height * 0.46, state.width, state.height * 0.2);
+    }
+
+    const haze = ctx.createLinearGradient(0, horizonY - state.height * 0.11, 0, horizonY + state.height * 0.13);
+    haze.addColorStop(0, 'rgba(255,255,255,0)');
+    haze.addColorStop(0.55, theme.haze);
+    haze.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = haze;
+    ctx.fillRect(0, horizonY - state.height * 0.11, state.width, state.height * 0.24);
   }
 
-  private drawBackgroundLayer(ctx: CanvasRenderingContext2D, image: CanvasImageSource, state: RacerState, frame: AtlasFrame, rotation: number, offset: number): void {
+  private drawBackgroundLayer(
+    ctx: CanvasRenderingContext2D,
+    image: CanvasImageSource,
+    state: RacerState,
+    frame: AtlasFrame,
+    rotation: number,
+    destY: number,
+    destH: number,
+    alpha: number,
+    tint: string
+  ): void {
     const imageW = frame.w / 2;
-    const sourceX = frame.x + Math.floor(frame.w * rotation);
+    const wrappedRotation = ((rotation % 1) + 1) % 1;
+    const sourceX = frame.x + Math.floor(frame.w * wrappedRotation);
     const sourceW = Math.min(imageW, frame.x + frame.w - sourceX);
     const destW = Math.floor(state.width * (sourceW / imageW));
+    const y = Math.round(destY);
+    const h = Math.max(1, Math.round(destH));
 
-    ctx.drawImage(image, sourceX, frame.y, sourceW, frame.h, 0, Math.round(offset), destW, state.height);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(image, sourceX, frame.y, sourceW, frame.h, 0, y, destW, h);
     if (sourceW < imageW) {
-      ctx.drawImage(image, frame.x, frame.y, imageW - sourceW, frame.h, destW - 1, Math.round(offset), state.width - destW, state.height);
+      ctx.drawImage(image, frame.x, frame.y, imageW - sourceW, frame.h, destW - 1, y, state.width - destW + 1, h);
     }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = tint;
+    ctx.fillRect(0, y, state.width, h);
+    ctx.restore();
   }
 
   private drawSegment(ctx: CanvasRenderingContext2D, state: RacerState, segment: Segment, p1: ProjectedPoint, p2: ProjectedPoint, fog: number): void {
@@ -272,7 +331,6 @@ export class Pseudo3DRenderer {
   private drawSlowHazard(ctx: CanvasRenderingContext2D, scale: number, destX: number, destY: number, clipY: number, state: RacerState): void {
     const width = Math.round(clamp(scale * RACER_CONFIG.roadWidth * state.width * 0.032, 18, 92));
     const height = Math.max(7, Math.round(width * 0.34));
-    const x = Math.round(destX - width / 2);
     const y = Math.round(destY - height * 0.42);
     if (clipY && y + height > clipY) return;
 
