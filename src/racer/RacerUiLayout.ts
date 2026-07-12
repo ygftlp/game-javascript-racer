@@ -233,9 +233,10 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   const finishedTotalW = finishedButtonW * 3 + finishedGap * 2;
   const finishedStartX = (width - finishedTotalW) / 2;
 
-  const hudPanel = rect(14, 14, small ? 184 : 216, small ? 88 : 98);
-  const progressBar = rect(hudPanel.x, hudPanel.y + hudPanel.h + 8, hudPanel.w, 8);
-  const miniMapPanel = rect(hudPanel.x, progressBar.y + progressBar.h + 8, hudPanel.w, small ? 72 : 82);
+  const hudPanel = rect(14, 14, small ? 174 : 198, small ? 88 : 96);
+  const progressW = clamp(width * 0.32, 220, 340);
+  const progressBar = rect((width - progressW) / 2, small ? 16 : 18, progressW, 6);
+  const miniMapPanel = rect(hudPanel.x, hudPanel.y + hudPanel.h + 10, hudPanel.w, small ? 72 : 82);
   const miniMapPreviewBar = rect(miniMapPanel.x + 12, miniMapPanel.y + (small ? 31 : 34), miniMapPanel.w - 24, small ? 16 : 18);
   const miniMapProgressBar = rect(miniMapPanel.x + 12, miniMapPanel.y + miniMapPanel.h - 15, miniMapPanel.w - 24, 5);
 
