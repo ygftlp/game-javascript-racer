@@ -21,6 +21,10 @@ function wrapDistance(from: number, to: number, trackLength: number): number {
 
 export class RacerMiniMap {
   render(ctx: CanvasRenderingContext2D, state: RacerState, layout: RacerUiLayout): void {
+    // A full radar competes with the joystick and road view on common WeChat
+    // landscape sizes such as 844x390. Keep it for taller screens only.
+    if (layout.small || state.height < 430) return;
+
     const miniMap = layout.miniMap;
     const progress = state.trackLength > 0 ? state.position / state.trackLength : 0;
 
