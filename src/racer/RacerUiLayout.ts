@@ -318,27 +318,34 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
     : Math.max(nitroSafeTop, brakeButton.y - brakeRadius - nitroRadius - 18);
   const nitroButton = circle(nitroButtonX, nitroButtonY, nitroRadius);
 
-  // Contour minimap: prefer under pause; if that hits nitro, sit left of pause.
-  // Compact size on short landscape so common WeChat frames (~844x390) still show it.
+  // Contour minimap: prefer under pause; if that hits nitro, sit left of pause
+  // (optionally more compact). Compact base size keeps ~844x390 WeChat frames
+  // visible without a hard height gate.
   const miniMapSize = clamp(Math.min(width, height) * 0.14, small ? 72 : 88, small ? 96 : 120);
   const miniMapGapBelowPause = small ? 8 : 12;
   const miniMapRightInset = small ? 12 : 18;
-  const miniMapBelowPause = rect(
-    width - miniMapRightInset - miniMapSize,
-    pauseButton.y + pauseButton.r + miniMapGapBelowPause,
-    miniMapSize,
-    miniMapSize
-  );
-  const miniMapLeftOfPause = rect(
-    pauseButton.x - pauseButton.r - miniMapGapBelowPause - miniMapSize,
-    clamp(pauseButton.y - miniMapSize * 0.35, 12, height - miniMapSize - 12),
-    miniMapSize,
-    miniMapSize
-  );
-  const miniMapPanel = circleHitsRect(nitroButton, miniMapBelowPause, 8)
-    ? miniMapLeftOfPause
-    : miniMapBelowPause;
-  const miniMapInset = Math.max(8, Math.round(miniMapSize * 0.1));
+  const miniMapCandidates: RacerRect[] = [
+    rect(
+      width - miniMapRightInset - miniMapSize,
+      pauseButton.y + pauseButton.r + miniMapGapBelowPause,
+      miniMapSize,
+      miniMapSize
+    )
+  ];
+  for (const size of [miniMapSize, Math.max(64, miniMapSize - 16), 64]) {
+    miniMapCandidates.push(
+      rect(
+        pauseButton.x - pauseButton.r - miniMapGapBelowPause - size,
+        clamp(pauseButton.y - size * 0.55, 10, Math.max(10, height - size - 10)),
+        size,
+        size
+      )
+    );
+  }
+  const miniMapPanel =
+    miniMapCandidates.find((candidate) => !circleHitsRect(nitroButton, candidate, 8)) ??
+    miniMapCandidates[0];
+  const miniMapInset = Math.max(7, Math.round(miniMapPanel.w * 0.1));
   const miniMapPathBounds = rect(
     miniMapPanel.x + miniMapInset,
     miniMapPanel.y + miniMapInset,
