@@ -83,12 +83,12 @@ requireTokens(source.backgroundTheme, [
 ], 'restrained per-track race background themes', failures);
 requireTokens(source.feedback, ['class RacerFeedbackController', 'syncAudio', 'cameraOffset', 'drawNitroSpeedLines', 'drawImpactVignette', 'assets.stopNitroLoop()'], 'gameplay audio and motion feedback controller', failures);
 requireTokens(source.miniMap, [
-  'layout.small || state.height < 430',
-  'Contour card still competes with joystick',
+  'collidesNitro',
   'drawOutline',
   'drawDrivenArc',
-  'ensureOutline'
-], 'short-screen contour minimap suppression', failures);
+  'ensureOutline',
+  'common WeChat landscape height'
+], 'contour minimap visibility without height gate', failures);
 requireTokens(source.trackOutline, [
   'buildTrackOutline',
   'fitOutlineToBounds',

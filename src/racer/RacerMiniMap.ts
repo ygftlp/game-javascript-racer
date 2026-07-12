@@ -20,11 +20,10 @@ export class RacerMiniMap {
   private cachedTrackId: string | null = null;
 
   render(ctx: CanvasRenderingContext2D, state: RacerState, layout: RacerUiLayout): void {
-    // Contour card still competes with joystick/road on short landscape frames.
-    if (layout.small || state.height < 430) return;
-
+    // Layout already prefers under-pause, then left-of-pause. Keep a final
+    // collision guard so common WeChat landscape height (~390) still shows the
+    // contour card whenever it has a free top-right slot.
     const miniMap = layout.miniMap;
-    // Spec: hide rather than move nitro when the top-right stack is tight.
     if (this.collidesNitro(miniMap.panel, layout.controls.nitroButton)) return;
 
     const trackId = state.activeTrack.id;
