@@ -158,7 +158,11 @@ export const RACER_UI_THEME = {
     rightCurve: 'rgba(255, 207, 74, 0.68)',
     leftCurve: 'rgba(92, 178, 255, 0.68)',
     cursor: 'rgba(255,255,255,0.78)',
-    progress: 'rgba(255, 207, 74, 0.86)'
+    progress: 'rgba(255, 207, 74, 0.86)',
+    outline: 'rgba(180, 210, 230, 0.42)',
+    outlineDriven: 'rgba(255, 207, 74, 0.92)',
+    player: 'rgba(255, 220, 88, 0.98)',
+    playerRing: 'rgba(255, 255, 255, 0.55)'
   },
   overlay: {
     shade: 'rgba(0, 0, 0, 0.58)',
