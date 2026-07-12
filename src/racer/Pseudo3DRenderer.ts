@@ -75,33 +75,41 @@ export class Pseudo3DRenderer {
 
     for (let n = 0; n < state.tuning.drawDistance; n += 1) {
       const segment = state.segments[(baseSegment.index + n) % state.segments.length];
+      // Match original Jake Gordon projection: shift the camera back by one lap when
+      // the segment index wrapped past the track end, instead of subtracting from world Z.
+      // Wrong sign here makes looped roadside sprites sit behind the camera and pop.
       const looped = segment.index < baseSegment.index;
+      const cameraZ = state.position - (looped ? state.trackLength : 0);
       const fog = exponentialFog(n / state.tuning.drawDistance, 5);
+      const clipY = maxY;
 
       const p1 = this.project(
         segment.y1,
-        segment.z1 - (looped ? state.trackLength : 0),
+        segment.z1,
         state.playerX * RACER_CONFIG.roadWidth - x,
         playerY + RACER_CONFIG.cameraHeight,
-        state.position,
+        cameraZ,
         state
       );
       const p2 = this.project(
         segment.y2,
-        segment.z2 - (looped ? state.trackLength : 0),
+        segment.z2,
         state.playerX * RACER_CONFIG.roadWidth - x - dx,
         playerY + RACER_CONFIG.cameraHeight,
-        state.position,
+        cameraZ,
         state
       );
 
       x += dx;
       dx += segment.curve;
 
+      // Always keep the projected segment for sprites/cars/powerups.
+      // Road-occlusion culling must not drop billboards (that causes on/off flicker).
+      projected.push({ segment, p1, p2, clipY });
+
       if (p1.cameraZ <= state.cameraDepth || p2.y >= p1.y || p2.y >= maxY) continue;
 
       this.drawSegment(ctx, state, segment, p1, p2, fog);
-      projected.push({ segment, p1, p2, clipY: maxY });
       maxY = p1.y;
     }
 
@@ -138,17 +146,32 @@ export class Pseudo3DRenderer {
   private drawBackdrop(ctx: CanvasRenderingContext2D, state: RacerState, texture: Texture | null, playerY: number): void {
     const theme = racerBackgroundTheme(state.activeTrack.roadsideTheme);
     const horizonY = state.height * 0.52;
-    const sky = ctx.createLinearGradient(0, 0, 0, horizonY);
+
+    // Full-frame sky with a deeper upper band so the horizon does not look like a flat fill.
+    const sky = ctx.createLinearGradient(0, 0, 0, state.height);
     sky.addColorStop(0, theme.skyTop);
-    sky.addColorStop(1, theme.skyBottom);
+    sky.addColorStop(0.42, theme.skyBottom);
+    sky.addColorStop(0.62, theme.haze);
+    sky.addColorStop(1, theme.fallbackNear);
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, state.width, state.height);
 
+    // Soft sun / moon disc with a cheap radial bloom (no extra assets).
+    const sunX = state.width * 0.76;
+    const sunY = state.height * 0.17;
+    const sunR = Math.max(24, state.height * 0.08);
     ctx.save();
-    ctx.globalAlpha = 0.72;
+    const bloom = ctx.createRadialGradient(sunX, sunY, sunR * 0.2, sunX, sunY, sunR * 4.2);
+    bloom.addColorStop(0, theme.sun);
+    bloom.addColorStop(0.45, theme.haze);
+    bloom.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = bloom;
+    ctx.fillRect(0, 0, state.width, horizonY + state.height * 0.08);
+    ctx.globalAlpha = 0.78;
     ctx.fillStyle = theme.sun;
     ctx.beginPath();
-    ctx.arc(state.width * 0.76, state.height * 0.18, Math.max(28, state.height * 0.09), 0, Math.PI * 2);
+    ctx.arc(sunX, sunY, sunR, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
@@ -166,7 +189,7 @@ export class Pseudo3DRenderer {
         progressRotation * 0.18,
         state.height * 0.17 + hillOffset,
         state.height * 0.43,
-        0.58,
+        0.62,
         theme.atlasTint
       );
       this.drawBackgroundLayer(
@@ -177,7 +200,7 @@ export class Pseudo3DRenderer {
         progressRotation * 0.34,
         state.height * 0.37 + treeOffset,
         state.height * 0.29,
-        0.72,
+        0.78,
         theme.atlasTint
       );
     } else {
@@ -198,12 +221,13 @@ export class Pseudo3DRenderer {
       ctx.fillRect(0, state.height * 0.46, state.width, state.height * 0.2);
     }
 
-    const haze = ctx.createLinearGradient(0, horizonY - state.height * 0.11, 0, horizonY + state.height * 0.13);
+    // Horizon fog softens the join between sky layers and the road.
+    const haze = ctx.createLinearGradient(0, horizonY - state.height * 0.12, 0, horizonY + state.height * 0.14);
     haze.addColorStop(0, 'rgba(255,255,255,0)');
-    haze.addColorStop(0.55, theme.haze);
-    haze.addColorStop(1, 'rgba(255,255,255,0)');
+    haze.addColorStop(0.5, theme.haze);
+    haze.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = haze;
-    ctx.fillRect(0, horizonY - state.height * 0.11, state.width, state.height * 0.24);
+    ctx.fillRect(0, horizonY - state.height * 0.12, state.width, state.height * 0.26);
   }
 
   private drawBackgroundLayer(
@@ -271,6 +295,8 @@ export class Pseudo3DRenderer {
     for (let n = projected.length - 1; n >= 0; n -= 1) {
       const current = projected[n];
       const segment = current.segment;
+      // Behind-camera segments still exist in the list after the road-cull split; skip them only here.
+      if (current.p1.cameraZ <= state.cameraDepth) continue;
 
       for (const powerup of segment.powerups) {
         if (!powerup.active) continue;
@@ -356,13 +382,18 @@ export class Pseudo3DRenderer {
   }
 
   private drawAtlasSprite(ctx: CanvasRenderingContext2D, texture: Texture | null, frame: AtlasFrame, scale: number, destX: number, destY: number, offsetX: number, offsetY: number, clipY: number, state: RacerState, fallbackColor: string): void {
-    const destW = Math.round(frame.w * scale * state.width / 2 * (SPRITE_SCALE * RACER_CONFIG.roadWidth));
-    const destH = Math.round(frame.h * scale * state.width / 2 * (SPRITE_SCALE * RACER_CONFIG.roadWidth));
+    // Keep unrounded size for the far-horizon threshold so 0↔1 rounding does not sparkle billboards.
+    const rawW = frame.w * scale * state.width / 2 * (SPRITE_SCALE * RACER_CONFIG.roadWidth);
+    const rawH = frame.h * scale * state.width / 2 * (SPRITE_SCALE * RACER_CONFIG.roadWidth);
+    if (rawW < 1.25 || rawH < 1.25) return;
+
+    const destW = Math.max(1, Math.round(rawW));
+    const destH = Math.max(1, Math.round(rawH));
     const x = Math.round(destX + destW * offsetX);
     const y = Math.round(destY + destH * offsetY);
     const clipH = clipY ? Math.max(0, y + destH - clipY) : 0;
 
-    if (clipH >= destH || destW <= 0 || destH <= 0) return;
+    if (clipH >= destH) return;
 
     if (texture?.loaded) {
       try {

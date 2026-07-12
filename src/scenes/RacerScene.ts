@@ -14,7 +14,7 @@ import { Pseudo3DRenderer, type RacerPhase, type RacerUiPressedTarget } from '..
 
 const CONTROL_COACH_SECONDS = 4.5;
 
-type FinishedAction = 'restart' | 'share' | 'leaderboard' | 'none';
+type FinishedAction = 'restart' | 'share' | 'leaderboard' | 'close' | 'none';
 
 export class RacerScene extends Scene {
   private readonly assets = new RacerAssets();
@@ -204,7 +204,8 @@ export class RacerScene extends Scene {
     if (this.phase === 'trackSelect') {
       const trackIndex = this.trackSelectIndex(point);
       if (trackIndex !== null) return this.trackPressedTarget(trackIndex);
-      if (this.isTrackSelectBackButton(point)) return 'track-back';
+      // Close X shares the same action as bottom back.
+      if (this.isTrackSelectBackButton(point) || this.isTrackSelectCloseButton(point)) return 'track-back';
       return null;
     }
 
@@ -214,18 +215,19 @@ export class RacerScene extends Scene {
       if (this.isSettingsCoachButton(point)) return 'settings-coach';
       if (this.isSettingsSensitivityButton(point)) return 'settings-sensitivity';
       if (this.isSettingsResetCoachButton(point)) return 'settings-reset-coach';
-      if (this.isSettingsBackButton(point)) return 'settings-back';
+      if (this.isSettingsBackButton(point) || this.isSettingsCloseButton(point)) return 'settings-back';
       return null;
     }
 
     if (this.phase === 'help') {
       if (this.isHelpStartButton(point)) return 'help-start';
-      if (this.isHelpBackButton(point)) return 'help-back';
+      if (this.isHelpBackButton(point) || this.isHelpCloseButton(point)) return 'help-back';
       return null;
     }
 
     if (this.phase === 'paused') {
-      if (this.isPausedResumeButton(point)) return 'paused-resume';
+      // Close X resumes, matching common mobile pause dialogs.
+      if (this.isPausedResumeButton(point) || this.isPausedCloseButton(point)) return 'paused-resume';
       if (this.isPausedRestartButton(point)) return 'paused-restart';
       if (this.isPausedAudioButton(point)) return 'paused-audio';
       if (this.isPausedMenuButton(point)) return 'paused-menu';
@@ -237,6 +239,7 @@ export class RacerScene extends Scene {
       if (action === 'restart') return 'finished-restart';
       if (action === 'share') return 'finished-share';
       if (action === 'leaderboard') return 'finished-leaderboard';
+      if (action === 'close') return 'paused-menu';
       return null;
     }
 
@@ -628,6 +631,10 @@ export class RacerScene extends Scene {
     return pointInRect(point, this.getUiLayout().trackSelect.backButton);
   }
 
+  private isTrackSelectCloseButton(point: TouchPoint): boolean {
+    return pointInRect(point, this.getUiLayout().trackSelect.closeButton);
+  }
+
   private isSettingsAudioButton(point: TouchPoint): boolean {
     return pointInRect(point, this.getUiLayout().settings.audioButton);
   }
@@ -652,12 +659,20 @@ export class RacerScene extends Scene {
     return pointInRect(point, this.getUiLayout().settings.backButton);
   }
 
+  private isSettingsCloseButton(point: TouchPoint): boolean {
+    return pointInRect(point, this.getUiLayout().settings.closeButton);
+  }
+
   private isHelpStartButton(point: TouchPoint): boolean {
     return pointInRect(point, this.getUiLayout().help.startButton);
   }
 
   private isHelpBackButton(point: TouchPoint): boolean {
     return pointInRect(point, this.getUiLayout().help.backButton);
+  }
+
+  private isHelpCloseButton(point: TouchPoint): boolean {
+    return pointInRect(point, this.getUiLayout().help.closeButton);
   }
 
   private isPausedResumeButton(point: TouchPoint): boolean {
@@ -676,12 +691,17 @@ export class RacerScene extends Scene {
     return pointInRect(point, this.getUiLayout().paused.menuButton);
   }
 
+  private isPausedCloseButton(point: TouchPoint): boolean {
+    return pointInRect(point, this.getUiLayout().paused.closeButton);
+  }
+
   private finishedAction(point: TouchPoint): FinishedAction {
     const layout = this.getUiLayout().finished;
 
     if (pointInRect(point, layout.restartButton)) return 'restart';
     if (pointInRect(point, layout.shareButton)) return 'share';
     if (pointInRect(point, layout.leaderboardButton)) return 'leaderboard';
+    if (pointInRect(point, layout.closeButton)) return 'close';
     return 'none';
   }
 
