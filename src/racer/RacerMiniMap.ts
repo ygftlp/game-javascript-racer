@@ -24,6 +24,9 @@ export class RacerMiniMap {
     if (layout.small || state.height < 430) return;
 
     const miniMap = layout.miniMap;
+    // Spec: hide rather than move nitro when the top-right stack is tight.
+    if (this.collidesNitro(miniMap.panel, layout.controls.nitroButton)) return;
+
     const trackId = state.activeTrack.id;
     const outline = this.ensureOutline(trackId, state);
     if (!outline || outline.points.length < 2) return;
@@ -38,6 +41,16 @@ export class RacerMiniMap {
     this.drawDrivenArc(ctx, fitted, progress);
     this.drawTraffic(ctx, state, fitted);
     this.drawPlayer(ctx, fitted, progress);
+  }
+
+  private collidesNitro(panel: RacerRect, nitro: { x: number; y: number; r: number }): boolean {
+    const pad = 8;
+    const nearestX = Math.max(panel.x, Math.min(nitro.x, panel.x + panel.w));
+    const nearestY = Math.max(panel.y, Math.min(nitro.y, panel.y + panel.h));
+    const dx = nitro.x - nearestX;
+    const dy = nitro.y - nearestY;
+    const limit = nitro.r + pad;
+    return dx * dx + dy * dy < limit * limit;
   }
 
   private ensureOutline(trackId: string, state: RacerState): TrackOutline | null {
