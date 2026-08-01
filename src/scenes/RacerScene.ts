@@ -40,6 +40,13 @@ export class RacerScene extends Scene {
   private pressedTarget: RacerUiPressedTarget = null;
   private controlCoachTimeLeft = 0;
   private hasShownControlCoach = false;
+  /** Home carousel pixel drag offset (content follows finger). Read by frontend. */
+  private menuCarouselOffset = 0;
+  private menuCarouselDragActive = false;
+  private menuCarouselMoved = false;
+  private menuCarouselStartX = 0;
+  private menuCarouselStartY = 0;
+  private menuCarouselBaseIndex = 0;
 
   constructor(private readonly gameEngine: Engine) {
     super();
@@ -147,6 +154,7 @@ export class RacerScene extends Scene {
     this.gameEngine.input.onStart((touches: TouchPoint[] = []) => this.handleTouchStart(touches), { persistent: true });
     this.gameEngine.input.onMove((touches: TouchPoint[] = []) => {
       if (this.phase === 'playing') this.applyTouches(touches);
+      else if (this.menuCarouselDragActive) this.updateMenuCarouselDrag(touches[0]);
       else this.updatePressedTarget(touches[0]);
     }, { persistent: true });
     this.gameEngine.input.onEnd((touches: TouchPoint[] = []) => this.handleTouchEnd(touches), { persistent: true });
@@ -157,6 +165,10 @@ export class RacerScene extends Scene {
     if (!point) return;
 
     if (this.phase !== 'playing') {
+      if (this.phase === 'menu' && this.beginMenuCarouselDrag(point)) {
+        this.pressedTarget = null;
+        return;
+      }
       this.pressedTarget = this.resolvePressedTarget(point);
       return;
     }
@@ -172,6 +184,13 @@ export class RacerScene extends Scene {
 
   private handleTouchEnd(touches: TouchPoint[] = []): void {
     const point = touches[0];
+
+    if (this.menuCarouselDragActive) {
+      this.finishMenuCarouselDrag(point);
+      this.resetTouchControls();
+      return;
+    }
+
     const target = this.pressedTarget;
 
     if (target) {
@@ -191,12 +210,77 @@ export class RacerScene extends Scene {
     if (resolved !== this.pressedTarget) this.pressedTarget = null;
   }
 
+  private beginMenuCarouselDrag(point: TouchPoint): boolean {
+    const hit = this.getUiLayout().menu.trackCarousel.hitRect;
+    if (!pointInRect(point, hit)) return false;
+
+    this.menuCarouselDragActive = true;
+    this.menuCarouselMoved = false;
+    this.menuCarouselStartX = point.x;
+    this.menuCarouselStartY = point.y;
+    this.menuCarouselOffset = 0;
+    this.menuCarouselBaseIndex = racerTrackIndex(this.activeTrack.id);
+    return true;
+  }
+
+  private updateMenuCarouselDrag(point: TouchPoint | undefined): void {
+    if (!this.menuCarouselDragActive || !point) return;
+
+    const dx = point.x - this.menuCarouselStartX;
+    const dy = point.y - this.menuCarouselStartY;
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+
+    // Clearly vertical → abandon carousel ownership so buttons stay usable nearby.
+    if (!this.menuCarouselMoved && absY > 12 && absY > absX * 1.15) {
+      this.clearMenuCarouselDrag();
+      return;
+    }
+
+    if (absX > 6 || this.menuCarouselMoved) {
+      this.menuCarouselMoved = true;
+      const stepX = this.getUiLayout().menu.trackCarousel.stepX;
+      const maxPull = stepX * (RACER_TRACKS.length - 1) + stepX * 0.35;
+      this.menuCarouselOffset = Math.max(-maxPull, Math.min(maxPull, dx));
+    }
+  }
+
+  private finishMenuCarouselDrag(point: TouchPoint | undefined): void {
+    if (!this.menuCarouselDragActive) return;
+
+    const stepX = Math.max(1, this.getUiLayout().menu.trackCarousel.stepX);
+    const offset = point
+      ? Math.max(
+          -stepX * (RACER_TRACKS.length - 1) - stepX * 0.35,
+          Math.min(stepX * (RACER_TRACKS.length - 1) + stepX * 0.35, point.x - this.menuCarouselStartX)
+        )
+      : this.menuCarouselOffset;
+
+    const moved = this.menuCarouselMoved || Math.abs(offset) > 8;
+    this.clearMenuCarouselDrag();
+
+    if (!moved) return;
+
+    // Content follows finger: positive offset (drag right) reveals lower-index tracks.
+    const rawIndex = this.menuCarouselBaseIndex - offset / stepX;
+    const nextIndex = Math.max(0, Math.min(RACER_TRACKS.length - 1, Math.round(rawIndex)));
+    this.selectTrack(nextIndex);
+  }
+
+  private clearMenuCarouselDrag(): void {
+    this.menuCarouselDragActive = false;
+    this.menuCarouselMoved = false;
+    this.menuCarouselOffset = 0;
+    this.menuCarouselStartX = 0;
+    this.menuCarouselStartY = 0;
+  }
+
   private resolvePressedTarget(point: TouchPoint): RacerUiPressedTarget {
     if (this.phase === 'menu') {
       if (this.isMenuStartButton(point)) return 'menu-start';
-      if (this.isMenuTrackButton(point)) return 'menu-track';
       if (this.isMenuLeaderboardButton(point)) return 'menu-leaderboard';
       if (this.isMenuHelpButton(point)) return 'menu-help';
+      if (this.isMenuGarageButton(point)) return 'menu-garage';
       if (this.isMenuSettingsButton(point)) return 'menu-settings';
       return null;
     }
@@ -257,12 +341,14 @@ export class RacerScene extends Scene {
       this.startRace();
       return;
     }
-    if (target === 'menu-track') {
-      this.openTrackSelect();
-      return;
-    }
     if (target === 'menu-settings') {
       this.openSettings();
+      return;
+    }
+    if (target === 'menu-garage') {
+      // Garage entry is a commercial home affordance; until the real garage ships,
+      // route to help so the touch target gives feedback instead of feeling broken.
+      this.openHelp();
       return;
     }
     const selectedTrackIndex = this.trackIndexFromPressedTarget(target);
@@ -377,11 +463,14 @@ export class RacerScene extends Scene {
   }
 
   private selectTrack(trackIndex: number): void {
-    if (this.phase !== 'trackSelect') return;
+    // Home carousel selects from menu; legacy modal still uses trackSelect.
+    if (this.phase !== 'trackSelect' && this.phase !== 'menu') return;
 
     const nextTrack = RACER_TRACKS[trackIndex];
     if (!nextTrack) return;
 
+    const source = this.phase === 'menu' ? 'home_carousel' : 'track_select';
+    const changed = nextTrack.id !== this.activeTrack.id;
     this.activeTrack = nextTrack;
     this.settings.setSelectedTrackId(this.activeTrack.id);
     this.savedBestLapTime = this.storage.getBestLapTime(this.activeTrack.id);
@@ -390,15 +479,23 @@ export class RacerScene extends Scene {
     this.lastCollisionCount = this.state.collisionCount;
     this.lastPowerupCount = this.state.powerupCount;
     this.lastNitroActive = this.state.nitroActive;
-    this.phase = 'menu';
-    this.pressedTarget = null;
-    this.resetTouchControls();
+
+    if (source === 'track_select') {
+      this.phase = 'menu';
+      this.pressedTarget = null;
+      this.resetTouchControls();
+    }
+
+    // Home snap re-select of same track is a no-op for analytics noise.
+    if (!changed && source === 'home_carousel') return;
+
     this.services.analytics.track('track_select_confirm', {
       trackId: this.activeTrack.id,
       trackName: this.activeTrack.name,
       trackIndex: racerTrackIndex(this.activeTrack.id),
       targetLaps: this.targetLaps,
-      bestLapTime: this.savedBestLapTime
+      bestLapTime: this.savedBestLapTime,
+      source
     });
   }
 
@@ -593,16 +690,16 @@ export class RacerScene extends Scene {
     return pointInRect(point, this.getUiLayout().menu.startButton);
   }
 
-  private isMenuTrackButton(point: TouchPoint): boolean {
-    return pointInRect(point, this.getUiLayout().menu.trackButton);
-  }
-
   private isMenuLeaderboardButton(point: TouchPoint): boolean {
     return pointInRect(point, this.getUiLayout().menu.leaderboardButton);
   }
 
   private isMenuHelpButton(point: TouchPoint): boolean {
     return pointInRect(point, this.getUiLayout().menu.helpButton);
+  }
+
+  private isMenuGarageButton(point: TouchPoint): boolean {
+    return pointInRect(point, this.getUiLayout().menu.garageButton);
   }
 
   private isMenuSettingsButton(point: TouchPoint): boolean {

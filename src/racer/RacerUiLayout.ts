@@ -1,3 +1,5 @@
+import { buildRacerHomeLayout } from './frontend/home/RacerHomeLayout';
+
 export type RacerOverlayPhase = 'menu' | 'paused' | 'finished' | 'help' | 'trackSelect' | 'settings';
 
 export interface RacerRect {
@@ -43,12 +45,27 @@ export interface RacerPanelLayout {
   line3Y: number;
 }
 
+export interface RacerTrackCarouselLayout {
+  /** Full swipe hit band for the home track carousel. */
+  hitRect: RacerRect;
+  cardW: number;
+  cardH: number;
+  centerX: number;
+  centerY: number;
+  dotsY: number;
+  /** Horizontal distance between neighboring card centers. */
+  stepX: number;
+}
+
 export interface RacerMenuLayout extends RacerPanelLayout {
   startButton: RacerRect;
+  /** Kept for layout compatibility; home no longer shows a track orb. */
   trackButton: RacerRect;
   leaderboardButton: RacerRect;
   helpButton: RacerRect;
+  garageButton: RacerRect;
   settingsButton: RacerRect;
+  trackCarousel: RacerTrackCarouselLayout;
 }
 
 export interface RacerTrackSelectLayout extends RacerPanelLayout {
@@ -184,46 +201,39 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
   // Landscape phones often have a left home-indicator / notch strip.
   // Keep all left-column chrome clear of that black safe band.
   const menuLeftSafe = clamp(width * 0.075, 52, 84);
-  // Market circular home — airy 2+2 cluster with clear hierarchy:
-  //   [ big play ]   [ mid track ]
-  //      [ rank ]      [ help ]
-  // Slightly smaller orbs + larger gaps beat oversized circles jammed together.
-  const menuPrimarySize = Math.max(86, Math.min(small ? 98 : 108, height * 0.23));
-  const menuSecondarySize = Math.max(64, Math.min(small ? 72 : 80, height * 0.165));
-  const menuIconSize = Math.max(40, Math.min(small ? 44 : 48, height * 0.092));
-  // Label band under each orb — enough for one line without kissing the next row.
-  const menuIconLabelH = Math.max(18, Math.min(22, height * 0.04));
-  const menuPrimaryLabelH = Math.max(22, Math.min(26, height * 0.048));
-  const menuSecondaryLabelH = Math.max(20, Math.min(24, height * 0.044));
-  // Edge-to-edge air between play/track orbs (was ~16–22; felt dense).
-  const menuClusterGap = Math.max(30, Math.min(44, width * 0.036));
-  // Vertical air after main-row labels before utility orbs.
-  const menuRowGap = Math.max(18, Math.min(28, height * 0.042));
-  const menuIconGap = Math.max(30, Math.min(44, width * 0.032));
-  // Total cluster width drives horizontal centering of utilities under both orbs.
-  const menuClusterW = menuPrimarySize + menuClusterGap + menuSecondarySize;
-  const menuX = menuLeftSafe + 8;
-  // Status chip is taller now (~76–88). Anchor the action cluster below it with real air.
-  const statusCardBottom = height * 0.055 + clamp(height * 0.165, 76, 88);
-  const menuStartY = clamp(statusCardBottom + clamp(height * 0.045, 18, 28), small ? 128 : 140, height * 0.4);
-  const menuTrackX = menuX + menuPrimarySize + menuClusterGap;
-  const menuTrackY = menuStartY + (menuPrimarySize - menuSecondarySize) * 0.5;
-  const menuIconY = menuStartY + menuPrimarySize + menuPrimaryLabelH + menuRowGap;
-  // Center the two utility orbs under the main pair.
-  const menuUtilityRowW = menuIconSize * 2 + menuIconGap;
-  const menuUtilityX = menuX + (menuClusterW - menuUtilityRowW) / 2;
-  // Hit rects include circle + label clearance band so labels stay tappable.
-  const menuPrimaryHitH = menuPrimarySize + menuPrimaryLabelH;
-  const menuSecondaryHitH = menuSecondarySize + menuSecondaryLabelH;
-  const menuIconHitH = menuIconSize + menuIconLabelH;
+  // Garage-style home is maintained in a dedicated module so commercial UI
+  // iteration does not keep inflating RacerV2FrontendScene.
+  const home = buildRacerHomeLayout(width, height);
+  const menuPrimarySize = home.startButton.w;
+  const menuIconSize = home.leaderboardButton.w;
+  const menuIconLabelH = Math.max(0, home.leaderboardButton.h - home.leaderboardButton.w);
+  const menuPrimaryLabelH = Math.max(0, home.startButton.h - home.startButton.w);
+  const menuRowGap = Math.max(0, home.leaderboardButton.y - home.startButton.y - home.startButton.h);
+  const menuIconGap = Math.max(0, home.helpButton.x - home.leaderboardButton.x - home.leaderboardButton.w);
+  const menuPrimaryHitH = home.startButton.h;
+  const menuIconHitH = home.leaderboardButton.h;
 
-  // WeChat already renders its own capsule in the top-right corner. Keep the
-  // game settings entry compact and clearly below it instead of drawing a
-  // second capsule beside/under the system control.
-  // Sit a beat lower than the top chrome row so brand + status own the header band.
-  const settingsButtonSize = clamp(height * 0.1, 38, 44);
-  const settingsButtonRight = clamp(width * 0.035, 24, 34);
-  const settingsButtonY = clamp(height * 0.215, 78, 96);
+  const trackCarouselCardW = home.trackCarousel.cardW;
+  const trackCarouselCardH = home.trackCarousel.cardH;
+  const trackCarouselCenterX = home.trackCarousel.centerX;
+  const trackCarouselCenterY = home.trackCarousel.centerY;
+  const trackCarouselStepX = home.trackCarousel.stepX;
+  const trackCarouselDotsY = home.trackCarousel.dotsY;
+  const trackCarouselHitRect = home.trackCarousel.hitRect;
+
+  const menuX = home.startButton.x;
+  const menuStartY = home.startButton.y;
+  const menuUtilityX = home.leaderboardButton.x;
+  const menuIconY = home.leaderboardButton.y;
+  // Compatibility placeholder: old track orb slot (not drawn on home).
+  const menuTrackX = home.garageButton.x;
+  const menuTrackY = home.garageButton.y;
+  const menuSecondarySize = home.garageButton.w;
+  const menuSecondaryHitH = home.garageButton.h;
+
+  const settingsButtonSize = home.settingsButton.w;
+  const settingsButtonRight = width - home.settingsButton.x - home.settingsButton.w;
+  const settingsButtonY = home.settingsButton.y;
 
   // Frontend panels must stay above the gesture bar and below the top capsule area.
   // Prefer slightly roomier panels so content is not packed edge-to-edge.
@@ -381,15 +391,24 @@ export function buildRacerUiLayout(width: number, height: number): RacerUiLayout
       line3Y: menuPanel.y + (small ? 126 : 158),
       startButton: rect(menuX, menuStartY, menuPrimarySize, menuPrimaryHitH),
       trackButton: rect(menuTrackX, menuTrackY, menuSecondarySize, menuSecondaryHitH),
-      // Circular utility icons centered under the main orb pair.
       leaderboardButton: rect(menuUtilityX, menuIconY, menuIconSize, menuIconHitH),
       helpButton: rect(menuUtilityX + menuIconSize + menuIconGap, menuIconY, menuIconSize, menuIconHitH),
+      garageButton: home.garageButton,
       settingsButton: rect(
         width - settingsButtonRight - settingsButtonSize,
         settingsButtonY,
         settingsButtonSize,
         settingsButtonSize
-      )
+      ),
+      trackCarousel: {
+        hitRect: trackCarouselHitRect,
+        cardW: trackCarouselCardW,
+        cardH: trackCarouselCardH,
+        centerX: trackCarouselCenterX,
+        centerY: trackCarouselCenterY,
+        dotsY: trackCarouselDotsY,
+        stepX: trackCarouselStepX
+      }
     },
     trackSelect: {
       panel: trackPanel,

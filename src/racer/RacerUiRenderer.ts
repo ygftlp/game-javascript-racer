@@ -17,6 +17,7 @@ export type RacerUiPressedTarget =
   | 'menu-track'
   | 'menu-leaderboard'
   | 'menu-help'
+  | 'menu-garage'
   | 'menu-settings'
   | RacerTrackSelectPressedTarget
   | 'track-back'

@@ -1,9 +1,11 @@
 import { Scene, type Renderer } from '../../engine';
 import type { RacerScene } from '../../scenes/RacerScene';
+import { racerBackgroundTheme } from '../RacerBackgroundTheme';
 import type { RacerState } from '../RacerState';
-import { RACER_TRACKS } from '../RacerTrackDefinition';
+import { RACER_TRACKS, racerTrackIndex, type RacerRoadsideTheme, type RacerTrackDefinition } from '../RacerTrackDefinition';
 import type { RacerUiPhase, RacerUiPressedTarget } from '../RacerUiRenderer';
-import { buildRacerUiLayout, type RacerRect, type RacerUiLayout } from '../RacerUiLayout';
+import { buildRacerUiLayout, type RacerRect, type RacerTrackCarouselLayout, type RacerUiLayout } from '../RacerUiLayout';
+import { RacerHomeRenderer } from './home/RacerHomeRenderer';
 
 interface DrawableRacerScene {
   draw(renderer: Renderer): void;
@@ -19,9 +21,12 @@ interface RacerSceneRuntimeView {
   hasShownControlCoach: boolean;
   pressedTarget: RacerUiPressedTarget;
   targetLaps: number;
+  menuCarouselOffset: number;
   activeTrack: {
     id: string;
     name: string;
+    roadsideTheme?: RacerRoadsideTheme;
+    targetLaps?: number;
   };
   controlSensitivity: {
     label: string;
@@ -153,6 +158,7 @@ function fillRoundedGradient(
 
 export class RacerV2FrontendScene extends Scene {
   private frontendTime = 0;
+  private readonly homeRenderer = new RacerHomeRenderer();
 
   constructor(private readonly inner: RacerScene) {
     super();
@@ -186,13 +192,7 @@ export class RacerV2FrontendScene extends Scene {
     this.drawBackdrop(ctx, width, height);
 
     if (runtime.phase === 'menu') {
-      this.drawStatusCard(ctx, runtime, width, height);
-      this.drawBrandBanner(ctx, width, height);
-      this.drawSystemBar(ctx, layout.menu.settingsButton, runtime.pressedTarget === 'menu-settings');
-      this.drawVehicleShowcase(ctx, width, height);
-      // No dense group plate — orbs float on the stage for more breathing room.
-      this.drawMenuButtons(ctx, layout, runtime.pressedTarget);
-      this.drawFooter(ctx, width, height);
+      this.homeRenderer.draw(ctx, runtime, width, height, this.frontendTime);
     } else if (runtime.phase === 'trackSelect') {
       this.drawModalScrim(ctx, width, height);
       this.drawTrackSelect(ctx, runtime, layout);
@@ -264,9 +264,9 @@ export class RacerV2FrontendScene extends Scene {
     }
     ctx.restore();
 
-    // 4) Soft distant hills (silhouette only — no busy windows/city blocks)
-    this.drawHillSilhouette(ctx, width, stageY, 0.42, height * 0.16, THEME.hillFar);
-    this.drawHillSilhouette(ctx, width, stageY, 0.18, height * 0.12, THEME.hillNear);
+    // 4) Neon city silhouette: commercial arcade backdrop without bitmap assets.
+    this.drawHillSilhouette(ctx, width, stageY, 0.42, height * 0.12, 'rgba(9, 18, 34, 0.78)');
+    this.drawNeonCity(ctx, width, height, stageY);
 
     // 5) Horizon haze
     const haze = ctx.createLinearGradient(0, stageY - height * 0.1, 0, stageY + height * 0.04);
@@ -334,121 +334,136 @@ export class RacerV2FrontendScene extends Scene {
     ctx.fill();
   }
 
-  private drawStatusCard(ctx: CanvasRenderingContext2D, runtime: RacerSceneRuntimeView, width: number, height: number): void {
-    // Top-left status chip: keep brand-banner topY for chrome alignment, but use a taller
-    // independent height so label / best-time / track meta never crowd each other.
+  private drawNeonCity(ctx: CanvasRenderingContext2D, width: number, height: number, baseY: number): void {
+    ctx.save();
     const leftSafe = clamp(width * 0.075, 52, 84);
-    const topY = height * 0.055;
-    // 3-line chip needs ~76–88px. Brand banner stays at 52–60 and is unchanged.
-    const cardH = clamp(height * 0.165, 76, 88);
+    const skylineY = baseY - height * 0.23;
+    for (let i = 0; i < 28; i += 1) {
+      const lane = i < 13 ? i : i + 5;
+      const x = leftSafe + lane * width * 0.03;
+      if (x > width - 80) continue;
+      const w = 8 + (i % 4) * 5;
+      const h = height * (0.08 + (i % 7) * 0.014);
+      const y = baseY - h;
+      const g = ctx.createLinearGradient(x, y, x, baseY);
+      g.addColorStop(0, i % 3 === 0 ? 'rgba(105, 226, 255, 0.45)' : 'rgba(225, 75, 255, 0.38)');
+      g.addColorStop(1, 'rgba(10, 17, 34, 0.92)');
+      fillRoundedRect(ctx, { x, y, w, h }, 2, g, 'rgba(255,255,255,0.08)', 1);
+      ctx.fillStyle = i % 2 === 0 ? 'rgba(255, 204, 61, 0.5)' : 'rgba(91, 218, 255, 0.55)';
+      ctx.fillRect(x + 2, y + 5, Math.max(2, w - 4), 2);
+      if (i % 5 === 0) ctx.fillRect(x + w / 2 - 1, y - 16, 2, 16);
+    }
+
+    const scan = ctx.createLinearGradient(width * 0.18, skylineY, width * 0.72, skylineY);
+    scan.addColorStop(0, 'rgba(255, 75, 180, 0)');
+    scan.addColorStop(0.3, 'rgba(255, 75, 180, 0.55)');
+    scan.addColorStop(0.62, 'rgba(91, 218, 255, 0.5)');
+    scan.addColorStop(1, 'rgba(255, 204, 61, 0)');
+    ctx.fillStyle = scan;
+    for (let i = 0; i < 3; i += 1) ctx.fillRect(width * 0.2 + i * 24, skylineY + i * 10, width * 0.45, 2);
+    ctx.restore();
+  }
+
+  private drawStatusCard(ctx: CanvasRenderingContext2D, runtime: RacerSceneRuntimeView, width: number, height: number): void {
+    // Metal trophy card like the reference: compact but premium.
+    const leftSafe = clamp(width * 0.075, 52, 84);
     const card: RacerRect = {
-      x: leftSafe + 10,
-      y: topY,
-      w: clamp(width * 0.23, 164, 220),
-      h: cardH
+      x: leftSafe + 8,
+      y: height * 0.035,
+      w: clamp(width * 0.22, 178, 230),
+      h: clamp(height * 0.13, 58, 76)
     };
-    const radius = Math.min(card.h / 2, 18);
-    const padX = 16;
-    const padY = 10;
+    const bestText = formatSeconds(runtime.savedBestLapTime);
+    const trophyX = card.x + card.w - card.h * 0.52;
+    const trophyY = card.y + card.h * 0.54;
 
     ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.28)';
-    ctx.shadowBlur = 10;
+    ctx.shadowColor = 'rgba(255, 205, 124, 0.22)';
+    ctx.shadowBlur = 12;
     ctx.shadowOffsetY = 3;
-    fillRoundedGradient(ctx, card, radius, 'rgba(28, 44, 54, 0.96)', 'rgba(14, 24, 32, 0.96)', THEME.panelBorder);
+    const metal = ctx.createLinearGradient(card.x, card.y, card.x + card.w, card.y + card.h);
+    metal.addColorStop(0, 'rgba(232, 217, 190, 0.92)');
+    metal.addColorStop(0.45, 'rgba(112, 122, 132, 0.88)');
+    metal.addColorStop(1, 'rgba(42, 48, 58, 0.94)');
+    fillRoundedRect(ctx, card, 8, metal, 'rgba(255, 220, 160, 0.82)', 2);
     ctx.restore();
 
-    fillRoundedRect(ctx, { x: card.x + 3, y: card.y + padY, w: 3, h: card.h - padY * 2 }, 1.5, THEME.primary);
+    fillRoundedRect(ctx, { x: card.x + 4, y: card.y + 4, w: card.w - 8, h: card.h - 8 }, 6, 'rgba(0,0,0,0)', 'rgba(255,255,255,0.2)', 1);
 
-    const labelSize = clamp(width / 84, 10, 11);
-    const hasRecord = Number.isFinite(runtime.savedBestLapTime) && runtime.savedBestLapTime > 0;
-    // Empty-state value is smaller so "暂无记录" does not collide with meta.
-    const valueSize = clamp(width / (hasRecord ? 52 : 64), hasRecord ? 15 : 12, hasRecord ? 18 : 13);
-    const metaSize = clamp(width / 96, 9, 10);
-    const bestText = formatSeconds(runtime.savedBestLapTime);
+    ctx.fillStyle = '#151b24';
+    ctx.textBaseline = 'top';
+    ctx.font = `bold ${clamp(card.h * 0.18, 10, 13)}px sans-serif`;
+    ctx.fillText('最佳成绩:', card.x + 14, card.y + 10);
+    ctx.font = `bold ${clamp(card.h * 0.25, 13, 18)}px sans-serif`;
+    ctx.fillText(bestText, card.x + 14, card.y + card.h * 0.36);
+    ctx.font = `${clamp(card.h * 0.15, 9, 11)}px sans-serif`;
+    ctx.fillText(`${runtime.activeTrack.name} · ${runtime.targetLaps}圈`, card.x + 14, card.y + card.h * 0.72);
 
-    // Equal third-row slots with middle baseline — predictable ~7–10px clear gaps.
-    const contentTop = card.y + padY;
-    const contentH = card.h - padY * 2;
-    const rowH = contentH / 3;
-    const labelY = contentTop + rowH * 0.5;
-    const valueY = contentTop + rowH * 1.5;
-    const metaY = contentTop + rowH * 2.5;
-    const textX = card.x + padX;
-
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 230, 158, 0.85)';
+    ctx.fillStyle = 'rgba(255, 204, 61, 0.18)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(trophyX - 16, trophyY - 12);
+    ctx.lineTo(trophyX + 16, trophyY - 12);
+    ctx.quadraticCurveTo(trophyX + 13, trophyY + 8, trophyX, trophyY + 10);
+    ctx.quadraticCurveTo(trophyX - 13, trophyY + 8, trophyX - 16, trophyY - 12);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(trophyX - 8, trophyY + 11);
+    ctx.lineTo(trophyX + 8, trophyY + 11);
+    ctx.lineTo(trophyX + 12, trophyY + 23);
+    ctx.lineTo(trophyX - 12, trophyY + 23);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.font = `bold ${clamp(card.h * 0.2, 10, 14)}px sans-serif`;
+    ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(255, 230, 158, 0.9)';
+    ctx.fillText('★', trophyX, trophyY - 2);
+    ctx.restore();
 
-    ctx.fillStyle = THEME.textMuted;
-    ctx.font = `bold ${labelSize}px sans-serif`;
-    ctx.fillText('最佳成绩', textX, labelY);
-
-    ctx.fillStyle = hasRecord ? THEME.primary : THEME.textMuted;
-    ctx.font = `bold ${valueSize}px sans-serif`;
-    ctx.fillText(bestText, textX, valueY);
-
-    ctx.fillStyle = THEME.textBody;
-    ctx.font = `${metaSize}px sans-serif`;
-    ctx.fillText(`${runtime.activeTrack.name} · ${runtime.targetLaps} 圈`, textX, metaY);
-
+    ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
   }
 
   private drawBrandBanner(ctx: CanvasRenderingContext2D, width: number, height: number): void {
-    // Top center brand pill — shares topY with status chip, keeps its own compact height.
-    const topY = height * 0.055;
-    const barH = clamp(height * 0.11, 48, 56);
-    const banner: RacerRect = {
-      x: (width - width * 0.3) / 2,
-      y: topY,
-      w: width * 0.3,
-      h: barH
-    };
+    // Neon logo lockup: title + speed streaks, not a button.
+    const centerX = width * 0.52;
+    const topY = height * 0.035;
+    const titleY = topY + clamp(height * 0.035, 16, 22);
 
     ctx.save();
-    ctx.shadowColor = 'rgba(255, 212, 82, 0.18)';
-    ctx.shadowBlur = 14;
-    ctx.shadowOffsetY = 0;
-    fillRoundedGradient(ctx, banner, barH / 2, 'rgba(34, 52, 66, 0.98)', 'rgba(12, 22, 30, 0.98)', THEME.primary);
+    ctx.shadowColor = 'rgba(255, 143, 82, 0.7)';
+    ctx.shadowBlur = 12;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffd47a';
+    ctx.font = `bold ${clamp(width / 36, 22, 34)}px sans-serif`;
+    ctx.fillText('极速公路', centerX, titleY);
+    ctx.shadowColor = 'rgba(178, 88, 255, 0.55)';
+    ctx.shadowBlur = 8;
+    ctx.fillStyle = '#fff0b0';
+    ctx.font = `bold ${clamp(width / 108, 10, 13)}px sans-serif`;
+    ctx.fillText('(复古街机赛车)', centerX, titleY + clamp(height * 0.042, 18, 24));
+
+    const lineY = titleY;
+    const streak = ctx.createLinearGradient(centerX - 180, lineY, centerX + 180, lineY);
+    streak.addColorStop(0, 'rgba(255, 76, 190, 0)');
+    streak.addColorStop(0.32, 'rgba(255, 76, 190, 0.7)');
+    streak.addColorStop(0.5, 'rgba(255, 204, 61, 0)');
+    streak.addColorStop(0.68, 'rgba(91, 218, 255, 0.7)');
+    streak.addColorStop(1, 'rgba(91, 218, 255, 0)');
+    ctx.fillStyle = streak;
+    ctx.fillRect(centerX - 190, lineY - 3, 130, 3);
+    ctx.fillRect(centerX + 60, lineY - 3, 130, 3);
+    ctx.fillRect(centerX - 165, lineY + 9, 95, 2);
+    ctx.fillRect(centerX + 70, lineY + 9, 95, 2);
     ctx.restore();
 
-    fillRoundedRect(
-      ctx,
-      { x: banner.x + 3, y: banner.y + 3, w: banner.w - 6, h: banner.h - 6 },
-      barH / 2 - 3,
-      'rgba(0,0,0,0)',
-      'rgba(255, 212, 82, 0.22)',
-      1
-    );
-
-    const iconR = banner.h * 0.3;
-    const iconX = banner.x + banner.h * 0.48;
-    const iconY = banner.y + banner.h / 2;
-    ctx.beginPath();
-    ctx.arc(iconX, iconY, iconR, 0, Math.PI * 2);
-    ctx.fillStyle = THEME.primary;
-    ctx.fill();
-    ctx.fillStyle = '#1a2430';
-    ctx.beginPath();
-    ctx.moveTo(iconX - iconR * 0.22, iconY - iconR * 0.4);
-    ctx.lineTo(iconX + iconR * 0.48, iconY);
-    ctx.lineTo(iconX - iconR * 0.22, iconY + iconR * 0.4);
-    ctx.closePath();
-    ctx.fill();
-
-    const titleX = banner.x + banner.h * 0.92;
-    ctx.fillStyle = THEME.text;
-    ctx.font = `bold ${clamp(width / 36, 20, 26)}px sans-serif`;
-    ctx.textBaseline = 'middle';
-    ctx.fillText('极速公路', titleX, banner.y + banner.h * 0.38);
-    ctx.fillStyle = THEME.primary;
-    ctx.font = `bold ${clamp(width / 110, 10, 12)}px sans-serif`;
-    ctx.fillText('复古街机赛车', titleX, banner.y + banner.h * 0.7);
+    ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-
-    ctx.fillStyle = THEME.primary;
-    ctx.fillRect(banner.x + banner.w - 28, banner.y + 10, 7, banner.h - 20);
-    ctx.fillStyle = '#ff9f1c';
-    ctx.fillRect(banner.x + banner.w - 17, banner.y + 10, 4, banner.h - 20);
   }
 
   private drawSystemBar(ctx: CanvasRenderingContext2D, rect: RacerRect, pressed: boolean): void {
@@ -458,14 +473,21 @@ export class RacerV2FrontendScene extends Scene {
     const radius = Math.min(target.w, target.h) / 2;
 
     ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-    ctx.shadowBlur = pressed ? 2 : 8;
+    ctx.shadowColor = 'rgba(255, 204, 61, 0.28)';
+    ctx.shadowBlur = pressed ? 4 : 10;
     ctx.shadowOffsetY = pressed ? 1 : 3;
     ctx.beginPath();
-    ctx.arc(centerX, centerY, radius - 1, 0, Math.PI * 2);
-    ctx.fillStyle = pressed ? THEME.secondaryPressed : 'rgba(24, 40, 50, 0.96)';
+    for (let i = 0; i < 6; i += 1) {
+      const angle = -Math.PI / 2 + i * Math.PI / 3;
+      const x = centerX + Math.cos(angle) * (radius - 1);
+      const y = centerY + Math.sin(angle) * (radius - 1);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = pressed ? THEME.secondaryPressed : 'rgba(28, 38, 50, 0.96)';
     ctx.fill();
-    ctx.strokeStyle = THEME.primary;
+    ctx.strokeStyle = 'rgba(255, 204, 61, 0.82)';
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.restore();
@@ -480,15 +502,180 @@ export class RacerV2FrontendScene extends Scene {
   }
 
   private drawMenuButtons(ctx: CanvasRenderingContext2D, layout: RacerUiLayout, pressed: RacerUiPressedTarget): void {
-    // Circular market home:
-    // large play orb + medium track orb + small utility orbs.
+    // Circular market home: play orb + small utilities (track pick is the carousel).
     const buttons: MenuButtonSpec[] = [
       { target: 'menu-start', rect: layout.menu.startButton, label: '开始比赛', icon: '▶', primary: true },
-      { target: 'menu-track', rect: layout.menu.trackButton, label: '选择赛道', icon: '赛', secondary: true },
-      { target: 'menu-leaderboard', rect: layout.menu.leaderboardButton, label: '排行榜', icon: '★', iconOnly: true },
+      { target: 'menu-leaderboard', rect: layout.menu.leaderboardButton, label: '排行榜', icon: '♛', iconOnly: true },
       { target: 'menu-help', rect: layout.menu.helpButton, label: '说明', icon: '?', iconOnly: true }
     ];
     for (const button of buttons) this.drawActionButton(ctx, button, pressed === button.target);
+  }
+
+  private drawTrackCarousel(
+    ctx: CanvasRenderingContext2D,
+    runtime: RacerSceneRuntimeView,
+    carousel: RacerTrackCarouselLayout
+  ): void {
+    const activeIndex = Math.max(0, racerTrackIndex(runtime.activeTrack.id));
+    const dragOffset = Number.isFinite(runtime.menuCarouselOffset) ? runtime.menuCarouselOffset : 0;
+
+    ctx.save();
+    // Clip to hit band so peer cards peek without painting into chrome.
+    roundedRectPath(
+      ctx,
+      carousel.hitRect.x,
+      carousel.hitRect.y,
+      carousel.hitRect.w,
+      carousel.hitRect.h,
+      16
+    );
+    ctx.clip();
+
+    // Draw far cards first so the active card sits on top.
+    const order = RACER_TRACKS.map((_, index) => index).sort((a, b) => {
+      const da = Math.abs(a - activeIndex + dragOffset / Math.max(1, carousel.stepX));
+      const db = Math.abs(b - activeIndex + dragOffset / Math.max(1, carousel.stepX));
+      return db - da;
+    });
+
+    for (const index of order) {
+      const track = RACER_TRACKS[index];
+      if (!track) continue;
+      const delta = index - activeIndex;
+      const centerX = carousel.centerX + delta * carousel.stepX + dragOffset;
+      const distance = Math.abs(delta + dragOffset / Math.max(1, carousel.stepX));
+      const scale = clamp(1 - distance * 0.1, 0.86, 1);
+      const alpha = clamp(1 - distance * 0.28, 0.42, 1);
+      this.drawTrackCarouselCard(ctx, track, centerX, carousel.centerY, carousel.cardW, carousel.cardH, scale, alpha, distance < 0.35);
+    }
+    ctx.restore();
+
+    // Page dots under the strip.
+    const dotCount = RACER_TRACKS.length;
+    const dotGap = 14;
+    const dotsW = (dotCount - 1) * dotGap;
+    const dotsStartX = carousel.centerX - dotsW / 2;
+    for (let i = 0; i < dotCount; i += 1) {
+      const selected = i === activeIndex;
+      const dx = dotsStartX + i * dotGap;
+      ctx.beginPath();
+      ctx.arc(dx, carousel.dotsY, selected ? 4.2 : 3.2, 0, Math.PI * 2);
+      ctx.fillStyle = selected ? THEME.primary : 'rgba(255,255,255,0.28)';
+      ctx.fill();
+    }
+  }
+
+  private drawTrackCarouselCard(
+    ctx: CanvasRenderingContext2D,
+    track: RacerTrackDefinition,
+    centerX: number,
+    centerY: number,
+    cardW: number,
+    cardH: number,
+    scale: number,
+    alpha: number,
+    active: boolean
+  ): void {
+    const w = cardW * scale;
+    const h = cardH * scale;
+    const rect: RacerRect = { x: centerX - w / 2, y: centerY - h / 2, w, h };
+    const radius = Math.min(18, rect.h * 0.14);
+    const mood = racerBackgroundTheme(track.roadsideTheme);
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    ctx.shadowColor = active ? 'rgba(255, 168, 76, 0.5)' : 'rgba(91, 218, 255, 0.22)';
+    ctx.shadowBlur = active ? 22 : 10;
+    ctx.shadowOffsetY = active ? 4 : 2;
+
+    const glass = ctx.createLinearGradient(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h);
+    glass.addColorStop(0, active ? 'rgba(41, 63, 76, 0.72)' : 'rgba(30, 82, 112, 0.35)');
+    glass.addColorStop(0.5, active ? 'rgba(83, 119, 130, 0.42)' : 'rgba(18, 48, 82, 0.3)');
+    glass.addColorStop(1, active ? 'rgba(12, 21, 34, 0.88)' : mood.fallbackNear);
+    fillRoundedRect(ctx, rect, radius, glass, active ? 'rgba(255, 190, 92, 0.95)' : 'rgba(91, 218, 255, 0.45)', active ? 2.4 : 1.4);
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+
+    // Wireframe terrain grid.
+    ctx.save();
+    roundedRectPath(ctx, rect.x, rect.y, rect.w, rect.h, radius);
+    ctx.clip();
+    ctx.strokeStyle = active ? 'rgba(120, 240, 255, 0.38)' : 'rgba(120, 240, 255, 0.18)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 9; i += 1) {
+      const y = rect.y + rect.h * (0.18 + i * 0.07);
+      ctx.beginPath();
+      ctx.moveTo(rect.x + 18, y);
+      ctx.quadraticCurveTo(rect.x + rect.w * 0.44, y - Math.sin(i) * 18, rect.x + rect.w - 18, y + Math.cos(i) * 10);
+      ctx.stroke();
+    }
+    for (let i = 0; i < 8; i += 1) {
+      const x = rect.x + rect.w * (0.12 + i * 0.1);
+      ctx.beginPath();
+      ctx.moveTo(x, rect.y + rect.h * 0.15);
+      ctx.quadraticCurveTo(x + Math.sin(i * 1.7) * 18, rect.y + rect.h * 0.5, x + Math.cos(i) * 10, rect.y + rect.h * 0.86);
+      ctx.stroke();
+    }
+
+    // Track outline stroke on the card.
+    ctx.strokeStyle = active ? 'rgba(240, 255, 220, 0.88)' : 'rgba(220, 255, 255, 0.45)';
+    ctx.lineWidth = active ? 4 : 2.4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(rect.x + rect.w * 0.22, rect.y + rect.h * 0.36);
+    ctx.bezierCurveTo(rect.x + rect.w * 0.34, rect.y + rect.h * 0.05, rect.x + rect.w * 0.66, rect.y + rect.h * 0.14, rect.x + rect.w * 0.68, rect.y + rect.h * 0.34);
+    ctx.bezierCurveTo(rect.x + rect.w * 0.71, rect.y + rect.h * 0.58, rect.x + rect.w * 0.35, rect.y + rect.h * 0.62, rect.x + rect.w * 0.42, rect.y + rect.h * 0.78);
+    ctx.stroke();
+    ctx.restore();
+
+    // Energy core / gem.
+    const coreX = rect.x + rect.w * 0.67;
+    const coreY = rect.y + rect.h * 0.48;
+    const coreR = rect.h * (active ? 0.28 : 0.22);
+    const core = ctx.createRadialGradient(coreX, coreY, 2, coreX, coreY, coreR * 1.8);
+    core.addColorStop(0, 'rgba(255, 246, 160, 1)');
+    core.addColorStop(0.35, 'rgba(255, 170, 42, 0.86)');
+    core.addColorStop(1, 'rgba(255, 128, 42, 0)');
+    ctx.fillStyle = core;
+    ctx.beginPath();
+    ctx.arc(coreX, coreY, coreR * 1.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 225, 102, 0.92)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i < 8; i += 1) {
+      const a = -Math.PI / 2 + i * Math.PI / 4;
+      const r = i % 2 === 0 ? coreR : coreR * 0.58;
+      const x = coreX + Math.cos(a) * r;
+      const y = coreY + Math.sin(a) * r;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+
+    // Bottom title scrim.
+    const scrim = ctx.createLinearGradient(rect.x, rect.y + rect.h * 0.55, rect.x, rect.y + rect.h);
+    scrim.addColorStop(0, 'rgba(4, 8, 14, 0)');
+    scrim.addColorStop(1, 'rgba(4, 8, 14, 0.72)');
+    fillRoundedRect(ctx, { x: rect.x, y: rect.y + rect.h * 0.52, w: rect.w, h: rect.h * 0.48 }, radius, scrim);
+
+    if (active) fillRoundedRect(ctx, { x: rect.x + 8, y: rect.y + rect.h * 0.22, w: 4, h: rect.h * 0.32 }, 2, THEME.primary);
+
+    ctx.fillStyle = active ? THEME.text : THEME.textBody;
+    ctx.font = `bold ${clamp(rect.h * 0.17, 15, 23)}px sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(track.name, rect.x + 20, rect.y + rect.h - 34);
+
+    ctx.fillStyle = active ? THEME.primary : THEME.textMuted;
+    ctx.font = `${clamp(rect.h * 0.12, 11, 15)}px sans-serif`;
+    ctx.fillText(`${track.targetLaps} 圈`, rect.x + 20, rect.y + rect.h - 14);
+
+    ctx.restore();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
   }
 
   private drawCircleButton(
@@ -504,15 +691,53 @@ export class RacerV2FrontendScene extends Scene {
     const cy = rect.y + size / 2;
     const r = size / 2 - 1;
 
-    if (tone === 'primary' && !pressed) {
+    if (tone === 'primary') {
       ctx.save();
-      ctx.shadowColor = THEME.primaryGlow;
-      ctx.shadowBlur = 28;
+      const flame = ctx.createRadialGradient(cx, cy, r * 0.2, cx, cy, r * 1.45);
+      flame.addColorStop(0, pressed ? '#ffd45c' : '#fff1a6');
+      flame.addColorStop(0.42, pressed ? '#ff9f1c' : '#ffb72e');
+      flame.addColorStop(0.74, 'rgba(255, 88, 36, 0.82)');
+      flame.addColorStop(1, 'rgba(255, 90, 30, 0)');
+      ctx.fillStyle = flame;
       ctx.beginPath();
-      ctx.arc(cx, cy, r + 5, 0, Math.PI * 2);
-      ctx.fillStyle = THEME.primarySoft;
+      ctx.arc(cx, cy, r * 1.42, 0, Math.PI * 2);
       ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 221, 112, 0.42)';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 14; i += 1) {
+        const a = i * Math.PI * 2 / 14 + this.frontendTime * 0.35;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(a) * r * 0.84, cy + Math.sin(a) * r * 0.84);
+        ctx.lineTo(cx + Math.cos(a) * r * (1.08 + (i % 3) * 0.07), cy + Math.sin(a) * r * (1.08 + (i % 3) * 0.07));
+        ctx.stroke();
+      }
+      const core = ctx.createRadialGradient(cx, cy - r * 0.18, r * 0.05, cx, cy, r * 0.82);
+      core.addColorStop(0, '#fff4b8');
+      core.addColorStop(0.55, '#ffd45c');
+      core.addColorStop(1, '#ff9f1c');
+      ctx.fillStyle = core;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 0.82, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.62)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = '#172337';
+      ctx.beginPath();
+      ctx.moveTo(cx - r * 0.26, cy - r * 0.42);
+      ctx.lineTo(cx + r * 0.42, cy);
+      ctx.lineTo(cx - r * 0.26, cy + r * 0.42);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = THEME.text;
+      ctx.font = `bold ${clamp(size * 0.15, 11, 14)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, cx, rect.y + size + 16);
       ctx.restore();
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      return;
     }
 
     ctx.save();
@@ -521,12 +746,7 @@ export class RacerV2FrontendScene extends Scene {
     ctx.shadowOffsetY = pressed ? 1 : 4;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    if (tone === 'primary') {
-      const g = ctx.createLinearGradient(cx, cy - r, cx, cy + r);
-      g.addColorStop(0, pressed ? THEME.primaryPressed : '#ffe27a');
-      g.addColorStop(1, pressed ? '#d9a61f' : THEME.primary);
-      ctx.fillStyle = g;
-    } else if (tone === 'secondary') {
+    if (tone === 'secondary') {
       const g = ctx.createLinearGradient(cx, cy - r, cx, cy + r);
       g.addColorStop(0, pressed ? 'rgba(56, 78, 96, 0.98)' : 'rgba(34, 52, 68, 0.98)');
       g.addColorStop(1, pressed ? THEME.secondaryPressed : 'rgba(16, 28, 40, 0.98)');
@@ -535,36 +755,19 @@ export class RacerV2FrontendScene extends Scene {
       ctx.fillStyle = pressed ? THEME.chipPressed : 'rgba(14, 24, 36, 0.94)';
     }
     ctx.fill();
-    ctx.strokeStyle =
-      tone === 'primary'
-        ? 'rgba(255,255,255,0.6)'
-        : tone === 'secondary'
-          ? 'rgba(255, 204, 61, 0.72)'
-          : pressed
-            ? THEME.primary
-            : 'rgba(255,255,255,0.24)';
-    ctx.lineWidth = tone === 'primary' ? 2.5 : 2;
+    ctx.strokeStyle = tone === 'secondary' ? 'rgba(255, 204, 61, 0.72)' : pressed ? THEME.primary : 'rgba(255,255,255,0.24)';
+    ctx.lineWidth = 2;
     ctx.stroke();
     ctx.restore();
 
     // Inner ring for depth.
     ctx.beginPath();
-    ctx.arc(cx, cy, r * (tone === 'primary' ? 0.78 : 0.74), 0, Math.PI * 2);
-    ctx.strokeStyle = tone === 'primary' ? 'rgba(26, 36, 48, 0.16)' : 'rgba(255, 204, 61, 0.28)';
+    ctx.arc(cx, cy, r * 0.74, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 204, 61, 0.28)';
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    if (tone === 'primary') {
-      // Large play triangle centered in the orb.
-      const tri = r * 0.42;
-      ctx.fillStyle = '#1a2430';
-      ctx.beginPath();
-      ctx.moveTo(cx - tri * 0.45, cy - tri * 0.75);
-      ctx.lineTo(cx + tri * 0.85, cy);
-      ctx.lineTo(cx - tri * 0.45, cy + tri * 0.75);
-      ctx.closePath();
-      ctx.fill();
-    } else if (tone === 'secondary') {
+    if (tone === 'secondary') {
       // Mini track mark: two curved lanes so it reads without relying on rare glyphs.
       ctx.strokeStyle = THEME.primary;
       ctx.lineWidth = Math.max(2.5, r * 0.12);
@@ -589,9 +792,9 @@ export class RacerV2FrontendScene extends Scene {
     }
 
     // Label sits in the reserved band under the orb (layout hitH includes this clearance).
-    const labelOffset = tone === 'primary' ? 16 : tone === 'secondary' ? 14 : 13;
-    ctx.fillStyle = tone === 'primary' ? THEME.text : tone === 'secondary' ? THEME.textBody : THEME.textMuted;
-    ctx.font = `bold ${clamp(size * (tone === 'primary' ? 0.145 : 0.17), 11, tone === 'primary' ? 15 : 12)}px sans-serif`;
+    const labelOffset = tone === 'secondary' ? 14 : 13;
+    ctx.fillStyle = tone === 'secondary' ? THEME.textBody : THEME.textMuted;
+    ctx.font = `bold ${clamp(size * 0.17, 11, 12)}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(label, cx, rect.y + size + labelOffset);
@@ -602,13 +805,13 @@ export class RacerV2FrontendScene extends Scene {
   private drawActionButton(ctx: CanvasRenderingContext2D, button: MenuButtonSpec, pressed: boolean): void {
     const rect = { ...button.rect, y: button.rect.y + (pressed ? 2 : 0) };
 
-    // Modal footer capsules stay rectangular so wide labels remain readable.
+    // Modal footer and commercial home capsules stay rectangular so labels remain readable.
     if (button.capsule) {
       if (button.primary) {
         if (!pressed) {
           ctx.save();
           ctx.shadowColor = THEME.primaryGlow;
-          ctx.shadowBlur = 16;
+          ctx.shadowBlur = 18;
           fillRoundedRect(ctx, { x: rect.x - 1, y: rect.y - 1, w: rect.w + 2, h: rect.h + 2 }, rect.h / 2 + 1, THEME.primarySoft);
           ctx.restore();
         }
@@ -618,21 +821,22 @@ export class RacerV2FrontendScene extends Scene {
           rect.h / 2,
           pressed ? THEME.primaryPressed : '#ffe27a',
           pressed ? '#d9a61f' : THEME.primary,
-          'rgba(255,255,255,0.45)'
+          'rgba(255,255,255,0.5)'
         );
-        ctx.fillStyle = '#1a2430';
+        ctx.fillStyle = '#142033';
+        ctx.font = `bold ${clamp(rect.h * 0.42, 18, 23)}px sans-serif`;
       } else {
         fillRoundedGradient(
           ctx,
           rect,
           rect.h / 2,
-          pressed ? 'rgba(48, 66, 82, 0.98)' : 'rgba(24, 38, 52, 0.94)',
-          pressed ? THEME.secondaryPressed : 'rgba(12, 22, 32, 0.94)',
+          pressed ? 'rgba(48, 66, 82, 0.98)' : 'rgba(18, 30, 44, 0.9)',
+          pressed ? THEME.secondaryPressed : 'rgba(9, 18, 28, 0.9)',
           pressed ? THEME.primary : 'rgba(255,255,255,0.16)'
         );
-        ctx.fillStyle = THEME.text;
+        ctx.fillStyle = button.iconOnly ? THEME.textMuted : THEME.text;
+        ctx.font = `bold ${clamp(rect.h * 0.38, 12, 15)}px sans-serif`;
       }
-      ctx.font = `bold ${clamp(rect.h * 0.38, 14, 18)}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(button.label, rect.x + rect.w / 2, rect.y + rect.h / 2 + 0.5);
@@ -653,13 +857,12 @@ export class RacerV2FrontendScene extends Scene {
   }
 
   private drawVehicleShowcase(ctx: CanvasRenderingContext2D, width: number, height: number): void {
-    // Hero car on the right stage — slightly smaller / righter so center air opens up
-    // and the left CTA cluster is not mirrored by an equally heavy vehicle mass.
-    const carW = clamp(width * 0.32, 230, 340);
+    // Hero car is the commercial home focal point; bottom controls stay below it.
+    const carW = clamp(width * 0.32, 230, 360);
     const carH = carW * 0.44;
-    const x = width * 0.74;
+    const x = width * 0.68;
     const floatY = Math.sin(this.frontendTime * 1.6) * 2.4;
-    const y = height * 0.58 + floatY;
+    const y = height * 0.5 + floatY;
     const shadowScale = 1 - Math.sin(this.frontendTime * 1.6) * 0.03;
     const body: RacerRect = { x: x - carW / 2, y: y - carH * 0.28, w: carW, h: carH * 0.56 };
     const cabin: RacerRect = { x: x - carW * 0.28, y: y - carH * 0.72, w: carW * 0.56, h: carH * 0.48 };
@@ -1065,14 +1268,36 @@ export class RacerV2FrontendScene extends Scene {
   }
 
   private drawFooter(ctx: CanvasRenderingContext2D, width: number, height: number): void {
-    // Text-only whisper tip — no pill chrome competing with brand / CTA.
-    const bottomInset = Math.max(12, height * 0.028);
-    const footerY = height - bottomInset;
-    ctx.fillStyle = 'rgba(184, 200, 210, 0.42)';
-    ctx.font = `${clamp(width / 105, 10, 12)}px sans-serif`;
+    // Curved HUD tip bar: decorative arc, text remains straight for Canvas performance/readability.
+    const centerX = width * 0.5;
+    const y = height - clamp(height * 0.12, 48, 68);
+    const barW = clamp(width * 0.44, 380, 560);
+    const barH = clamp(height * 0.07, 28, 40);
+    const rect: RacerRect = { x: centerX - barW / 2, y, w: barW, h: barH };
+
+    ctx.save();
+    ctx.translate(centerX, y + barH * 0.85);
+    ctx.rotate(-0.035);
+    ctx.translate(-centerX, -(y + barH * 0.85));
+    ctx.shadowColor = 'rgba(255, 204, 61, 0.26)';
+    ctx.shadowBlur = 10;
+    const g = ctx.createLinearGradient(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h);
+    g.addColorStop(0, 'rgba(255, 190, 98, 0.08)');
+    g.addColorStop(0.5, 'rgba(255, 204, 130, 0.28)');
+    g.addColorStop(1, 'rgba(91, 218, 255, 0.08)');
+    roundedRectPath(ctx, rect.x, rect.y, rect.w, rect.h, 12);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 212, 120, 0.52)';
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.fillStyle = 'rgba(255, 226, 166, 0.82)';
+    ctx.font = `bold ${clamp(width / 95, 10, 13)}px sans-serif`;
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.fillText('左下摇杆转向 · 右下刹车 · 拾取蓝色 N 后按住氮气', width / 2, footerY);
+    ctx.textBaseline = 'middle';
+    ctx.fillText('♟  左下摇杆转向 · 右下刹车 · 拾取蓝色N后按住氮气  ❯', centerX, y + barH * 0.54);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
   }

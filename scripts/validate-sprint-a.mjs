@@ -5,6 +5,8 @@ const files = {
   main: 'src/main.wx.ts',
   canvasCompat: 'src/racer/RacerCanvasCompat.ts',
   frontendScene: 'src/racer/frontend/RacerV2FrontendScene.ts',
+  homeLayout: 'src/racer/frontend/home/RacerHomeLayout.ts',
+  homeRenderer: 'src/racer/frontend/home/RacerHomeRenderer.ts',
   startup: 'src/platforms/wechat/startup.ts',
   wechatMainCanvas: 'src/platforms/wechat/RacerWechatMainCanvas.ts',
   wechatPlatform: 'src/platforms/wechat/RacerWechatPlatform.ts',
@@ -48,22 +50,41 @@ requireTokens(source.frontendScene, [
   "runtime.phase === 'menu'",
   "runtime.phase === 'trackSelect'",
   "runtime.phase === 'settings'",
-  'drawBackdrop',
-  'backgroundTop',
-  'backgroundBottom',
-  'Product-style frontend',
-  'drawStatusCard',
-  'drawBrandBanner',
-  'drawSystemBar',
-  "ctx.fillText('⚙'",
-  'drawVehicleShowcase',
-  'drawMenuButtons',
+  'homeRenderer.draw',
   'drawTrackSelect',
   'drawSettings',
   'drawHelp',
-  'frontendTime',
-  '拾取蓝色 N 后按住氮气'
-], 'V2 clean responsive frontend pages and capsule-safe settings entry', failures);
+  'frontendTime'
+], 'V2 frontend page routing and modal pages', failures);
+requireTokens(source.homeRenderer, [
+  'class RacerHomeRenderer',
+  'drawBackdrop',
+  'drawCity',
+  'drawProfile',
+  'drawAssetCard',
+  'drawCarStage',
+  'drawGarageButton',
+  'drawStartButton',
+  'Wide metal start CTA',
+  'leftPreviousArrow',
+  'rightNextArrow',
+  '38,000',
+  'Lv. 21',
+  '进入车库',
+  '拾取蓝色N后按住氮气'
+], 'independent garage-style home renderer', failures);
+requireTokens(source.homeLayout, [
+  'RacerHomeLayout',
+  'buildRacerHomeLayout',
+  'bestCard',
+  'profileCard',
+  'coinCard',
+  'gemCard',
+  'carStage',
+  'garageButton',
+  'footerBar',
+  'trackCarousel'
+], 'independent garage-style home layout', failures);
 requireTokens(source.canvasCompat, ['installRacerCanvasCompatibility', 'roundRectFallback', 'quadraticCurveTo'], 'canvas compatibility', failures);
 requireTokens(source.startup, ['installRacerCanvasCompatibility', 'renderBootScreen', 'RacerWechatPlatform', 'RacerV2FrontendScene', 'startReliableWeChatRenderLoop', 'RUNTIME V2 FRONTEND', '极速公路启动失败'], 'wechat startup, V2 frontend, and reliable render loop binding', failures);
 requireTokens(source.wechatMainCanvas, ['ensureWeChatMainCanvas', 'main_canvas_bootstrap', 'GameGlobal.canvas', 'root.canvas = mainCanvas', 'wx.createCanvas'], 'explicit visible WeChat main canvas bootstrap', failures);
@@ -101,13 +122,18 @@ requireTokens(source.layout, [
   'nitroButton',
   'nitroTouchArea',
   'line6Y',
+  'buildRacerHomeLayout',
   'menuPrimarySize',
   'menuLeftSafe',
   'menuStartY',
   'menuX',
-  'settingsButtonSize = clamp(height * 0.1, 38, 44)',
-  'settingsButtonRight = clamp(width * 0.035, 24, 34)',
-  'settingsButtonY = clamp(height * 0.215, 78, 96)',
+  'RacerTrackCarouselLayout',
+  'trackCarousel',
+  'trackCarouselCardW',
+  'trackCarouselStepX',
+  'settingsButtonSize',
+  'settingsButtonRight',
+  'settingsButtonY',
   'startButton: rect(menuX',
   'width - settingsButtonRight - settingsButtonSize',
   'joystickRadius = Math.max(58',
@@ -130,7 +156,7 @@ requireTokens(source.layout, [
   'miniMapSize = clamp',
   'miniMapTop',
   'pauseGap'
-  ], 'safe-area frontend panels, capsule-safe settings control, compact joystick, and shared touch layout', failures);
+  ], 'safe-area frontend panels, home track carousel layout, capsule-safe settings control, compact joystick, and shared touch layout', failures);
 requireTokens(source.uiRenderer, ['drawNitroButton', 'state.nitroCharge', '黄色 ≫ 立即加速', '蓝色 N 补充 50% 氮气', '红黑地面是减速陷阱', 'drawCloseButton'], 'nitro HUD and powerup tutorial', failures);
 requireTokens(source.uiTheme, [
   "baseIdle: 'rgba(255,255,255,0.1)'",
@@ -164,6 +190,18 @@ if (source.frontendScene.includes('prototype.render =') || source.frontendScene.
 if (source.frontendScene.includes("{ target: 'menu-settings', rect: layout.menu.settingsButton, label: '设置'")) {
   failures.push('V2 settings entry must live outside the left-side primary action list');
 }
+
+if (source.frontendScene.includes("{ target: 'menu-track', rect: layout.menu.trackButton, label: '选择赛道'")) {
+  failures.push('V2 home must use the track carousel instead of a primary 选择赛道 orb');
+}
+
+requireTokens(source.scene, [
+  'beginMenuCarouselDrag',
+  'finishMenuCarouselDrag',
+  'menuCarouselOffset',
+  "source === 'home_carousel'",
+  "this.phase !== 'trackSelect' && this.phase !== 'menu'"
+], 'home track carousel drag/snap selection from menu phase', failures);
 
 if (source.frontendScene.includes("ctx.fillText('•••'")) {
   failures.push('V2 settings entry must not imitate the native WeChat capsule with duplicate ellipsis controls');
